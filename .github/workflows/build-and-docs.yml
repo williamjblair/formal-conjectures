@@ -31,9 +31,31 @@ permissions:
   contents: read
 
 jobs:
+  # The category check is a policy gate, so it has tests of its own. They need
+  # no Lean build, so they run alongside it rather than after it.
+  scripts:
+    runs-on: ubuntu-latest
+    name: Test scripts
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12.9'
+
+      - name: Run script tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+
   build:
     runs-on: ubuntu-latest
     name: Build project
+    # `actions: read` is for downloading the category diagnostics recorded by
+    # the last `main` run, so a pull request can be compared against its base.
+    permissions:
+      contents: read
+      actions: read
     steps:
 
       - name: Checkout project
@@ -157,15 +179,78 @@ jobs:
         run: |
           mkdir -p site/data
           lake exe extract_names --exclude=statement,docstring,moduleDocstrings \
-            > site/data/conjectures.json 2> extract_names.warnings || true
+            > site/data/conjectures.json
+
+      # The category diagnostics below are only worth reporting as a delta, so
+      # each `main` run records them as an artifact and a pull request compares
+      # against the one for its base commit. Nothing here is executed: the
+      # artifact is JSON, read by a script that validates it and refuses a
+      # snapshot taken at any other commit. A missing artifact (base predates
+      # this, its run failed, it expired, or the two runs raced) is not an
+      # error; the comparison is skipped and totals are reported instead.
+      - name: Fetch category diagnostics for the base commit
+        if: steps.mode.outputs.website_only != 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          # Artifacts come back newest first, so the first match is the most
+          # recent `main` run for the base commit. Fork runs upload nothing,
+          # but check the repository anyway rather than trust the name alone.
+          matches=$(gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/artifacts?name=category-diagnostics&per_page=100" \
+            --jq "[.artifacts[]
+                   | select(.expired == false
+                            and .workflow_run.head_sha == \"$BASE_SHA\"
+                            and .workflow_run.head_branch == \"main\"
+                            and .workflow_run.head_repository_id
+                                == .workflow_run.repository_id)
+                   | .id] | .[]" || true)
+          id=${matches%%$'\n'*}
+          if [[ -z "$id" ]]; then
+            echo "::notice::No category diagnostics recorded for base ${BASE_SHA:0:7}."
+            exit 0
+          fi
+          # Nothing below is worth failing a pull request over: without the
+          # baseline the check still runs, it just reports totals.
+          if ! gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > base.zip; then
+            echo "::warning::Could not download the base category diagnostics."
+            exit 0
+          fi
+          if ! unzip -o -j base.zip category-diagnostics.json -d base; then
+            echo "::warning::Base artifact held no category-diagnostics.json."
+          fi
 
       # `extract_names` notices `research open` problems with a sorry-free proof, and
-      # `test`/`API` statements without one. Those warnings went to stderr behind the
-      # `|| true` above, so nothing ever read them. The first is a contradiction and
-      # fails; the other two are reported to the run summary without blocking.
+      # `test`/`API` statements without one, both decidable from the JSON above. The
+      # first is a contradiction and fails whether or not it is new; the other two go
+      # to the run summary, with the ones this change introduces called out.
       - name: Check category warnings
         if: steps.mode.outputs.website_only != 'true'
-        run: python3 scripts/check_category_warnings.py extract_names.warnings
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          args=(site/data/conjectures.json
+                --snapshot category-diagnostics.json
+                --source-sha "$GITHUB_SHA")
+          # There is a base to compare against only on a pull request.
+          if [[ -n "${BASE_SHA:-}" ]]; then
+            args+=(--base-snapshot base/category-diagnostics.json
+                   --base-sha "$BASE_SHA")
+          fi
+          python3 scripts/check_category_warnings.py "${args[@]}"
+
+      - name: Record category diagnostics for this commit
+        if: >-
+          steps.mode.outputs.website_only != 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: category-diagnostics
+          path: category-diagnostics.json
+          if-no-files-found: error
 
       - name: Extract Verso fragments for website
         if: steps.mode.outputs.website_only != 'true'

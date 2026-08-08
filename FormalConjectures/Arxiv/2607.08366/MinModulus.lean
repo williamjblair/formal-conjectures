@@ -26,12 +26,10 @@ import FormalConjecturesUtil
 - [jarfo/min-modulus](https://github.com/jarfo/min-modulus), the author's Lean development of
   the paper's Main Theorem. Section 7 of the paper describes it.
 
-The paper's Main Theorem and its Conjecture 1 differ in what they quantify over, and only the
-first is proved. Theorems A and B fix the super-increasing set $\{2^k - 1\}$ and pin the least
-modulus at which *it* is valid; Conjecture 1 says no other set of $n$ residues does better.
-`jarfo/min-modulus` covers the Main Theorem, kernel-checked and sorry-free. Conjecture 1 has
-CP-SAT infeasibility certificates per modulus rather than a proof, which is why it is stated
-here as `research open`.
+The paper's Main Theorem and its Conjecture 1 differ in what they quantify over. Theorems A
+and B fix the super-increasing set $\{2^k - 1\}$ and prove that the least modulus at which
+*that set* is valid is $2^n - 2^{\lfloor\log_2 n\rfloor}$ for every $n \geq 2$; Conjecture 1
+says that no other set of $n$ residues is valid below that modulus, and is open.
 -/
 
 open Finset
@@ -59,44 +57,41 @@ $N < 2^n - 2^{\lfloor \log_2 n\rfloor}$, no set of $n$ residues mod $N$ is valid
 Equivalently the super-increasing set $\{2^k - 1 : 0 \leq k \leq n-1\}$ attains the least
 valid modulus, which is `minModulus n`.
 
-`0 < N` is needed and not decoration. `minModulus 2 = 2`, so the range includes `N = 0`, and
-`ZMod 0` is `ℤ` rather than a finite modulus: `{1, 2} ⊆ ℤ` has two elements and the only way
-to pick two of them summing to `3` is one of each, so it is valid and the statement would be
-false there for a reason that has nothing to do with the question.
+The hypothesis $0 < N$ is needed: `minModulus 2 = 2`, so the range includes $N = 0$, where
+`ZMod 0` is $\mathbb{Z}$ rather than a finite modulus and $\{1, 2\} \subseteq \mathbb{Z}$ is
+valid. No guard is needed at $N = 1$, since `ZMod 1` is trivial and so has no subset of size
+$n \geq 2$.
 -/
-@[category research open, AMS 11]
+@[category research open, AMS 5 11]
 theorem min_modulus :
     answer(sorry) ↔ ∀ n N : ℕ, 2 ≤ n → 0 < N → N < minModulus n →
       ∀ A : Finset (ZMod N), #A = n → ¬ IsValidMod A := by
   sorry
 
 /--
-The half of the conjecture that is not in question: the bound is attained, so no smaller
-modulus can be claimed for `n` residues in general. The witness is the super-increasing set
-$\{2^k - 1 : 0 \leq k \leq n - 1\}$.
+**Theorem A (Fonollosa, 2026).** The bound `minModulus n` is attained: the super-increasing
+set $\{2^k - 1 : 0 \leq k \leq n - 1\}$ is valid mod $2^n - 2^{\lfloor\log_2 n\rfloor}$.
 
-This is Theorem A, and `theoremA` in [jarfo/min-modulus](https://github.com/jarfo/min-modulus)
-proves it. That development works in `ℕ` with `Nat.ModEq` and indexes the multiset by position
-in `[0, n)`, where this indexes by residue, so the two are the same statement through a
-translation rather than literally. The translation is sound here: the residues $2^k - 1$ for
-$k < n$ are distinct and below $2^n - 2^{\lfloor\log_2 n\rfloor}$, so nothing collapses when
-they are collected into a `Finset (ZMod N)`.
+This bounds the least modulus admitting a valid set of $n$ residues from above only; that no
+smaller modulus admits one is the open half, stated in `min_modulus`. The linked development
+proves this as `theoremA` in `MinModulus/UniqueSums.lean`.
 -/
-@[category research solved, AMS 11]
+@[category research solved, AMS 5 11,
+  formal_proof using lean4 at "https://github.com/jarfo/min-modulus"]
 theorem exists_isValidMod_minModulus (n : ℕ) (hn : 2 ≤ n) :
     ∃ A : Finset (ZMod (minModulus n)), #A = n ∧ IsValidMod A := by
   sorry
 
 /-- The all-ones multiset always has the right size and the right sum, so `IsValidMod` is a
 uniqueness statement rather than an existence one. -/
-@[category API, AMS 11]
+@[category API, AMS 5 11]
 theorem one_sum_eq (A : Finset (ZMod N)) :
     ∑ _a ∈ A, (1 : ℕ) = #A ∧ ∑ a ∈ A, ((1 : ℕ) : ZMod N) * a = ∑ a ∈ A, a :=
   ⟨by simp, by simp⟩
 
 /-- A set with fewer than two elements is valid for a silly reason, so the conjecture asks
 about `2 ≤ n`: with `#A ≤ 1` the only multiset of size `#A` drawn from `A` is the all-ones one. -/
-@[category API, AMS 11]
+@[category API, AMS 5 11]
 theorem isValidMod_of_subsingleton {A : Finset (ZMod N)} (hA : #A ≤ 1) : IsValidMod A := by
   intro m hsize _ a ha
   rcases Finset.card_le_one.mp hA with h

@@ -4,6 +4,9 @@ Formal Conjectures states open mathematical problems in Lean 4. It is a statemen
 repository, not a proof repository: almost every problem is `sorry`. Each statement must say
 what its source says.
 
+[REVIEW_MATH.md](REVIEW_MATH.md) is about that last sentence. Read it when you review a
+formalisation, or before you submit one. No check in this repository decides it.
+
 [CONTRIBUTING.md](CONTRIBUTING.md) is the reference for conventions, folders, and the
 attributes. This file adds only what CONTRIBUTING does not tell you.
 

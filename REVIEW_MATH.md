@@ -51,14 +51,21 @@ Read the source. Do not read only the docstring, because the docstring is also u
 Compare the quantifiers, the direction of each inequality, the constants and the ranges. A reversed
 conclusion is easy to miss, because the Lean reads well in both directions.
 
-There is no confirmed example yet. These leads are open in #4896:
+Sometimes you do not need the paper. The docstring records the source, so a statement can
+contradict its own file.
+
+- *Erdős 887* `variants.rosenfeld_4` (confirmed): the docstring gives the interval as
+  `(n^{1/2}, n^{1/2} + n^{1/4})`, where the coefficient is `1`. The Lean writes
+  `∃ C > 0, ... C * n^(1/4)`. The two give different answers for the greatest `K`. One of them is
+  wrong, and either way the file disagrees with itself.
+
+Check that first, because it is cheap. These leads need the cited papers, and they are open in
+#4896:
 
 - *Green 72*: the statement may assert that the extremal value is `2N`. The source asks whether
   `2N` is eventually impossible.
 - *Erdős 757*: `IsAdmissible` may use `(B - B).ncard = 11`, where the source has `11 ≤`.
 - *Erdős 1167*: the module docstring records the condition `κ α > r`. The theorem may omit it.
-
-To confirm one of these, read the cited paper. This class is the expensive one.
 
 ### 2. The hypotheses cannot hold
 
@@ -75,8 +82,11 @@ the default value, and not about the mathematics.
   `n` vertices has at most `n * (n - 1) / 2` edges. At `c = 2` and `n = 100`, that is 20000 against
   4950. For `c ≥ 1/2` no graph qualifies. The set is empty, `sInf ∅ = 0`, and both `research open`
   statements were false. See #4867 and #4877.
-- *Erdős 694* (lead): the hypotheses assume a greatest and a least element of each totient fibre.
-  The fibre over `3` is empty. See #4896.
+- *Erdős 694* (confirmed): the hypothesis is `∀ n, IsGreatest (Nat.totient ⁻¹' {n}) (fmax n)`, over
+  each `n : ℕ`, and `IsGreatest S a` requires `a ∈ S`. But `φ(m)` is even for each `m > 2`, and
+  `φ(1) = φ(2) = 1`. Thus `3` is a nontotient and the fibre over `3` is empty. No `fmax` satisfies
+  the hypothesis. Note that the conclusion already restricts `n` to the range of `φ`. The
+  hypothesis needs the same restriction. See #4896.
 
 ### 3. Boundary cases
 
@@ -106,11 +116,17 @@ A finding that claims too much costs the reviewer more time than no finding.
 with the source first.
 
 **Self-answer.** An `answer` term can sometimes take the value that it must determine. The
-statement is then provable by `rfl`, and it settles nothing. Two leads in #4896: *Erdős 195* may
-permit `answer (sSup S) = sSup S`, and *Erdős 887* `parts.i` may place the answer inside the
-binders.
+statement is then provable by `rfl`, and it settles nothing. *Erdős 195* (confirmed) is
+`answer(sorry) = sSup S`, so the slot accepts `sSup S`. `AGENTS.md` states that a tautological
+answer is not a solution. No check enforces that.
 
-Examine the scope. An `answer` inside a binder makes a different claim from one outside it.
+**Scope.** An `answer` inside a binder makes a different claim from one outside it. `AGENTS.md`
+requires the quantifiers to come after `answer(sorry)`.
+
+- *Erdős 887* `parts.i` (confirmed): the slot sits inside the binders for `C` and `n`, so it
+  accepts the left side and `le_refl` closes the statement. `parts.i` and `parts.ii` carry the same
+  docstring, which asks for "an absolute constant `K`". Only `parts.ii`, which writes
+  `∃ K, ∀ C > 0, ...`, states that. See #4896.
 
 ### 5. What a `formal_proof` link shows, before comparator
 

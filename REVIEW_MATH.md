@@ -6,6 +6,12 @@ source says? It is written for a human reviewer or an agent doing an initial pas
 `AGENTS.md` covers the first pass, which is mechanical: attributes, naming, imports, build. This
 file covers what is left, which is the part that needs judgement.
 
+It is worth being clear about what this pass is not. A tool such as `leanprover/comparator` decides
+whether a submitted proof establishes a given statement under a permitted set of axioms. That
+question is mechanical and it is being automated. This guide is about the other question, whether
+the statement is the right one, which no checker settles because the statement is the thing every
+checker takes as given. The better the automated side becomes, the more this side carries.
+
 ## What this pass is
 
 A review under this guide produces **recommendations**. It does not decide whether a pull request
@@ -37,48 +43,65 @@ that does not compile.
 ## The semantic pass
 
 Work through these in order. Each is a class of defect that has actually occurred in this
-repository, with a real instance named so you can see the shape.
+repository.
+
+Examples below are marked **confirmed** where the witness has been checked against the repository,
+and **lead** where it has not. A lead is a place to look, not a finding. Treating one as settled is
+the mistake this guide is trying to prevent, so it would be poor form for the guide to make it.
 
 ### 1. The statement does not match the source
 
 Read the cited source, not the docstring. The docstring is part of what you are reviewing.
 
 Check that the quantifiers, the direction of the inequality, the constants and the ranges all
-match. Reversals are common and easy to miss, because the Lean statement reads fluently either
-way.
+match. Reversals are easy to miss, because the Lean statement reads fluently either way.
 
-- *Green 72*: the statement appears to assert that the extremal value is `2N`, where the source
-  asks whether `2N` is eventually impossible. The conclusion is reversed. (#4896)
-- *Erdős 757*: `IsAdmissible` uses `(B - B).ncard = 11` where the source has `11 ≤ (B - B).ncard`.
-  Equality rather than a bound changes the optimum. (#4896)
-- *Erdős 1167*: the module docstring records the source condition `κ α > r`, and the theorem omits
-  it. (#4896)
+No confirmed instance is recorded yet. Open leads, all from #4896:
+
+- *Green 72* (lead): the statement may assert that the extremal value is `2N`, where the source
+  asks whether `2N` is eventually impossible.
+- *Erdős 757* (lead): `IsAdmissible` may use `(B - B).ncard = 11` where the source has
+  `11 ≤ (B - B).ncard`.
+- *Erdős 1167* (lead): the module docstring records the source condition `κ α > r`, which the
+  theorem may omit.
+
+Confirming one of these means reading the cited paper. That is the work, and it is why this class
+is the expensive one.
 
 ### 2. The hypotheses cannot be satisfied
 
-A statement whose hypotheses are unsatisfiable is true and says nothing. This is the defect that
-survives every mechanical check, because such a file builds and its statement is well typed.
+A statement whose hypotheses are unsatisfiable is true and says nothing. This defect survives every
+mechanical check, because such a file builds and its statement is well typed.
 
-For each hypothesis, ask what has to exist for it to hold, and whether anything does.
+For each hypothesis, ask what must exist for it to hold, and whether anything does.
 
-- *Erdős 80*: `Admissible c G` required `c * n ^ 2 ≤ #G.edgeFinset`, but a simple graph on `n`
-  vertices has at most `n * (n - 1) / 2` edges. For `c ≥ 1/2` nothing qualifies, so the set is
-  empty, `sInf ∅ = 0`, and both `research open` statements were false. Found by a contributor,
-  fixed in #4877.
-- *Erdős 694*: the hypotheses assume a greatest and a least element of every totient fibre. The
-  fibre over `3` is empty, so the hypotheses are inconsistent and the wrapper is vacuous. (#4896)
+- *Erdős 80* (confirmed): `Admissible c G` required `c * n ^ 2 ≤ #G.edgeFinset`, but a simple graph
+  on `n` vertices has at most `n * (n - 1) / 2` edges. At `c = 2` and `n = 100` that is 20000
+  required against 4950 available. For `c ≥ 1/2` nothing qualifies, so the set is empty,
+  `sInf ∅ = 0`, and both `research open` statements were false. Reported in #4867, fixed in #4877.
+- *Erdős 694* (lead): the hypotheses assume a greatest and a least element of every totient fibre,
+  and the fibre over `3` is empty. (#4896)
 
 ### 3. Degenerate boundary cases
 
-Check the smallest value of every bound. Off-by-one in the base case is the most common finding in
-this repository.
+Check the smallest value of every bound.
 
-- *Erdős 940*: `large_integers` quantifies over `r ≥ 2` where the intended range is `r ≥ 3`. At
-  `r = 2` the conclusion contradicts a solved theorem in the same file. (#4896)
-- *Green 21*: `fox_kleitman_modular` admits `k = 0`, where the hypotheses are vacuous but the
-  conclusion asks `0 ≠ 0`. (#4896)
-- *Erdős 939*: no positivity condition on the summands, so `{0, 1}` satisfies a statement the
-  source intends for positive integers. (#4896)
+- *Erdős 940* (confirmed): `large_integers` quantifies over `r ≥ 2`. At `r = 2` it asserts that
+  eventually every integer is a sum of at most two `2`-powerful numbers, so that set is cofinite.
+  `erdos_940.variants.two`, in the same file and categorised `research solved`, states that the
+  same set has density `0`. The two cannot both hold.
+- *Green 21* (confirmed): `fox_kleitman_modular` admits `k = 0`. There the hypothesis holds
+  vacuously, the only `x : Fin 0 → (ZMod p)ˣ` makes the antecedent vacuous, and the conclusion
+  reduces to `(0 : ZMod p) ≠ 0`. So no `f` works and the answer is forced to `False`, for a reason
+  unrelated to the question.
+- *Erdős 939* (confirmed, and weaker than it looks): `Nat.Full k n` is
+  `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`, so `0` and `1` are vacuously Full.
+  Hence `{0, 1} ∈ Erdos939Sums 4`. But the theorem quantifies over all `r ≥ 4`, and at `r = 5` a
+  set of three pairwise-coprime Full numbers cannot contain `0`, since `gcd 0 x = x`. The witness
+  settles one case and does not collapse the statement.
+
+That last one is the shape to imitate. Report what the witness establishes and what it does not.
+A finding that overstates its own reach costs a reviewer more time than no finding at all.
 
 ### 4. Lean total functions returning junk
 
@@ -107,29 +130,43 @@ mathematics. Erdős 80 above is the worked example: `sInf ∅ = 0` made the whol
 against the source before checking anything else about the statement.
 
 **Self-answer.** An `answer` term that can be instantiated with the thing it is supposed to
-determine makes the statement provable by `rfl` and settles nothing. *Erdős 195* admits
-`answer (sSup S) = sSup S`. *Erdős 887* `parts.i` places the answer term inside the binders, so it
-can be instantiated pointwise and closed by reflexivity. (#4896)
+determine makes the statement provable by `rfl` and settles nothing. Two leads in #4896:
+*Erdős 195* may admit `answer (sSup S) = sSup S`, and *Erdős 887* `parts.i` may place the answer
+term inside the binders, where it can be instantiated pointwise.
 
 Also check scope: an `answer` inside a binder is a different claim from one outside it.
 
-### 6. What a `formal_proof` link actually establishes
+### 6. What a `formal_proof` link establishes, until comparator does it
 
-A link is a claim that a proof of *this statement* exists somewhere. Three things go wrong.
+This section describes the interim state. `leanprover/comparator` answers this question
+mechanically: it builds a submitted proof in a sandbox, checks that it proves the trusted statement
+and no other, and enforces a `permitted_axioms` list. Where a proof has been through comparator,
+read its verdict and skip this section.
 
-**The proof assumes something unproved.** A file can be `sorry`-free and still establish the
-statement only under an axiom the author declared. `#print axioms` on a proof that takes its
-assumption as a hypothesis comes back clean, so this is not visible from the proof term. Erdős 427,
-750 and 1141 each link a `sorry`-free proof that declares a published theorem as an `axiom`. These
-now carry `conditional formal_proof ... assuming <decl>`, which names the assumption as a
-declaration in the same file. See #4881.
+Comparator does not settle the classes above. It takes the statement as given, so a machine-checked
+proof of a statement that misformalises its source is a machine-checked proof of the wrong thing.
+Sections 1 to 5 are what protect its trusted side.
 
-**The link does not name a file.** A repository root, a commit page or a discussion thread does not
-tell a reader which file to open, and no check can read it. See #4895.
+Meanwhile the repository holds around 330 links that predate any of this, and each is a claim that
+a proof of *this statement* exists somewhere. Three things go wrong.
 
-**The kind is wrong.** A proof that lives in this repository takes
-`formal_proof using formal_conjectures at ""`, not a `lean4` link pointing at the file itself. See
-#4883.
+**The proof assumes something unproved** (confirmed). A file can be `sorry`-free and still
+establish the statement only under an axiom the author declared. `#print axioms` on a proof that
+takes its assumption as a hypothesis comes back clean, so this is not visible from the proof term.
+Erdős 427, 750 and 1141 each link a `sorry`-free proof that declares a published theorem as an
+`axiom`: Shiu's theorem, Stiebitz's theorem, and Pollack's Theorem 1.3 with Mertens' third. These
+now carry `conditional formal_proof ... assuming <decl>`, which names the assumption as a Lean
+declaration rather than as a bare axiom name. That is the one thing this records which comparator's
+`permitted_axioms` does not. See #4881.
+
+**The link does not name a file** (confirmed). A repository root, a commit page or a discussion
+thread does not tell a reader which file to open, and no check can read it. 18 links were in this
+state. One pointed at `FormalizedFormalLogic/Foundation`, which no longer contains any modal logic,
+so a link checker would have called it healthy while a reader found nothing. See #4895.
+
+**The kind is wrong** (confirmed). A proof that lives in this repository takes
+`formal_proof using formal_conjectures at ""`, not a `lean4` link pointing at the file itself.
+Erdős 316 and 399 each linked their own file. See #4883.
 
 When reviewing a linked proof, check the *declaration* rather than the file. A file that contains a
 `sorry` on some other statement is normal; what matters is the declaration the link points at.

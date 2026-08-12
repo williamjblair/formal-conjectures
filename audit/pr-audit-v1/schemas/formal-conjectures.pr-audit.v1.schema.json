@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formal-conjectures.github.io/schemas/formal-conjectures.pr-audit.v1.schema.json",
+  "title": "Formal Conjectures pull-request audit core v1",
+  "description": "Deterministic, advisory evidence over immutable retained inputs. Mutable GitHub status belongs in the observation envelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generator", "repository", "inputs", "checks", "disposition", "root"],
+  "properties": {
+    "schema_version": {"const": "formal-conjectures.pr-audit.v1"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "repository": {"$ref": "#/$defs/repository"},
+    "inputs": {"$ref": "#/$defs/coreInputs"},
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/check"}
+    },
+    "disposition": {"$ref": "#/$defs/disposition"},
+    "root": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "identifier": {"type": "string", "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"},
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "sourceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "name", "version", "canonicalization", "source", "noncapabilities"],
+      "properties": {
+        "schema_version": {"const": "formal-conjectures.pr-audit-generator.v1"},
+        "name": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "string", "minLength": 1},
+        "canonicalization": {"const": "fc-jcs-ijson-integer-v1"},
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "repository", "baseline", "overlay"],
+          "properties": {
+            "kind": {"const": "git_baseline_with_content_addressed_overlay"},
+            "repository": {"type": "string", "format": "uri", "pattern": "^https://"},
+            "baseline": {"$ref": "#/$defs/revision"},
+            "overlay": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["files", "root"],
+              "properties": {
+                "files": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/sourceFile"}},
+                "root": {"$ref": "#/$defs/sha256"}
+              }
+            }
+          }
+        },
+        "noncapabilities": {
+          "type": "array",
+          "contains": {"const": "network"},
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit_oid", "tree_oid"],
+      "properties": {
+        "commit_oid": {"$ref": "#/$defs/oid"},
+        "tree_oid": {"$ref": "#/$defs/oid"}
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status", "base_blob_oid", "base_blob_sha256", "head_blob_oid", "head_blob_sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/repoPath"},
+        "status": {"enum": ["added", "modified", "deleted"]},
+        "base_blob_oid": {"oneOf": [{"$ref": "#/$defs/oid"}, {"type": "null"}]},
+        "base_blob_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "head_blob_oid": {"oneOf": [{"$ref": "#/$defs/oid"}, {"type": "null"}]},
+        "head_blob_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "pull_request", "comparison", "base", "head", "changes"],
+      "properties": {
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["host", "owner", "name", "url"],
+          "properties": {
+            "host": {"const": "github.com"},
+            "owner": {"type": "string", "minLength": 1},
+            "name": {"type": "string", "minLength": 1},
+            "url": {"type": "string", "format": "uri", "pattern": "^https://"}
+          }
+        },
+        "pull_request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["number", "url"],
+          "properties": {
+            "number": {"type": "integer", "minimum": 1},
+            "url": {"type": "string", "format": "uri", "pattern": "^https://"}
+          }
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "complete"],
+          "properties": {
+            "kind": {"const": "github_pull_request_file_snapshot"},
+            "complete": {"const": true}
+          }
+        },
+        "base": {"$ref": "#/$defs/revision"},
+        "head": {"$ref": "#/$defs/revision"},
+        "changes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/change"}}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "media_type", "path", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "role": {"enum": ["generator_identity", "repository_snapshot", "check_results", "source_file", "method", "configuration", "tool_output", "typed_result", "authoritative_observation", "acquisition_receipt", "query", "provenance_event"]},
+        "media_type": {"enum": ["application/json", "application/vnd.github+json", "text/plain", "text/x-lean"]},
+        "path": {"$ref": "#/$defs/repoPath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "coreArtifact": {
+      "allOf": [
+        {"$ref": "#/$defs/artifact"},
+        {"properties": {"role": {"enum": ["generator_identity", "repository_snapshot", "check_results", "source_file", "method", "configuration", "tool_output", "typed_result", "query"]}}}
+      ]
+    },
+    "coreInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_sha256", "artifact_root", "artifacts", "generator_artifact_id", "repository_artifact_id"],
+      "allOf": [
+        {"properties": {"artifacts": {"contains": {"properties": {"role": {"const": "generator_identity"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}}},
+        {"properties": {"artifacts": {"contains": {"properties": {"role": {"const": "repository_snapshot"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}}},
+        {"properties": {"artifacts": {"contains": {"properties": {"role": {"const": "check_results"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}}}
+      ],
+      "properties": {
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "artifact_root": {"$ref": "#/$defs/sha256"},
+        "artifacts": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/coreArtifact"}},
+        "generator_artifact_id": {"$ref": "#/$defs/identifier"},
+        "repository_artifact_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "kind", "locator", "root"],
+      "properties": {
+        "name": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["retained_procedure", "github_actions_workflow", "human_review_guide", "external_checker"]},
+        "locator": {"type": "string", "minLength": 1},
+        "root": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "checkInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "artifact_id", "kind", "locator", "root"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "kind": {"$ref": "#/$defs/identifier"},
+        "locator": {"type": "string", "minLength": 1},
+        "root": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["declaration", "statement", "locator"],
+      "properties": {
+        "declaration": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1},
+        "locator": {"type": "string", "minLength": 1}
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["declaration", "kind", "locator", "conditions"],
+      "properties": {
+        "declaration": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["formal_conjectures", "lean4", "other_system"]},
+        "locator": {"type": "string"},
+        "conditions": {"type": "array", "items": {"$ref": "#/$defs/condition"}}
+      },
+      "allOf": [{
+        "if": {"properties": {"kind": {"enum": ["lean4", "other_system"]}}},
+        "then": {"properties": {"locator": {"minLength": 1}}}
+      }]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "locator", "sha256", "statement", "witness"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/identifier"},
+        "locator": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "statement": {"type": "string", "minLength": 1},
+        "witness": {"type": "string"}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "mode", "property", "role", "outcome", "severity", "scope", "implementation", "inputs", "evidence", "conditions", "assumptions", "proofs", "limitations", "does_not_establish"],
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "fail"}}, "required": ["outcome"]},
+          "then": {"properties": {"severity": {"enum": ["nit", "meaning"]}}},
+          "else": {"properties": {"severity": {"const": "none"}}}
+        },
+        {"properties": {"inputs": {"contains": {"properties": {"kind": {"const": "typed-result"}}, "required": ["kind"]}, "minContains": 1, "maxContains": 1}}}
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "kind": {"enum": ["mechanical", "semantic", "proof", "metadata"]},
+        "mode": {"enum": ["native", "comparator", "human_review", "retained_replay"]},
+        "property": {"enum": ["immutable-input-identity", "formal-proof-conditions-retained", "lean-build", "answer-slot-scope-fidelity", "hypothesis-satisfiability", "exact-formal-proof-artifact-identity", "comparator-packet-identity"]},
+        "role": {"enum": ["producer", "independent", "advisory"]},
+        "outcome": {"enum": ["pass", "fail", "inconclusive", "error", "unavailable"]},
+        "severity": {"enum": ["none", "nit", "meaning"]},
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["revision", "paths", "declarations"],
+          "properties": {
+            "revision": {"enum": ["base", "head", "comparison"]},
+            "paths": {"type": "array", "items": {"$ref": "#/$defs/repoPath"}},
+            "declarations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+          }
+        },
+        "implementation": {"$ref": "#/$defs/implementation"},
+        "inputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/checkInput"}},
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+        "conditions": {"type": "array", "items": {"$ref": "#/$defs/condition"}},
+        "assumptions": {"type": "array", "items": {"$ref": "#/$defs/condition"}},
+        "proofs": {"type": "array", "items": {"$ref": "#/$defs/proof"}},
+        "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "does_not_establish": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["advisory", "basis_check_ids", "nonclaims"],
+      "properties": {
+        "advisory": {"enum": ["clean", "nits_found", "needs_revision", "inconclusive", "unavailable"]},
+        "basis_check_ids": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identifier"}},
+        "nonclaims": {
+          "type": "array",
+          "minItems": 4,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

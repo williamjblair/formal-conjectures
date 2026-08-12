@@ -14,5 +14,8 @@ Before changing version 1:
 8. Require one typed result per check. It must derive the complete check projection and artifact relations; semantic results must bind the exact finding, witness, source, method, scope, preparer/reviewer, authority, and independence.
 9. Escape every string in HTML or Markdown projections. `scripts/pr_audit.py` provides a small escaped Markdown example; downstream renderers remain responsible for their own context.
 10. Rebuild the five fixtures with `python3 scripts/build_pr_audit_fixtures.py`, then review the byte changes and run the full script-test suite.
+11. Keep summary and skill projections thin. They must validate and render the
+    native core rather than carrying a second verdict table, and they must not
+    write to GitHub without a separately authorized integration.
 
 Breaking changes require a new schema version and parallel fixtures. Do not reinterpret existing version-1 roots.

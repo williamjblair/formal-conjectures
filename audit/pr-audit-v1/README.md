@@ -22,13 +22,30 @@ python3 scripts/generate_pr_audit.py observation \
   --input audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/observation-input.json \
   --core /tmp/core.json \
   --output /tmp/observation.json --sha256-sidecar
+
+python3 scripts/project_pr_audit_summary.py \
+  --core /tmp/core.json \
+  --output /tmp/summary.md
 ```
+
+The Markdown file is an escaped, deterministic projection of a validated,
+canonically framed core. It is suitable for a GitHub summary dry run, but the
+command performs no GitHub write and the JSON core remains authoritative. The
+summary projection is intentionally outside the generator's attested overlay,
+so adding or changing presentation code does not change existing core roots.
 
 The full test command includes an offline Draft 2020-12 registry containing both local schemas and validates all ten frozen core/observation records without network resolution:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/test_pr_audit.py
+PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s scripts -p 'test_*.py'
 ```
+
+The repo-local skill at
+`.agents/skills/review-formal-conjectures-pr/SKILL.md` gives an agent the same
+offline sequence: generate with the native CLI, optionally bind an observation,
+then render this advisory summary. It forbids live acquisition, contributor-code
+execution, GitHub posting, or authority claims. The skill is an operator guide;
+it does not add another audit implementation or conclusion.
 
 The library and CLI do not call Git, GitHub, Lean, a model, the network, or a subprocess. Producers run those systems separately. The core manifest retains only exact source/method/configuration identity, exact query and variables, time-free normalized results, typed per-check results, and their roots. Raw host responses, acquisition receipts, request IDs, HTTP metadata, cursors, runner details, timestamps, and preparation events live only in the observation/provenance manifest. Each check input names its core artifact ID; generation rejects both unreferenced evidence artifacts and references whose roots do not match the retained bytes. Generation also refuses absolute paths, traversal, symlinks, missing files, digest mismatches, duplicate identifiers, unknown versions, floats, out-of-range integers, lone surrogates, and duplicate JSON keys.
 

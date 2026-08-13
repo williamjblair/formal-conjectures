@@ -14,7 +14,8 @@
     {
       "id": 3,
       "prompt": "I'm reviewing the PR that adds Paper/ClaudesCycles.lean. Does the Lean match Knuth's problem?",
-      "expected_output": "CLEAN, or ACCEPT WITH NITS with no finding that changes the meaning. cube_hamiltonian_arc_decomposition restricts to odd m > 1, HasHamiltonianArcDecomposition requires three permutations that are each a directed Hamiltonian cycle and that partition the arcs, and the file records the even case as open. A review that invents a defect here is a false positive, and the run fails."
+      "expected_output": "NEEDS REVISION. The Lean predicate is faithful, and the report should say so and say how it was checked. The finding is that cube_hamiltonian_arc_decomposition_even is categorised research open, and the module docstring says the even case remains open, while the cited paper retracts that. Knuth's Claude's Cycles is dated 28 February 2026, revised 14 April 2026; page 5 says the even case is open and page 6 opens 'Breaking news: The problem for even values of m is no longer in doubt!'. A run that returns CLEAN has read the problem statement and stopped, and fails this case.",
+      "notes": "This case was written as a false-positive control, on the assumption that the file was clean. The first run found the defect above, which was then verified against the PDF. The case now tests whether a reviewer reads a revised source to the end."
     }
   ]
 }

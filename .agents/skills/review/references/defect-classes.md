@@ -128,6 +128,9 @@ answer is not a solution. No check enforces that.
 **Scope.** An `answer` inside a binder makes a different claim from one outside it. `AGENTS.md`
 requires the quantifiers to come after `answer(sorry)`.
 
+`answer(sorry) ↔ ∀ᵉ ...` is the sanctioned shape, and not a defect.
+`FormalConjecturesUtil/Linters/AnswerLinter.lean` recommends it. Do not report it.
+
 - *Erdős 887* `parts.i` (confirmed): the slot sits inside the binders for `C` and `n`, so it
   accepts the left side and `le_refl` closes the statement. `parts.i` and `parts.ii` carry the same
   docstring, which asks for "an absolute constant `K`". Only `parts.ii`, which writes

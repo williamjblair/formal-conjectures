@@ -22,7 +22,7 @@ the tree yet.
 
 ```bash
 lake --wfail build 'FormalConjectures.ErdosProblems.«361»'   # each module in scope
-python3 scripts/check_erdos_status.py                         # Erdős problems only
+python3 scripts/check_erdos_status.py                         # only for ErdosProblems/
 ```
 
 If a module does not build, report that and stop.
@@ -41,7 +41,8 @@ Do this before you read the Lean statement closely. Most findings turn on a defi
 most false findings come from assuming one.
 
 Look up each name the statement mentions in `FormalConjecturesForMathlib/` or Mathlib, and ask
-what it does at its degenerate values. Two real cases from this repository:
+what it does at its degenerate values. The *Check the degenerate cases* table in `AGENTS.md`
+lists the ones that recur. Two more from this repository:
 
 - `Nat.Full k n` is `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`, so `0` and `1`
   are vacuously Full.
@@ -58,8 +59,14 @@ For an Erdős problem, `https://www.erdosproblems.com/<n>` returns 403 to a plai
 `curl` with a browser user agent. The `teorth/erdosproblems` YAML that `check_erdos_status.py`
 reads carries status only, and no statement text, so it is not the source.
 
-Read the remarks as well as the boxed statement. A sub-question is frequently settled there
-while the statement still reads as open.
+For a paper, a fetch returns raw PDF bytes. Save the file and run `pdftotext -layout` on it.
+
+**Read the whole document, and check its date.** A source revises. Knuth's *Claude's Cycles* is
+"28 February 2026; revised 14 April 2026". Page 5 says the even case is open, and page 6 opens
+"Breaking news: The problem for even values of m is no longer in doubt!". A reviewer who reads
+the problem statement and stops will pass a file that records a question its own source has
+closed. Read the remarks, the postscripts and any addendum, and compare the source's early
+status claims against its later sections.
 
 Quote formulas from the LaTeX source rather than the rendered page. Rendering runs terms
 together: `3^7\cdot 61^5` reads as `3761^5`, and that misreading is already in this repository.
@@ -89,6 +96,11 @@ Each finding **must** carry a witness: a concrete case where the Lean and the so
 Check the witness in Lean where you can, with `lake env lean` on a scratch file outside the
 tree that imports the module.
 
+You may also write a program. Two things repay the effort. Encode the source's own construction
+and run it against the Lean predicate, as a positive control that the definition is faithful and
+not vacuous. And enumerate the smallest case exhaustively. A positive control convinces a
+reviewer more than a second reading of the definition does.
+
 Say what the witness shows, and also what it does not show. A finding that claims too much
 costs a reviewer more time than no finding.
 
@@ -103,12 +115,17 @@ A finding looks like this:
 > excludes. *Does not show*: anything about `r ≥ 3`, which is the real question.
 > *Suggested change*: `∀ r ≥ 3`, and say so in the docstring.
 
+Say what you verified, and not only what you found. When the answer to the contributor's
+question is yes, a bare verdict tells them nothing about what was checked, and reads as though
+you did not look.
+
 Then give one verdict:
 
 - **CLEAN**: no findings.
 - **ACCEPT WITH NITS**: the findings do not change the meaning of the statement.
 - **NEEDS REVISION**: at least one finding changes the meaning, or makes the statement vacuous,
-  or shows that a `formal_proof` claims more than the linked proof gives.
+  or shows that a `formal_proof` claims more than the linked proof gives, or records a status or
+  category that the cited source contradicts.
 
 If you cannot give a witness for an item, write it as a question instead of a finding.
 

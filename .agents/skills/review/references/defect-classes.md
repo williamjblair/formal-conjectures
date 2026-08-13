@@ -1,6 +1,6 @@
 # Defect classes
 
-This is the reference for the `review-statement` skill. `SKILL.md` gives the procedure. This
+This is the reference for the `review` skill. `SKILL.md` gives the procedure. This
 file gives the classes of defect that the procedure looks for, each with an example from this
 repository.
 

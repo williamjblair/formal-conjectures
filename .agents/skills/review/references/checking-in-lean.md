@@ -8,14 +8,15 @@ look for. This says how to check it, and it is mostly a list of traps that have 
 Write it outside the tree and import the module under review.
 
 ```bash
-cd <repository root>
-lake env lean /path/to/scratch/Witness.lean
+lake env lean /absolute/path/to/scratch/Witness.lean
 ```
 
-Run `lake` from the repository root and pass an absolute path. Never `cd` elsewhere, including
-inside a compound command: the working directory persists into the next call, and `lake` then
-reports `no default toolchain configured`, which reads as a broken install rather than a wrong
-directory. This has caught three separate reviews, each after reading the warning.
+**Never `cd`, for any reason.** Not into the scratch directory to run `python3` or `sed`, not as
+the first half of a compound command. The working directory persists into your *next* call, so a
+`cd` for unrelated work poisons a later `lake` invocation, which then reports `no default
+toolchain configured` and reads as a broken install rather than a wrong directory. Four reviews
+have tripped this, every one of them after reading a warning phrased as being about `lake`. It is
+not about `lake`. Pass absolute paths and stay in the repository root.
 
 Two warnings are expected and are not failures. `linter.style.moduleDocstring` fires once for the
 file. A file with more than one `/-! ... -/` section trips a second, differently worded variant
@@ -52,6 +53,16 @@ example : <the statement you wrote out> := fun x => TheDeclaration x
 
 If that type-checks, your transcription is the real thing. Without it, a `sorry`-free refutation
 is still only a transcription you might have got wrong.
+
+That form does not work on `answer(sorry) ↔ RHS`, which is the commonest shape here: the header
+hole resolves before the body, so `example : _ ↔ <RHS> := TheDeclaration` fails. Go through the
+implication instead:
+
+```lean
+example (h : <RHS>) : True := have := TheDeclaration.mpr h; trivial
+```
+
+If that elaborates, your `<RHS>` is the declaration's.
 
 ## What actually reduces
 

@@ -32,10 +32,18 @@ If a pull request is named, review its diff. Nothing else in this file assumes t
 work into the tree first, and put it back afterwards:
 
 ```bash
-git fetch origin pull/N/head:pr-N && git show pr-N:<path> > <path>   # materialise
+gh pr view N --json files --jq '.files[].path'      # which files, and are they new
+git fetch origin pull/N/head:pr-N
+git show pr-N:<path> > <path>                       # materialise, once per file
 # ... review, build, write witnesses ...
-rm <path> && git branch -D pr-N                                      # restore
+git checkout -- <path>   # restore a file the PR MODIFIES
+rm <path>                # remove a file the PR ADDS
+git branch -D pr-N
 ```
+
+Use the right restore. `rm` on a file the pull request modifies deletes tracked content and
+leaves the tree broken. Record what `git status` showed before you start, or you cannot tell
+your own leftovers from someone else's.
 
 `git status` will show the file as untracked while you work. Do not stage it. Report final-file
 line numbers rather than patch offsets. If the named pull request does not exist, say so and
@@ -117,10 +125,17 @@ lists the ones that recur. Two more from this repository:
   `Filter.limsup` over `ℝ`, which is `sInf ∅ = 0` on an unbounded sequence.
 
 Now read [`references/checking-in-lean.md`](references/checking-in-lean.md), before you go on.
-Its first section says which of these definitions `decide` can settle and which it cannot, and
-that determines which witnesses are worth planning. Six review runs reported reaching step 5,
-finding that the witness they had designed in step 2 was unreachable, and starting again. The
-rest of that file is witness mechanics and keeps until step 5.
+Read *What actually reduces* and *Finding the lemma*, and look up the definitions you just read,
+not the ones named above.
+
+Read them here rather than at step 5 because they tell you which witnesses are *reachable*, and
+that is what you are about to plan. The usual gain is not avoiding a dead end. It is finding that
+a witness you had written off is available after all: a predicate with no `Decidable` instance
+that has a constructive encoding, or a definition whose supporting lemma does not exist yet and
+has to be budgeted for. A reviewer who learns that at step 5 has already committed to the weaker
+control and written half the report around it.
+
+The scratch-file mechanics and the axiom discipline in that file keep until step 5.
 
 ## Step 3: read the cited source
 

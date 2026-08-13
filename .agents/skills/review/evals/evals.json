@@ -1,6 +1,6 @@
 {
   "skill_name": "review",
-  "notes": "Each case reviews a file in this repository, not a fixture, so a case is only valid at a commit where the defect is still present. Runs must review a worktree built from `pinned_commit`, never the working tree. Reviewing the working tree is what retired the 940 case when its fix merged, and 940 was the strongest case in the set.\n\nSelection rule: keep a case only if it separates the arms. Measured in iteration 4, the one iteration where all six cases ran with and without the skill:\n  940            9/9 vs 5/9   +0.444\n  ClaudesCycles  8/8 vs 6/8   +0.250\n  1063           7/7 vs 6/7   +0.143\n  PR 4660        8/8 vs 7/8   +0.125\n  918            6/6 vs 6/6    0.000\n  Green 72       6/6 vs 6/6    0.000\n918 and Green 72 were dropped after that run. Neither measured anything across four iterations. Mean gap over the retained four is 0.240, against 0.160 over the original six.\n\nWhy those two scored zero is the rule for choosing replacements. A stray `∀ (ω : Ordinal)` binder and a reversed conclusion are both visible by reading the file against its own docstring, and the control reads carefully too. The cases that separate the arms need something outside the file: 940 needs erdosproblems.com, which returns 403 to the control, and ClaudesCycles needs a kernel-checked witness rather than an argument. Before adding a case, ask whether a careful reader with no network and no Lean could reach the answer. If yes it is documentation, not a test.\n\nAn expected output is only as good as its check. Four have been overturned by runs: case 3 in iteration 1, case 2 in iteration 3, Green 72 in iteration 4, case 2 again in iteration 7. Every one of those was a key I reasoned out rather than checked. The two cases that have never been overturned are the two whose keys are backed by a Lean proof. Prefer keys a machine settles.\n\nCase 2 was Erdős 939 through iteration 2, retired for the same reason as 918 and Green 72: the control scored 6 of 6 twice, and the finding is a worked example in references/defect-classes.md, so the runs measured recall rather than procedure. Keep eval targets and the worked examples in that reference disjoint.\n\nCase 4 comes from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Its expected output is my adjudication of someone else's hypothesis, so a run that produces a witness against it is evidence the case is wrong, not the run.\n\nIteration 8 re-ran the control against these four cases at their pins. It scored 0.882, against the 0.8396 carried since iteration 4 over a six-case set that no longer exists. The control is stronger than that stale figure implied: it built Lean on case 2 and swept it 8/8, and case 1 rose from 5/9 to 7/9. Case 2 no longer separates the arms at all.\n\nNo gap can be computed yet. Every `with_skill` number on record was measured against the working tree, not against a worktree at the pin, so it is not on the same footing as this control. The skill arm has to be re-run at the pins before any delta from this set means anything. Per-case control results are in the `iteration_8` field of each case.",
+  "notes": "Each case reviews a file in this repository, not a fixture, so a case is only valid at a commit where the defect is still present. Runs must review a worktree built from `pinned_commit`, never the working tree. Reviewing the working tree is what retired the 940 case when its fix merged, and 940 was the strongest case in the set.\n\nSelection rule: keep a case only if it separates the arms. Measured in iteration 4, the one iteration where all six cases ran with and without the skill:\n  940            9/9 vs 5/9   +0.444\n  ClaudesCycles  8/8 vs 6/8   +0.250\n  1063           7/7 vs 6/7   +0.143   (dropped after iteration 8; see below)\n  PR 4660        8/8 vs 7/8   +0.125\n  918            6/6 vs 6/6    0.000\n  Green 72       6/6 vs 6/6    0.000\n918 and Green 72 were dropped after that run. Neither measured anything across four iterations. Mean gap over the retained four is 0.240, against 0.160 over the original six.\n\nWhy those two scored zero is the rule for choosing replacements. A stray `∀ (ω : Ordinal)` binder and a reversed conclusion are both visible by reading the file against its own docstring, and the control reads carefully too. The cases that separate the arms need something outside the file: 940 needs erdosproblems.com, which returns 403 to the control, and ClaudesCycles needs a kernel-checked witness rather than an argument. Before adding a case, ask whether a careful reader with no network and no Lean could reach the answer. If yes it is documentation, not a test.\n\nAn expected output is only as good as its check. Four have been overturned by runs: case 3 in iteration 1, case 2 in iteration 3, Green 72 in iteration 4, case 2 again in iteration 7. Every one of those was a key I reasoned out rather than checked. The two cases that have never been overturned are the two whose keys are backed by a Lean proof. Prefer keys a machine settles.\n\nSecond rule on keys: prefer a defect whose fix is already merged. A merged fix means the maintainers adjudicated the finding, so the key is theirs and not mine. Better still if someone else found it. Of the original four cases only 940 had a merged fix, and 940 is the only key never overturned and the strongest discriminator at +0.222. The other three were pinned to open or abandoned pull requests, and all three keys had to be revised. Pinning made this rule free, because a merged fix no longer erases its own case.\n\nCase 2 was Erdős 939 through iteration 2, retired for the same reason as 918 and Green 72: the control scored 6 of 6 twice, and the finding is a worked example in references/defect-classes.md, so the runs measured recall rather than procedure. Keep eval targets and the worked examples in that reference disjoint.\n\nCase 4 comes from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Its expected output is my adjudication of someone else's hypothesis, so a run that produces a witness against it is evidence the case is wrong, not the run.\n\nIteration 8 re-ran the control against these four cases at their pins. It scored 0.882, against the 0.8396 carried since iteration 4 over a six-case set that no longer exists. The control is stronger than that stale figure implied: it built Lean on case 2 and swept it 8/8, and case 1 rose from 5/9 to 7/9. Case 2 no longer separates the arms at all.\n\nNo gap can be computed yet. Every `with_skill` number on record was measured against the working tree, not against a worktree at the pin, so it is not on the same footing as this control. The skill arm has to be re-run at the pins before any delta from this set means anything. Per-case control results are in the `iteration_8` field of each case.\n\nIteration 8 dropped Erdős 1063. Measured on the same footing both arms scored 8/8, so the gap is 0.000, and the skill arm spent 1.28x the tokens and 2.3x the wall clock to reach it. The control built Lean, machine-checked the comparator collapse and returned the right verdict unaided. Erdős 14 replaces it, pinned before merged #1382.\n\nIteration 8 is the first like-for-like delta in the exercise: control 0.882, skill 0.969, gap +0.087 over the four cases as run, or +0.116 over the three retained. It cost 142,835 tokens against 89,410 and 1755s against 440s, so 1.6x tokens and 4.0x wall clock. The whole gap sits in two assertions in two cases, source fidelity on 940 and the positive control on ClaudesCycles. Two of the four cases returned 0.000. Every delta quoted before this one compared arms reading different file states and should not be used.",
   "evals": [
     {
       "id": 1,
@@ -39,42 +39,34 @@
       "iteration_8": {
         "without_skill": 0.7778,
         "raw": "7/9",
-        "with_skill": null,
-        "note": "Up from 5/9 in iteration 4. Both failures are on the skill's two claimed contributions. It stated the source poses the problem generally with k=2 known; /latex/940 opens 'Let $r\\geq 3$.', so it reached the right fix by matching erdos_940 line 35 rather than by reading the source. And it declined to build, so the contradiction against variants.two is argued, not checked."
+        "with_skill": 1.0,
+        "note": "Up from 5/9 in iteration 4. Both failures are on the skill's two claimed contributions. It stated the source poses the problem generally with k=2 known; /latex/940 opens 'Let $r\\geq 3$.', so it reached the right fix by matching erdos_940 line 35 rather than by reading the source. And it declined to build, so the contradiction against variants.two is argued, not checked.",
+        "with_skill_raw": "9/9",
+        "gap": 0.222,
+        "with_skill_note": "Gained both assertions the control failed, which are the skill's two claims. It quoted 'Let $r\\geq 3$.' from /latex/940, and checked the contradiction three ways: a sorry-free Lean helper, a sieve to 1e7, and Blomer-Granville's asymptotic agreeing with the sieve."
       }
     },
     {
       "id": 2,
-      "prompt": "someone on the tracker says ErdosProblems/1063.lean is broken because `n k` is an sInf over a set that can be empty, and sInf of the empty set is 0 in Lean, so n 0 and n 1 are junk. does that break the upper bound theorems?",
-      "expected_output": "NEEDS REVISION, but not for the reason the tracker gives. The junk values are real: n 0 = n 1 = 0, because at k = 0 the condition `exists i0 < k` is unsatisfiable and at k = 1 it needs `not (m divides m)`, so both defining sets are empty. They are harmless, and the report must say why rather than report them. Every statement that uses `n` is guarded by k >= 3, or asymptotic at atTop, or names a specific k between 2 and 5, or is an upper bound that 0 satisfies. The report should also not report the lcm range as a mismatch: the Lean writes Finset.Icc 1 (k-1) where the source writes k[2,3,...,k-1], and those agree because lcm with 1 is the identity.\n\nThe real defect is in better_upper's comparator, `(k : R) * ((Finset.Icc 1 (k-1)).lcm (fun n : N => n) : R)`. The ascription sits on the Finset.lcm application, so the coercion lands on n and the lcm is taken in R, where lcm of non-zero elements is 1. The comparator is therefore just (k : R), which forces n k <= k eventually while n k >= 2k whenever the set is non-empty, so the statement asserts n_k does not exist and no answer satisfies it. Fixed in #4942.",
+      "prompt": "can you check FormalConjectures/ErdosProblems/14.lean? the two statements are hard to read and I want to know they say what the problem actually asks",
+      "expected_output": "NEEDS REVISION, on erdos_14b. It reads `∃ (A : Set ℕ), IsLittleO atTop (nonUniqueSumCount A) squareRoot ↔ answer(sorry)`. The body of an existential extends as far right as it can, so the binder scopes over the iff and the statement means `∃ A, (IsLittleO ... ↔ answer(sorry))`. The source asks whether such an A exists, which is `(∃ A, IsLittleO ...) ↔ answer(sorry)`, with the slot outside the binder. erdos_14a is not a defect: it is wrapped in redundant parentheses and reads badly, but its bracketing is correct, and reporting it as broken is the failure mode this case tests.",
       "files": [
-        "FormalConjectures/ErdosProblems/1063.lean"
+        "FormalConjectures/ErdosProblems/14.lean"
       ],
-      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
-      "notes": "The specificity case: the reported defect is real and harmless, and reporting it as breaking the file is the failure. Iteration 7 changed the case. A run found that better_upper's comparator computes its lcm in the reals, which I verified: the elaborated term applies Finset.lcm to a function into R, and lcm of two non-zero reals is 1, both checked sorry-free. So NEEDS REVISION is correct and my ACCEPT WITH NITS key was wrong. That is the fourth time a run has beaten my expected output, after case 3 in iteration 1, case 2 in iteration 3 and case 4 in iteration 4. Assertions 6 and 7 are new.",
+      "pinned_commit": "4f97b303db6737278199a6d7ae34e2857083f4bb",
+      "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/1382",
+      "adjudication": "merged. Found by YaelDillies, not by me, and accepted by the maintainers, so the answer key is not my reasoning. The fix survived later refactoring: on main the declaration is erdos_14.parts.ii and still reads answer(sorry) <-> exists A, ... with the slot outside the binder.",
+      "replaces": "Erdos 1063, dropped after iteration 8 measured both arms at 8/8 on it.",
+      "notes": "Chosen against two rules the earlier cases failed. The fix is merged, so the ground truth is the maintainers' rather than mine; of the original four cases only 940 had that, and 940 is the only key never overturned. And the defect's consequence lands where controls demonstrably fail: the bracketing leaves an answer slot on a research open statement that no longer records the source's question, and self-answer detection is the one assertion no control run has ever passed. Discrimination is unmeasured until this case runs. Assertion 6 deliberately stops at what the merged diff settles and does not claim the statement is trivially satisfiable, which I have not checked.",
       "assertions": [
-        "The report confirms that n 0 and n 1 are 0, and gives the reason, that both defining sets are empty and sInf of the empty set is 0",
-        "The report states that the junk values do not break the upper bound theorems",
-        "The report gives the reason, naming that the consumers of n are either guarded by k >= 3, or asymptotic at atTop, or applied at a specific k between 2 and 5",
-        "The report does not return NEEDS REVISION on account of the junk values",
-        "The report does not report lcm over Finset.Icc 1 (k-1) as a mismatch with the source's k[2,3,...,k-1], or explicitly says the two are equal",
-        "The report identifies that better_upper's comparator takes its lcm in the reals, so it collapses to k",
-        "The report states the consequence, that the statement is then unsatisfiable because n k >= 2k on a non-empty set",
-        "The verdict is NEEDS REVISION, on the comparator rather than on the junk values"
-      ],
-      "retired_id": 2,
-      "discrimination": {
-        "measured_in": "iteration_4",
-        "with_skill": "7/7",
-        "without_skill": "6/7",
-        "gap": 0.143
-      },
-      "iteration_8": {
-        "without_skill": 1.0,
-        "raw": "8/8",
-        "with_skill": null,
-        "note": "Up from 6/7. The control fetched the Mathlib cache, built, and machine-checked the comparator collapse, then proposed the exact fix that went into #4942. It also found the undocumented 3 <= k on cambie_upper_bound, which is #4938. This case no longer discriminates."
-      }
+        "The report identifies erdos_14b as the declaration at fault",
+        "The report states that the existential binder scopes over the iff, so the statement reads exists A, (IsLittleO ... iff answer(sorry)) rather than (exists A, IsLittleO ...) iff answer(sorry)",
+        "The report says the intended reading puts the answer slot outside the existential, and ties that to what the source asks",
+        "The report checks the elaboration rather than asserting the precedence from memory, for instance by elaborating both readings or printing the parsed statement",
+        "The report does not report erdos_14a as a defect, or says explicitly that its bracketing is correct despite the redundant parentheses",
+        "The report says what the mis-bracketing costs, that the answer slot no longer records the question the source asks",
+        "The verdict is NEEDS REVISION, on erdos_14b rather than on erdos_14a"
+      ]
     },
     {
       "id": 3,
@@ -112,8 +104,11 @@
       "iteration_8": {
         "without_skill": 0.875,
         "raw": "7/8",
-        "with_skill": null,
-        "note": "Up from 6/8. The gain is the formal_proof assertion: it resolved the proof to Basic.lean and flagged that the repository-root link lands on the repository's only sorry, which is the error I made in #4935 and reverted. Its one failure is the unrun positive control."
+        "with_skill": 1.0,
+        "note": "Up from 6/8. The gain is the formal_proof assertion: it resolved the proof to Basic.lean and flagged that the repository-root link lands on the repository's only sorry, which is the error I made in #4935 and reverted. Its one failure is the unrun positive control.",
+        "with_skill_raw": "8/8",
+        "gap": 0.125,
+        "with_skill_note": "Gained the positive control, the one assertion no control run has passed on this case. Proved HasHamiltonianArcDecomposition 3 from Knuth's C program and 4 from his even_solution.py tables, both sorry-free, plus an exhaustive negative control at m = 2."
       }
     },
     {
@@ -147,8 +142,11 @@
       "iteration_8": {
         "without_skill": 0.875,
         "raw": "7/8",
-        "with_skill": null,
-        "note": "Unchanged at 7/8, failing the same assertion. It reaches sup_rate but argues it duplicates erdos_265 and should be dropped, never naming the self-answer, so it would have deleted the defect without seeing it. This run was handed the pull request already checked out where iteration 4 made it fetch, and the score did not move."
+        "with_skill": 0.875,
+        "note": "Unchanged at 7/8, failing the same assertion. It reaches sup_rate but argues it duplicates erdos_265 and should be dropped, never naming the self-answer, so it would have deleted the defect without seeing it. This run was handed the pull request already checked out where iteration 4 made it fetch, and the score did not move.",
+        "with_skill_raw": "7/8",
+        "gap": 0.0,
+        "with_skill_note": "No gain. Both arms 7/8 failing the same assertion. The skill arm visited sup_rate, wrote a table row for it and marked it clean, so the class 4 material did not fire while the run was deep in a class 2 audit. The iteration 4 with_skill run did find it, so this is a regression on that assertion."
       }
     }
   ],

@@ -92,18 +92,19 @@ A junk value is not a defect by itself. Both examples above are defects because 
 turned out to be *about* the junk value. Ask instead what reads the definition, and whether any
 of it can reach the degenerate input.
 
-- *(confirmed harmless; the problem is deliberately not named here, because it is one of the
-  cases in `evals/`, and a reference that names a live review target measures recall rather than
-  procedure)*: a definition is an `sInf` whose set is empty at the two smallest arguments, so it
-  returns `0` there. Nothing is broken. Two statements that use it are guarded by a lower bound
-  on the parameter, one names specific small values, one is `=O`/`=o` at `atTop` and so cannot
-  see finitely many inputs, and the last is an upper bound that `0` satisfies. Report this as a
-  docstring omission, where the source states a restriction the docstring drops, and not as a
-  defect in any statement.
+So the question is never "does this definition have a junk value", which many do. It is whether
+anything reads it at the degenerate input, and whether reaching it can change a claim. Enumerate
+every declaration that uses the definition and say what the junk does to each. That table is the
+answer to the report, and it is the deliverable when the answer turns out to be "nothing breaks".
 
-Two rules of thumb. A junk value of `0` at the bottom of `ℕ` can only make an *upper* bound
-easier, and is dangerous only for a lower bound, an exact value, or a `≠ 0` claim. And a
-parameter left free at finitely many inputs absorbs any junk value there.
+Three rules of thumb. A junk value of `0` at the bottom of `ℕ` can only make an *upper* bound
+easier, and is dangerous only for a lower bound, an exact value, or a `≠ 0` claim. A parameter
+left free at finitely many inputs absorbs any junk value there. And an `=O` or `=o` statement at
+`atTop` cannot see finitely many inputs at all.
+
+When the source states a restriction that the docstring drops, and the junk value is what makes
+the omission observable, that is a finding against the docstring rather than against any
+statement.
 
 ### 3. Boundary cases
 

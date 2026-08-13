@@ -79,20 +79,20 @@
     {
       "id": 4,
       "prompt": "Someone on the audit issue says GreensOpenProblems/72.lean has the conclusion the wrong way round. Is that right?",
-      "expected_output": "A nit at least, on the module docstring. The module docstring asks 'Given N > 2 and more than 2*N points on an N x N-grid, are there 3 of the points on a common line?', which is the upper bound, and allowedSetSize_le in the same file already proves it by pigeonhole. So the docstring poses as the problem the one direction the file settles. NoKInLineFor is an equality, AllowedSetSize k N = (k-1)*N, so its open content is the other direction: that (k-1)*N points with no k collinear can actually be achieved. A report that says the Lean is reversed is wrong; the Lean is right and the module docstring describes the wrong half. The verdict is ACCEPT WITH NITS unless the reviewer finds something else.",
+      "expected_output": "NEEDS REVISION. Green's Problem 72 asks 'What is the largest subset of the grid [N]^2 with no three points in a line? In particular, for N sufficiently large is it impossible to have a set of size 2N with this property?' His comments add that configurations of 2N points exist only for N up to around 50, that (3/2 + o(1))N points are achievable for arbitrary N, and 'my personal suspicion is that this is optimal'. So the source expects 2N to be unachievable for large N. green_72 asserts NoKInLineFor 3 N, which unfolds to AllowedSetSize 3 N = 2*N, for every N >= 3. That is the claim Green expects to be false, asserted as a bare theorem under research open rather than put in an answer(sorry) slot. green_72.variants.eventually states the same proposition in answer form, so the file both asserts the claim and asks whether it holds. NoKInLine inherits it at k = 3. Separately the module docstring asks the pigeonhole direction, which allowedSetSize_le in the same file already proves, so it states the settled half rather than the problem.",
       "files": [
         "FormalConjectures/GreensOpenProblems/72.lean"
       ],
       "pinned_commit": "3f08b849788e5e73d52069c616469ea995aac7d7",
       "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
-      "notes": "Closes the non-Erdos gap. Both iteration 3 runs reported that step 1's commands and most of step 3 are erdosproblems.com-shaped, and only one case could catch that. Also a partial specificity case: the reported defect is in the docstring, not where the report points.",
+      "notes": "Closes the non-Erdos gap. Also the case where my own adjudication was wrong: I wrote the expected output saying the Lean was right and only the docstring stated the wrong half. The control run read Green's comments, found that he expects 2N to fail for large N, and showed the headline theorem asserts what the source expects to be false. I checked the PDF and the run is right. Corrected before grading. This is the third time a run has beaten my expected output, after case 3 in iteration 1 and case 2 in iteration 3.",
       "assertions": [
-        "The report states that allowedSetSize_le already proves AllowedSetSize k N <= (k-1)*N",
-        "The report concludes from that, that the open content of NoKInLineFor is the other direction, that (k-1)*N is achievable",
-        "The report identifies the module docstring, not the Lean, as the thing that states the wrong half",
-        "The report does not claim that green_72 or NoKInLineFor is itself reversed",
-        "The report reads Green's own problem 72 rather than only the file",
-        "The verdict is CLEAN or ACCEPT WITH NITS, not NEEDS REVISION on the Lean statement"
+        "The report quotes Green's actual question, that for N sufficiently large it is impossible to have a set of size 2N",
+        "The report states that Green expects 2N to be unachievable for large N, citing his suspicion that (3/2 + o(1))N is optimal",
+        "The report identifies green_72 as asserting the opposite, that 2N is attained for every N >= 3",
+        "The report notes that allowedSetSize_le already proves the <= direction, so the module docstring states the settled half",
+        "The report notes that green_72 and green_72.variants.eventually are the same proposition asserted and asked",
+        "The verdict is NEEDS REVISION"
       ]
     },
     {
@@ -117,20 +117,21 @@
     {
       "id": 6,
       "prompt": "can you review PR #4660 before I approve it? someone said the tsum has no Summable hypothesis and I want to know if that actually matters",
-      "expected_output": "NEEDS REVISION, and the reported concern is real rather than theoretical. IsRationalPairSequence requires `exists q : Q, tsum n, 1/(a n) = q`. In Mathlib tsum of a family that is not Summable is 0, and 0 is rational, so the condition is satisfied by any divergent series with q = 0. The witness is a n = n + 2: it is StrictMono, a 0 = 2, and both sums are harmonic tails that diverge, so both tsum values are 0 and both conjuncts hold. The definition is therefore satisfied by a sequence that has no rational reciprocal sum at all, which is the opposite of what the problem is about. The suggested change is to require Summable, or to state the conditions with HasSum, which carries convergence in the statement.",
+      "expected_output": "NEEDS REVISION, and blocking. IsRationalPairSequence requires `exists q : Q, tsum n, 1/(a n) = q`. In Mathlib tsum of a family that is not Summable is 0, and 0 is rational, so the condition reads 'sums to a rational OR diverges'. The consequence is worse than a loose definition: erdos_265 itself becomes provable. Its growth condition GrowthExceedsOne is exists-frequently, `exists-freq n, c^(2^n) <= a n`, which does not force summability, so a sequence can spike doubly exponentially at sparse indices and still have a divergent reciprocal sum. Both tsums are then 0, IsRationalPairSequence holds vacuously, and the existential the statement asks about is witnessed, collapsing answer(sorry) to True. A witness must satisfy the growth condition as well: a n = n + 2 satisfies IsRationalPairSequence but not GrowthExceedsOne, so it is not sufficient on its own. The fix is HasSum, which bundles convergence and is already the form used in 266.lean for the same circle of problems, plus a negative regression test that the current definition would fail.",
       "files": [
         "FormalConjectures/ErdosProblems/265.lean"
       ],
       "pinned_commit": "04418fa73a34fa8e5b063276ca577e00bb6fb0f8",
       "reviews_pull_request": 4660,
       "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
-      "notes": "The only case that reviews a pull request diff rather than a file, so it is the only one that exercises the skill's first scoping branch. Also restores class 2 coverage, lost when the 939 case was retired. The file does not exist on main; the pin is the pull request head.",
+      "notes": "The only case that reviews a pull request diff rather than a file, so it is the only one that exercises the skill's first scoping branch. Also restores class 2 coverage, lost when the 939 case was retired. The file does not exist on main; the pin is the pull request head. My first expected output gave a n = n + 2 as the witness, which satisfies IsRationalPairSequence but not GrowthExceedsOne, so it does not collapse erdos_265. The control run built a correct witness and I verified my error. Corrected.",
       "assertions": [
         "The report confirms that the missing Summable hypothesis matters, rather than treating it as a style point",
-        "The report gives the reason, that tsum of a non-summable family is 0 in Mathlib",
-        "The report gives a concrete witness sequence and checks it against every conjunct of IsRationalPairSequence",
-        "The report says that the witness has no rational reciprocal sum, so the definition admits exactly what the problem excludes",
-        "The report proposes requiring Summable or restating with HasSum",
+        "The report gives the reason, that tsum of a non-summable family is 0 in Mathlib and 0 is rational",
+        "The report explains that GrowthExceedsOne is an exists-frequently condition and so does not force summability",
+        "The report gives a witness that satisfies both IsRationalPairSequence and GrowthExceedsOne, not merely the former",
+        "The report states the consequence, that erdos_265 becomes provable and its answer collapses to True",
+        "The report proposes HasSum or Summable, and does not merely note the hazard",
         "The verdict is NEEDS REVISION"
       ]
     }

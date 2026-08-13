@@ -1,6 +1,6 @@
 {
   "skill_name": "review",
-  "notes": "Each case reviews a file in this repository, not a fixture, so a case is only valid at a commit where the defect is still present. Runs must review a worktree built from `pinned_commit`, never the working tree. Reviewing the working tree is what retired the 940 case when its fix merged, and 940 was the strongest case in the set.\n\nSelection rule: keep a case only if it separates the arms. Measured in iteration 4, the one iteration where all six cases ran with and without the skill:\n  940            9/9 vs 5/9   +0.444\n  ClaudesCycles  8/8 vs 6/8   +0.250\n  1063           7/7 vs 6/7   +0.143\n  PR 4660        8/8 vs 7/8   +0.125\n  918            6/6 vs 6/6    0.000\n  Green 72       6/6 vs 6/6    0.000\n918 and Green 72 were dropped after that run. Neither measured anything across four iterations. Mean gap over the retained four is 0.240, against 0.160 over the original six.\n\nWhy those two scored zero is the rule for choosing replacements. A stray `∀ (ω : Ordinal)` binder and a reversed conclusion are both visible by reading the file against its own docstring, and the control reads carefully too. The cases that separate the arms need something outside the file: 940 needs erdosproblems.com, which returns 403 to the control, and ClaudesCycles needs a kernel-checked witness rather than an argument. Before adding a case, ask whether a careful reader with no network and no Lean could reach the answer. If yes it is documentation, not a test.\n\nAn expected output is only as good as its check. Four have been overturned by runs: case 3 in iteration 1, case 2 in iteration 3, Green 72 in iteration 4, case 2 again in iteration 7. Every one of those was a key I reasoned out rather than checked. The two cases that have never been overturned are the two whose keys are backed by a Lean proof. Prefer keys a machine settles.\n\nCase 2 was Erdős 939 through iteration 2, retired for the same reason as 918 and Green 72: the control scored 6 of 6 twice, and the finding is a worked example in references/defect-classes.md, so the runs measured recall rather than procedure. Keep eval targets and the worked examples in that reference disjoint.\n\nCase 4 comes from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Its expected output is my adjudication of someone else's hypothesis, so a run that produces a witness against it is evidence the case is wrong, not the run.\n\nThe baseline is stale. `without_skill` read 0.8396 in iterations 4 through 7 because it was run once and reused. Any further comparison needs the control re-run against this four-case set.",
+  "notes": "Each case reviews a file in this repository, not a fixture, so a case is only valid at a commit where the defect is still present. Runs must review a worktree built from `pinned_commit`, never the working tree. Reviewing the working tree is what retired the 940 case when its fix merged, and 940 was the strongest case in the set.\n\nSelection rule: keep a case only if it separates the arms. Measured in iteration 4, the one iteration where all six cases ran with and without the skill:\n  940            9/9 vs 5/9   +0.444\n  ClaudesCycles  8/8 vs 6/8   +0.250\n  1063           7/7 vs 6/7   +0.143\n  PR 4660        8/8 vs 7/8   +0.125\n  918            6/6 vs 6/6    0.000\n  Green 72       6/6 vs 6/6    0.000\n918 and Green 72 were dropped after that run. Neither measured anything across four iterations. Mean gap over the retained four is 0.240, against 0.160 over the original six.\n\nWhy those two scored zero is the rule for choosing replacements. A stray `∀ (ω : Ordinal)` binder and a reversed conclusion are both visible by reading the file against its own docstring, and the control reads carefully too. The cases that separate the arms need something outside the file: 940 needs erdosproblems.com, which returns 403 to the control, and ClaudesCycles needs a kernel-checked witness rather than an argument. Before adding a case, ask whether a careful reader with no network and no Lean could reach the answer. If yes it is documentation, not a test.\n\nAn expected output is only as good as its check. Four have been overturned by runs: case 3 in iteration 1, case 2 in iteration 3, Green 72 in iteration 4, case 2 again in iteration 7. Every one of those was a key I reasoned out rather than checked. The two cases that have never been overturned are the two whose keys are backed by a Lean proof. Prefer keys a machine settles.\n\nCase 2 was Erdős 939 through iteration 2, retired for the same reason as 918 and Green 72: the control scored 6 of 6 twice, and the finding is a worked example in references/defect-classes.md, so the runs measured recall rather than procedure. Keep eval targets and the worked examples in that reference disjoint.\n\nCase 4 comes from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Its expected output is my adjudication of someone else's hypothesis, so a run that produces a witness against it is evidence the case is wrong, not the run.\n\nIteration 8 re-ran the control against these four cases at their pins. It scored 0.882, against the 0.8396 carried since iteration 4 over a six-case set that no longer exists. The control is stronger than that stale figure implied: it built Lean on case 2 and swept it 8/8, and case 1 rose from 5/9 to 7/9. Case 2 no longer separates the arms at all.\n\nNo gap can be computed yet. Every `with_skill` number on record was measured against the working tree, not against a worktree at the pin, so it is not on the same footing as this control. The skill arm has to be re-run at the pins before any delta from this set means anything. Per-case control results are in the `iteration_8` field of each case.",
   "evals": [
     {
       "id": 1,
@@ -35,6 +35,12 @@
         "with_skill": "9/9",
         "without_skill": "5/9",
         "gap": 0.444
+      },
+      "iteration_8": {
+        "without_skill": 0.7778,
+        "raw": "7/9",
+        "with_skill": null,
+        "note": "Up from 5/9 in iteration 4. Both failures are on the skill's two claimed contributions. It stated the source poses the problem generally with k=2 known; /latex/940 opens 'Let $r\\geq 3$.', so it reached the right fix by matching erdos_940 line 35 rather than by reading the source. And it declined to build, so the contradiction against variants.two is argued, not checked."
       }
     },
     {
@@ -62,6 +68,12 @@
         "with_skill": "7/7",
         "without_skill": "6/7",
         "gap": 0.143
+      },
+      "iteration_8": {
+        "without_skill": 1.0,
+        "raw": "8/8",
+        "with_skill": null,
+        "note": "Up from 6/7. The control fetched the Mathlib cache, built, and machine-checked the comparator collapse, then proposed the exact fix that went into #4942. It also found the undocumented 3 <= k on cambie_upper_bound, which is #4938. This case no longer discriminates."
       }
     },
     {
@@ -96,6 +108,12 @@
         "with_skill": "8/8",
         "without_skill": "6/8",
         "gap": 0.25
+      },
+      "iteration_8": {
+        "without_skill": 0.875,
+        "raw": "7/8",
+        "with_skill": null,
+        "note": "Up from 6/8. The gain is the formal_proof assertion: it resolved the proof to Basic.lean and flagged that the repository-root link lands on the repository's only sorry, which is the error I made in #4935 and reverted. Its one failure is the unrun positive control."
       }
     },
     {
@@ -125,6 +143,12 @@
         "with_skill": "8/8",
         "without_skill": "7/8",
         "gap": 0.125
+      },
+      "iteration_8": {
+        "without_skill": 0.875,
+        "raw": "7/8",
+        "with_skill": null,
+        "note": "Unchanged at 7/8, failing the same assertion. It reaches sup_rate but argues it duplicates erdos_265 and should be dropped, never naming the self-answer, so it would have deleted the defect without seeing it. This run was handed the pull request already checked out where iteration 4 made it fetch, and the score did not move."
       }
     }
   ],

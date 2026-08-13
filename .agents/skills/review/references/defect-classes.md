@@ -44,6 +44,11 @@ Each item below is a class of defect from this repository.
 Examples are marked **confirmed** or **lead**. A confirmed example has a witness that somebody
 checked. A lead is a place to look. Do not report a lead as a finding.
 
+A confirmed example may since have been fixed, and several here have open pull requests against
+them. That does not weaken the example: the shape is the lesson, not the current state of the
+file. But do not go looking for the defect in the tree and conclude the entry is wrong, and do
+not re-report one whose fix is already open. The pull request is named where there is one.
+
 ### 1. The statement does not match the source
 
 Read the source. Do not read only the docstring, because the docstring is also under review.
@@ -64,7 +69,7 @@ Check that first, because it is cheap. These leads need the cited papers, and th
 
 - *(unnamed, because it is a case in `evals/`)*: a file states an extremal value as an equality
   where the source asks whether that value is eventually unattainable. The pigeonhole half is
-  already a theorem in the same file, so the open content is the other half.
+  already a theorem in the same file, so the open content is the other half. Fixed in #4941.
 - *Erdős 757*: `IsAdmissible` may use `(B - B).ncard = 11`, where the source has `11 ≤`.
 - *Erdős 1167*: the module docstring records the condition `κ α > r`. The theorem may omit it.
 
@@ -116,13 +121,13 @@ Examine the smallest value of each bound.
   solved` statement in the same file gives the same set density `0`. Both cannot hold, so the
   answer slot on a `research open` statement is already decided, for a value the source excludes.
   Two statements in one file contradicting each other is the cheapest boundary defect to find and
-  the easiest to read past.
+  the easiest to read past. Fixed in #4933.
 - *Green 21* (confirmed): `fox_kleitman_modular` permits `k = 0`. The hypothesis then holds
   vacuously, and the conclusion becomes `(0 : ZMod p) ≠ 0`. Thus no `f` exists, and the answer is
   `False` for a reason that has nothing to do with the question.
 - *Erdős 939* (confirmed, but weaker than it appears): `Nat.Full k n` is
   `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`. Thus `0` and `1` are Full, and
-  `{0, 1} ∈ Erdos939Sums 4`. But the theorem quantifies over each `r ≥ 4`. At `r = 5` a member
+  `{0, 1} ∈ Erdos939Sums 4`. Fixed in #4934. But the theorem quantifies over each `r ≥ 4`. At `r = 5` a member
   needs three elements, and `{0, 1, x}` then needs `x` and `x + 1` both 5-full, which nobody
   has exhibited. The witness settles one case only.
 

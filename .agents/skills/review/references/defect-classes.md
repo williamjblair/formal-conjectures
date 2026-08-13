@@ -103,8 +103,11 @@ anything reads it at the degenerate input, and whether reaching it can change a 
 every declaration that uses the definition and say what the junk does to each. That table is the
 answer to the report, and it is the deliverable when the answer turns out to be "nothing breaks".
 
-Three rules of thumb. A junk value of `0` at the bottom of `ℕ` can only make an *upper* bound
-easier, and is dangerous only for a lower bound, an exact value, or a `≠ 0` claim. A parameter
+Three rules of thumb, and one caveat that undoes the first. A junk value of `0` at the bottom of
+`ℕ` can only make an *upper* bound easier, and is dangerous only for a lower bound, an exact
+value, or a `≠ 0` claim. The caveat: that holds where the junk sits in a *bound*. Where it sits in
+the admissibility predicate of an `∃ a, Admissible a ∧ P a`, it makes the existential easier to
+witness, so it strengthens rather than weakens, and can decide a `research open` answer. A parameter
 left free at finitely many inputs absorbs any junk value there. And an `=O` or `=o` statement at
 `atTop` cannot see finitely many inputs at all.
 

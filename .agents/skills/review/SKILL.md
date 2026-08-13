@@ -98,7 +98,10 @@ lists the ones that recur. Two more from this repository:
 - `∑' n, f n` is `0` when `f` is not `Summable`, and `0` is rational, an integer, and a limit.
   So `∃ q : ℚ, ∑' n, f n = q` reads as "converges to a rational **or** diverges". `HasSum`
   carries convergence in the statement and does not have this hole. The same applies to
-  `Filter.limsup` over `ℝ`, which is `sInf ∅ = 0` on an unbounded sequence.
+  `Filter.limsup` over `ℝ`, which is `sInf ∅ = 0` on an unbounded sequence. Check which way it
+  cuts: inside a bound this weakens the claim, but inside the admissibility predicate of an
+  `∃ a, Admissible a ∧ P a` it makes the existential easier to satisfy, and can make a
+  `research open` statement provable.
 
 Now read [`references/checking-in-lean.md`](references/checking-in-lean.md), before you go on.
 Read *What actually reduces* and *Finding the lemma*, and look up the definitions you just read,

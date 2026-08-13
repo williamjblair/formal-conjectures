@@ -14,12 +14,10 @@ what the source says?
 You produce **recommendations**. You do not decide whether to merge. The contributor can
 disagree with a finding and ask a maintainer to decide.
 
-Be clear about what this buys. Run against pending files with a no-skill control, a careful
-reviewer reached most of the same findings without any procedure. What it did not do was read a
-source that refused the first fetch, or check a single claim it made. It argued the contradiction
-and reconstructed one statement from a neighbouring problem file, which produced a confident
-wrong fix. So the steps that earn their cost are step 3 and step 5: read the source, and make
-every finding checkable rather than argued. Spend the effort there.
+Be clear about what this buys. Measured against a no-skill control, a careful reviewer reaches
+most of the same findings unaided. What it does not do is read a source that refuses the first
+fetch, or check a single claim it makes. So steps 3 and 5 are what earn the cost: read the
+source, and make every finding checkable rather than argued. Spend the effort there.
 
 Do not open `evals/`. It holds the graded answers to a handful of files in this repository, and
 reading it before you review one of them turns the review into recall.
@@ -28,25 +26,9 @@ First fix the scope. If a file is named, review the whole file, and run `git sta
 `git diff origin/main -- <path>`. The diff is what tells you whether there is pending local work;
 the log does not.
 
-If a pull request is named, review its diff. Nothing else in this file assumes that, so get the
-work into the tree first, and put it back afterwards:
-
-```bash
-gh pr view N --json files --jq '.files[].path'      # which files, and are they new
-git fetch origin pull/N/head:pr-N
-git show pr-N:<path> > <path>                       # materialise, once per file
-# ... review, build, write witnesses ...
-git checkout -- <path>   # restore a file the PR MODIFIES
-rm <path>                # remove a file the PR ADDS
-git branch -D pr-N
-```
-
-Use the right restore. `rm` on a file the pull request modifies deletes tracked content and
-leaves the tree broken. Record what `git status` showed before you start, or you cannot tell
-your own leftovers from someone else's.
-
-`git status` will show the file as untracked while you work. Do not stage it. Report final-file
-line numbers rather than patch offsets. If the named pull request does not exist, say so and
+If a pull request is named, review its diff.
+[`references/checking-in-lean.md`](references/checking-in-lean.md) has the recipe for getting it
+into the tree and putting the tree back. If the named pull request does not exist, say so and
 review the file instead.
 
 For when the file landed, use `gh api "repos/OWNER/REPO/commits?path=<path>"`. Do not use
@@ -87,18 +69,12 @@ directory. Skipping the status script outside `ErdosProblems/` is not a skipped 
 If a module does not build, report that and stop.
 
 `--wfail` runs the repository's own linters, including the category and `answer` ones, because
-they are `leanOptions` in `lakefile.toml`. A clean module build therefore covers them, and you
-do not need `check_category_warnings.py`, which takes an `extract_names` dump and needs the
-whole repository built.
+they are `leanOptions` in `lakefile.toml`. A clean module build covers them.
 
-`check_erdos_status.py` prints a JSON array of every mismatch in the repository. Match your
-problem against the `number` field, not with a bare grep, which also hits line numbers and
-other fields. Absence is the pass. The `WARNING: unrecognized YAML status state` lines are
-expected noise and are not a check failure.
-
-The script compares a file against the site's single status for the whole problem. A file with
-several variants can carry one whose status the source contradicts while the script stays
-silent, so passing it is not evidence about any individual variant.
+`check_erdos_status.py` prints a JSON array of mismatches; match on the `number` field, and
+absence is the pass. It compares against the site's single status for the whole problem, so a
+file can carry a variant whose status the source contradicts while the script stays silent.
+Passing it is not evidence about any individual variant.
 
 ## Step 2: read every definition the statement uses
 

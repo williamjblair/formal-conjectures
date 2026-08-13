@@ -3,6 +3,29 @@
 Read this when you are about to build a witness or a control. `defect-classes.md` says what to
 look for. This says how to check it, and it is mostly a list of traps that have cost real time.
 
+## Reviewing a pull request diff
+
+If a pull request is named, review its diff. Nothing else in this file assumes that, so get the
+work into the tree first, and put it back afterwards:
+
+```bash
+gh pr view N --json files --jq '.files[].path'      # which files, and are they new
+git fetch origin pull/N/head:pr-N
+git show pr-N:<path> > <path>                       # materialise, once per file
+# ... review, build, write witnesses ...
+git checkout -- <path>   # restore a file the PR MODIFIES
+rm <path>                # remove a file the PR ADDS
+git branch -D pr-N
+```
+
+Use the right restore. `rm` on a file the pull request modifies deletes tracked content and
+leaves the tree broken. Record what `git status` showed before you start, or you cannot tell
+your own leftovers from someone else's.
+
+`git status` will show the file as untracked while you work. Do not stage it. Report final-file
+line numbers rather than patch offsets. If the named pull request does not exist, say so and
+review the file instead.
+
 ## The scratch file
 
 Write it outside the tree and import the module under review.

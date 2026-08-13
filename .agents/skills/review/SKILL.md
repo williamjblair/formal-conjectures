@@ -96,13 +96,13 @@ Open the source the module docstring cites. Do not review the Lean against the d
 The docstring is also under review, and a docstring that disagrees with its own Lean is itself
 a finding.
 
-For an Erdős problem, read `https://www.erdosproblems.com/latex/<n>`. That is still a full HTML
-page, but the LaTeX is unrendered inside it: the statement sits in the `#content` div and the
-remarks in `problem-additional-text`. The site refuses a request that does not identify itself, so a
-web fetch tool and the default `Python-urllib` user agent both get a 403 while `curl`
-succeeds. Send a user agent that names you. Do not imitate a browser, and do not conclude from
-the 403 that the source is unreadable: a reviewer who gives up there reconstructs the statement
-from a neighbouring problem file, which is how a wrong bound gets copied instead of caught.
+For an Erdős problem, read `https://www.erdosproblems.com/latex/<n>` with `curl` and a user
+agent that names you;
+[`ErdosProblems/README.md`](../../../FormalConjectures/ErdosProblems/README.md) says why. The
+LaTeX sits unrendered in a full HTML page, the statement in the `#content` div and the remarks
+in `problem-additional-text`. Do not conclude from a 403 that the source is unreadable: a
+reviewer who gives up there reconstructs the statement from a neighbouring problem file, which
+is how a wrong bound gets copied instead of caught.
 
 The `teorth/erdosproblems` YAML that `check_erdos_status.py` reads carries status and tags
 only, and no statement text, so it is not the source.

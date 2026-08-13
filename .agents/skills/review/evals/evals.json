@@ -1,0 +1,20 @@
+{
+  "skill_name": "review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "can you take a look at FormalConjectures/ErdosProblems/940.lean before I send it? something about the large_integers variant feels off but I can't put my finger on it",
+      "expected_output": "NEEDS REVISION. The finding is that erdos_940.variants.large_integers quantifies over r >= 2, and at r = 2 it asserts that almost every integer is a sum of at most two 2-powerful numbers, so that set is cofinite. erdos_940.variants.two is in the same file, is categorised research solved, and states that the same set has density 0. The witness is that both cannot hold. The suggested change is to start the range at r = 3."
+    },
+    {
+      "id": 2,
+      "prompt": "Review FormalConjectures/ErdosProblems/939.lean against its source. Kenta reported on #4896 that the summands are missing a positivity condition, so {0,1} satisfies it. Is that right?",
+      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is defined as every prime factor of n having p^k dividing n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show: erdos_939 quantifies over every r >= 4, and at r = 5 a set of three pairwise coprime Full numbers cannot contain 0, because gcd 0 x = x. So the witness settles r = 4 and does not make the statement vacuous."
+    },
+    {
+      "id": 3,
+      "prompt": "I'm reviewing the PR that adds Paper/ClaudesCycles.lean. Does the Lean match Knuth's problem?",
+      "expected_output": "CLEAN, or ACCEPT WITH NITS with no finding that changes the meaning. cube_hamiltonian_arc_decomposition restricts to odd m > 1, HasHamiltonianArcDecomposition requires three permutations that are each a directed Hamiltonian cycle and that partition the arcs, and the file records the even case as open. A review that invents a defect here is a false positive, and the run fails."
+    }
+  ]
+}

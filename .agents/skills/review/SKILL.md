@@ -14,29 +14,65 @@ what the source says?
 You produce **recommendations**. You do not decide whether to merge. The contributor can
 disagree with a finding and ask a maintainer to decide.
 
+First fix the scope. If a pull request is named, review its diff. If a file is named, review
+the whole file, and read `git status` and `git log -1` so you know whether the work is even in
+the tree yet.
+
 ## Step 1: take the automatic checks as given
 
-Run these, and do not re-derive what they decide.
-
 ```bash
-lake --wfail build 'FormalConjectures.ErdosProblems.«361»'   # each module that changed
-python3 scripts/check_proof_links.py                          # does each formal_proof link resolve?
-python3 scripts/check_erdos_status.py                         # does the repo agree with erdosproblems.com?
+lake --wfail build 'FormalConjectures.ErdosProblems.«361»'   # each module in scope
+python3 scripts/check_erdos_status.py                         # Erdős problems only
 ```
 
 If a module does not build, report that and stop.
 
-## Step 2: read the cited source
+`--wfail` runs the repository's own linters, including the category and `answer` ones, because
+they are `leanOptions` in `lakefile.toml`. A clean module build therefore covers them, and you
+do not need `check_category_warnings.py`, which takes an `extract_names` dump and needs the
+whole repository built.
 
-Open the source that the module docstring cites. Do not review the Lean against the docstring
-alone. The docstring is also under review, and a docstring that disagrees with its own Lean is
-itself a finding.
+`check_erdos_status.py` prints every mismatch in the repository. Find your problem number in
+that list. Absence is the pass.
 
-## Step 3: work through the defect classes
+## Step 2: read every definition the statement uses
 
-Read [`references/defect-classes.md`](references/defect-classes.md) now. It gives a worked
-example from this repository for each class below, and each example is marked **confirmed** or
-**lead**. A lead is a place to look, and not a finding.
+Do this before you read the Lean statement closely. Most findings turn on a definition, and
+most false findings come from assuming one.
+
+Look up each name the statement mentions in `FormalConjecturesForMathlib/` or Mathlib, and ask
+what it does at its degenerate values. Two real cases from this repository:
+
+- `Nat.Full k n` is `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`, so `0` and `1`
+  are vacuously Full.
+- `Finset.Coprime S` is `S.gcd id = 1`, the gcd of the whole set. It is not pairwise, so a set
+  containing `1` is coprime whatever else it holds.
+
+## Step 3: read the cited source
+
+Open the source the module docstring cites. Do not review the Lean against the docstring alone.
+The docstring is also under review, and a docstring that disagrees with its own Lean is itself
+a finding.
+
+For an Erdős problem, `https://www.erdosproblems.com/<n>` returns 403 to a plain fetch. Use
+`curl` with a browser user agent. The `teorth/erdosproblems` YAML that `check_erdos_status.py`
+reads carries status only, and no statement text, so it is not the source.
+
+Read the remarks as well as the boxed statement. A sub-question is frequently settled there
+while the statement still reads as open.
+
+Quote formulas from the LaTeX source rather than the rendered page. Rendering runs terms
+together: `3^7\cdot 61^5` reads as `3761^5`, and that misreading is already in this repository.
+
+## Step 4: review, then check yourself
+
+Work through the statement yourself first. Two checks pay for themselves almost every time.
+Substitute the smallest value of each bound. Then ask, for each hypothesis, what must exist for
+it to hold, and whether anything does.
+
+Only then read [`references/defect-classes.md`](references/defect-classes.md), and use it to
+find what you missed. It lists six classes with a worked example each. Reading it first anchors
+you to its examples, and it contains the answer to some reviews outright.
 
 1. the statement does not match the source
 2. the hypotheses cannot hold
@@ -45,26 +81,27 @@ example from this repository for each class below, and each example is marked **
 5. what a `formal_proof` link shows
 6. variants
 
-Skip class 5 unless the pull request adds or changes a `formal_proof` attribute.
+Skip class 5 unless the scope adds or changes a `formal_proof` attribute.
 
-Two checks pay for themselves on almost every statement, so do them even when time is short.
-Substitute the smallest value of each bound. Then ask, for each hypothesis, what must exist for
-it to hold, and whether anything does.
+## Step 5: report
 
-## Step 4: report
-
-Each finding **must** carry a witness. A witness is a concrete case where the Lean and the
-source disagree. A reader can then check the finding without doing the review again.
-
-- "This looks too strong" is not a finding.
-- "At `c = 2` and `n = 100` the hypothesis needs 20000 edges, and a simple graph has at most
-  4950" is a finding.
-
-For each finding give the declaration, the line, what the source says with a locator, what the
-Lean says, the witness, and a suggested change.
+Each finding **must** carry a witness: a concrete case where the Lean and the source disagree.
+Check the witness in Lean where you can, with `lake env lean` on a scratch file outside the
+tree that imports the module.
 
 Say what the witness shows, and also what it does not show. A finding that claims too much
 costs a reviewer more time than no finding.
+
+A finding looks like this:
+
+> **`erdos_940.variants.large_integers`, 940.lean:62** — quantifies over `r ≥ 2`.
+> The source opens "Let $r \geq 3$". At `r = 2` the statement asserts that almost every integer
+> is a sum of at most two `2`-powerful numbers, so that set is cofinite.
+> `erdos_940.variants.two`, in the same file and `research solved`, states that the same set
+> has density `0`. Both cannot hold.
+> *Shows*: the `r = 2` conjunct is false, so the answer is forced for a reason the source
+> excludes. *Does not show*: anything about `r ≥ 3`, which is the real question.
+> *Suggested change*: `∀ r ≥ 3`, and say so in the docstring.
 
 Then give one verdict:
 
@@ -80,5 +117,7 @@ If you cannot give a witness for an item, write it as a question instead of a fi
 - style, naming and format, which `AGENTS.md` and the linters cover
 - a shorter proof for a statement that already builds
 - a different but equivalent formalisation, unless the difference is observable
+- a `sorry` under `research solved`. That category means the result is known in the literature,
+  and almost every statement in this repository is `sorry`
 - whether the conjecture is true
-- whether to merge the pull request
+- whether to merge

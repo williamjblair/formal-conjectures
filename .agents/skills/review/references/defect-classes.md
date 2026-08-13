@@ -33,7 +33,6 @@ Do not examine what a script decides already. Read these results first, and acce
 | Does it build? Is it `sorry`-free? | `lake build`, and `hasSorryFreeProof` in the extract |
 | Does each statement have `category` and `AMS`? | `extract_names` |
 | Is a `research open` statement proved? | the category linter warns about this |
-| Does a `formal_proof` link resolve? | `scripts/check_proof_links.py` |
 | Does the repo agree with erdosproblems.com? | `scripts/check_erdos_status.py` |
 
 If a check fails, report it and stop. Do not review the mathematics of a file that does not build.
@@ -102,9 +101,14 @@ Examine the smallest value of each bound.
   `False` for a reason that has nothing to do with the question.
 - *Erdős 939* (confirmed, but weaker than it appears): `Nat.Full k n` is
   `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`. Thus `0` and `1` are Full, and
-  `{0, 1} ∈ Erdos939Sums 4`. But the theorem quantifies over each `r ≥ 4`. At `r = 5` a set of
-  three coprime Full numbers cannot contain `0`, because `gcd 0 x = x`. The witness settles one
-  case only.
+  `{0, 1} ∈ Erdos939Sums 4`. But the theorem quantifies over each `r ≥ 4`. At `r = 5` a member
+  needs three elements, and `{0, 1, x}` then needs `x` and `x + 1` both 5-full, which nobody
+  has exhibited. The witness settles one case only.
+
+  Note that `0` is not what blocks `r = 5`. `Finset.Coprime S` is `S.gcd id = 1`, the gcd of
+  the whole set, so `{0, 1, x}` is coprime for every `x`. An earlier version of this file said
+  that a coprime set cannot contain `0`, which is wrong. Read the definition before you reason
+  about it.
 
 Use the last example as the model. Report what the witness shows, and also what it does not show.
 A finding that claims too much costs the reviewer more time than no finding.

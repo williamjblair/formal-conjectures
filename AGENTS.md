@@ -5,7 +5,7 @@ repository, not a proof repository: almost every problem is `sorry`. Each statem
 what its source says.
 
 The `review-statement` skill is about that last sentence. Read
-[skills/review-statement/SKILL.md](skills/review-statement/SKILL.md) when you review a
+[plugins/formal-conjectures/skills/review-statement/SKILL.md](plugins/formal-conjectures/skills/review-statement/SKILL.md) when you review a
 formalisation, or before you submit one. No check in this repository decides it.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) is the reference for conventions, folders, and the

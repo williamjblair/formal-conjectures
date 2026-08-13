@@ -183,15 +183,8 @@ where the Lean and the source disagree. Not every class produces a disagreement 
 A `formal_proof` link that names no file, or points at a `sorry`, is a defect whose witness is
 what the linked repository contains.
 
-Check the witness in Lean where you can, with `lake env lean` on a scratch file outside the
-tree that imports the module. Run it from the repository root, or `lake` reports a missing
-default toolchain, which looks like a broken install rather than a wrong directory. The scratch
-file will trip `linter.style.moduleDocstring`. That warning is expected.
-
-**A contradiction derived from a `sorry` proves nothing.** Almost every statement here is
-`sorry`, so a witness that uses one inherits it. Run `#print axioms` on your witness and say
-where each `sorryAx` comes from. "The only `sorryAx` is the cited declaration's, not my proof's"
-is the claim that makes the witness mean something.
+Check the witness in Lean where you can, and run `#print axioms` on it. A contradiction derived
+from a `sorry` proves nothing, so say where each `sorryAx` comes from.
 
 **Write the positive control.** This is the instruction that repays the most effort. Encode the
 source's own construction, run it against the Lean predicate, and check that it satisfies it.
@@ -199,14 +192,11 @@ That is what lets you write "the definition is faithful" instead of "the definit
 correctly", and it is the difference between reporting what a source claims and reporting what
 you checked. Run a negative control too, on a case the source excludes.
 
-If the paper ships code, fetch and run the paper's own program rather than reimplementing the
-construction. A search you write yourself may not terminate on the smallest interesting case.
-Then enumerate that smallest case exhaustively.
-
-A missing `Decidable` instance is not the end of the road. `Equiv.Perm.IsCycle` has none, but a
-Hamiltonian cycle encodes as a nodup `List` and `List.formPerm`, `List.isCycle_formPerm` and
-`List.support_formPerm_of_nodup` then give a kernel-checked witness. Look for the constructive
-encoding before you give up on Lean.
+[`references/checking-in-lean.md`](references/checking-in-lean.md) has the mechanics: scratch
+file setup, axiom provenance, refuting by proving the negation and type-checking your
+transcription against the declaration, which `decide`s reduce and which do not, the two API gaps
+that eat a review, and how to write a control that finishes. Read it before you build a witness,
+not after.
 
 When the control genuinely cannot run in Lean, running it outside against your own transcription
 of the definitions is a fair fallback, but it tests your reading of the Lean rather than the

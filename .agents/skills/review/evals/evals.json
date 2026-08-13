@@ -136,5 +136,6 @@
         "The report identifies erdos_265.variants.sup_rate as a self-answer, where the slot can be filled with sSup AchievableRates so the statement closes by rfl"
       ]
     }
-  ]
+  ],
+  "harness_note": "Prompt the runs with the contents of SKILL.md, or tell them to read that one file and nothing else in the directory. Pointing a run at the skill's path invites it to list the directory, and one iteration 4 run found this file that way and read the expected outputs before opening the Lean. A real client injects SKILL.md through the skill system and never exposes evals/, so that leak is an artefact of the harness rather than of the skill. SKILL.md also says not to open this directory, which is defence in depth rather than the fix."
 }

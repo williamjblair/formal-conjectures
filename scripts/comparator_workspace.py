@@ -58,6 +58,21 @@ def pins():
     return toolchain, rev
 
 
+def head_revision():
+    """The commit of this repository, so a workspace that needs our library can pin it.
+
+    The commit must be reachable from the remote, or the workspace builds only on this machine.
+    """
+    revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    pushed = subprocess.run(["git", "branch", "-r", "--contains", revision],
+                            cwd=ROOT, capture_output=True, text=True)
+    if not pushed.stdout.strip():
+        print(f"WARNING: {revision[:12]} is not on any remote branch. The generated workspace "
+              f"pins it, so it will not build elsewhere until you push.", file=sys.stderr)
+    return revision
+
+
 def split_at_declaration(source, name):
     """Return the text before the declaration, and the declaration itself.
 
@@ -161,7 +176,7 @@ def answer_type(statement, span):
     )
 
 
-def generate(problem_file, name, out_dir):
+def generate(problem_file, name, out_dir, with_library=False):
     source = (ROOT / problem_file).read_text()
 
     before, declaration = split_at_declaration(source, name)
@@ -171,7 +186,9 @@ def generate(problem_file, name, out_dir):
 
     # Dependencies: everything before the statement, over Mathlib rather than our own prelude.
     deps = FC_ATTR.sub("", before)
-    deps = deps.replace("import FormalConjecturesUtil", "import Mathlib")
+    # `FormalConjecturesForMathlib` re-exports Mathlib, so it is the wider of the two imports.
+    prelude = "import FormalConjecturesForMathlib" if with_library else "import Mathlib"
+    deps = deps.replace("import FormalConjecturesUtil", prelude)
     deps = deps.rstrip() + f"\n\nend {namespace}\n"
 
     statement = statement_of(declaration)
@@ -243,14 +260,21 @@ def generate(problem_file, name, out_dir):
         "module": str(problem_file),
         "holes": holes,
     }, indent=2) + "\n")
+    requires = ("[[require]]\nname = \"mathlib\"\n"
+                'git = "https://github.com/leanprover-community/mathlib4.git"\n'
+                f'rev = "{rev}"\n\n')
+    if with_library:
+        # The statement uses definitions from `FormalConjecturesForMathlib`, which this
+        # repository exposes as a `lean_lib`. Requiring it beats copying those definitions in.
+        requires += ("[[require]]\nname = \"formal_conjectures\"\n"
+                     'git = "https://github.com/google-deepmind/formal-conjectures.git"\n'
+                     f'rev = "{head_revision()}"\n\n')
     (out / "lakefile.toml").write_text(
-        f'name = "{name.split(".")[-1]}"\n'
+        f'name = "{basename}"\n'
         'testDriver = "workspace_test"\n'
         'defaultTargets = ["Challenge", "Solution", "Submission"]\n\n'
         "[leanOptions]\nautoImplicit = false\n\n"
-        "[[require]]\nname = \"mathlib\"\n"
-        'git = "https://github.com/leanprover-community/mathlib4.git"\n'
-        f'rev = "{rev}"\n\n'
+        + requires
         + "".join(f'[[lean_lib]]\nname = "{lib}"\n\n'
                  for lib in ("ChallengeDeps", "Challenge", "Solution", "Submission"))
     )
@@ -258,11 +282,12 @@ def generate(problem_file, name, out_dir):
     print(f"wrote {out.relative_to(ROOT)} for {namespace}.{name}")
 
 
-def check(out_dir):
-    """Compile the generated challenge against Mathlib alone.
+def check(out_dir, quiet=False):
+    """Compile the generated challenge.
 
-    A statement that needs `FormalConjecturesForMathlib` fails here, which is the point: the
-    source text cannot tell you, because every problem file imports the whole library.
+    A statement that needs `FormalConjecturesForMathlib` fails when the workspace has only
+    Mathlib. The source text cannot tell you which it is, because every problem file imports
+    the whole library through `FormalConjecturesUtil`.
     """
     out = ROOT / out_dir
     body = (out / "ChallengeDeps.lean").read_text()
@@ -275,11 +300,11 @@ def check(out_dir):
     errors = [line for line in (result.stdout + result.stderr).splitlines()
               if "error" in line.lower()]
     if errors:
-        print(f"FAIL {out_dir}")
-        for line in errors[:6]:
-            print("  " + line.split(":", 3)[-1].strip()[:110])
+        if not quiet:
+            print(f"FAIL {out_dir}")
+            for line in errors[:6]:
+                print("  " + line.split(":", 3)[-1].strip()[:110])
         return False
-    print(f"OK   {out_dir}: the challenge builds over Mathlib alone")
     return True
 
 
@@ -293,8 +318,19 @@ def main():
     args = parser.parse_args()
     out = args.out or f".comparator/{args.declaration.split('.')[-1]}"
     generate(args.problem_file, args.declaration, out)
-    if args.check and not check(out):
-        sys.exit(1)
+    if not args.check:
+        return
+
+    # Prefer a workspace that needs only Mathlib. Fall back to requiring this repository's
+    # library, which is what a statement using `FormalConjecturesForMathlib` needs.
+    if check(out, quiet=True):
+        print(f"OK   {out}: the challenge builds over Mathlib alone")
+        return
+    generate(args.problem_file, args.declaration, out, with_library=True)
+    if check(out):
+        print(f"OK   {out}: the challenge needs FormalConjecturesForMathlib, which it requires")
+        return
+    sys.exit(1)
 
 
 if __name__ == "__main__":

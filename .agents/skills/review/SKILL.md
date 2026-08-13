@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use when reviewing a Formal Conjectures pull request, when checking whether a Lean statement says what its cited source says, or before submitting a formalisation. Use it also when asked whether a statement is correct, vacuous, too strong, or degenerate at small inputs, even when the request does not mention review. Finds misformalisation, unsatisfiable hypotheses, boundary cases, answer() polarity, and formal_proof claims that exceed the linked proof.
+description: Use when reviewing a Formal Conjectures pull request, when checking whether a Lean statement says what its cited source says, or before submitting a formalisation. Use it also when asked whether a statement is correct, vacuous, too strong, or degenerate at small inputs, even when the request does not mention review. It covers misformalisation, unsatisfiable hypotheses, boundary cases, answer() polarity, and formal_proof claims that exceed the linked proof. What it adds is not spotting those, which a careful reviewer does unaided, but reading the cited source and making each finding checkable rather than argued.
 license: Apache-2.0
 compatibility: Needs a checkout of google-deepmind/formal-conjectures and a Lean toolchain, so that the commands in step 1 can run.
 ---
@@ -13,6 +13,13 @@ what the source says?
 
 You produce **recommendations**. You do not decide whether to merge. The contributor can
 disagree with a finding and ask a maintainer to decide.
+
+Be clear about what this buys. Run against pending files with a no-skill control, a careful
+reviewer reached most of the same findings without any procedure. What it did not do was read a
+source that refused the first fetch, or check a single claim it made. It argued the contradiction
+and reconstructed one statement from a neighbouring problem file, which produced a confident
+wrong fix. So the steps that earn their cost are step 3 and step 5: read the source, and make
+every finding checkable rather than argued. Spend the effort there.
 
 First fix the scope. If a pull request is named, review its diff. If a file is named, review
 the whole file, and run `git status` and `git log -1 -- <path>` so you know whether the work is

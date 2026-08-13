@@ -33,20 +33,21 @@
     {
       "id": 2,
       "prompt": "someone on the tracker says ErdosProblems/1063.lean is broken because `n k` is an sInf over a set that can be empty, and sInf of the empty set is 0 in Lean, so n 0 and n 1 are junk. does that break the upper bound theorems?",
-      "expected_output": "ACCEPT WITH NITS. The junk values are real: n 0 = n 1 = 0, because at k = 0 the condition `exists i0 < k` is unsatisfiable and at k = 1 it needs `not (m divides m)`, so both defining sets are empty. They are not a defect, and the report must say why rather than report them. Every statement that uses `n` is guarded by k >= 3 (monier_upper_bound, cambie_upper_bound), or asymptotic at atTop so finitely many values cannot matter (better_upper), or names a specific k between 2 and 5 (small_values), or is satisfied by 0 anyway (exp_upper_bound). The report should also not report the range as a mismatch: the Lean writes lcm over Finset.Icc 1 (k-1) where the source writes k[2,3,...,k-1], and those are equal because lcm with 1 is the identity. The one real item is that the module docstring records `[Mo85] Monier (1985). No reference found.` with a TODO, while erdosproblems.com/1063 gives the full citation: Monier, Jean-Marie, Problems and Solutions: Solutions of Advanced Problems: 6447, Amer. Math. Monthly (1985), 435-436. A run that returns NEEDS REVISION on the sInf junk value fails this case.",
+      "expected_output": "NEEDS REVISION, but not for the reason the tracker gives. The junk values are real: n 0 = n 1 = 0, because at k = 0 the condition `exists i0 < k` is unsatisfiable and at k = 1 it needs `not (m divides m)`, so both defining sets are empty. They are harmless, and the report must say why rather than report them. Every statement that uses `n` is guarded by k >= 3, or asymptotic at atTop, or names a specific k between 2 and 5, or is an upper bound that 0 satisfies. The report should also not report the lcm range as a mismatch: the Lean writes Finset.Icc 1 (k-1) where the source writes k[2,3,...,k-1], and those agree because lcm with 1 is the identity.\n\nThe real defect is in better_upper's comparator, `(k : R) * ((Finset.Icc 1 (k-1)).lcm (fun n : N => n) : R)`. The ascription sits on the Finset.lcm application, so the coercion lands on n and the lcm is taken in R, where lcm of non-zero elements is 1. The comparator is therefore just (k : R), which forces n k <= k eventually while n k >= 2k whenever the set is non-empty, so the statement asserts n_k does not exist and no answer satisfies it. Fixed in #4942.",
       "files": [
         "FormalConjectures/ErdosProblems/1063.lean"
       ],
       "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
-      "notes": "The specificity case. The other two cases are both NEEDS REVISION, so a reviewer that always cries defect scores full marks on them. This one is mostly decoys: the correct answer is that the alarming-looking thing is harmless, with one small real nit. It also tests the rule that an item without a witness is written as a question rather than a finding.",
+      "notes": "The specificity case: the reported defect is real and harmless, and reporting it as breaking the file is the failure. Iteration 7 changed the case. A run found that better_upper's comparator computes its lcm in the reals, which I verified: the elaborated term applies Finset.lcm to a function into R, and lcm of two non-zero reals is 1, both checked sorry-free. So NEEDS REVISION is correct and my ACCEPT WITH NITS key was wrong. That is the fourth time a run has beaten my expected output, after case 3 in iteration 1, case 2 in iteration 3 and case 4 in iteration 4. Assertions 6 and 7 are new.",
       "assertions": [
         "The report confirms that n 0 and n 1 are 0, and gives the reason, that both defining sets are empty and sInf of the empty set is 0",
-        "The report states that this does not break the upper bound theorems",
+        "The report states that the junk values do not break the upper bound theorems",
         "The report gives the reason, naming that the consumers of n are either guarded by k >= 3, or asymptotic at atTop, or applied at a specific k between 2 and 5",
-        "The report does not raise the sInf junk value as a finding, and does not return NEEDS REVISION on account of it",
+        "The report does not return NEEDS REVISION on account of the junk values",
         "The report does not report lcm over Finset.Icc 1 (k-1) as a mismatch with the source's k[2,3,...,k-1], or explicitly says the two are equal",
-        "The report supplies the [Mo85] citation, which the module docstring records as not found",
-        "The verdict is CLEAN or ACCEPT WITH NITS"
+        "The report identifies that better_upper's comparator takes its lcm in the reals, so it collapses to k",
+        "The report states the consequence, that the statement is then unsatisfiable because n k >= 2k on a non-empty set",
+        "The verdict is NEEDS REVISION, on the comparator rather than on the junk values"
       ]
     },
     {

@@ -15,14 +15,19 @@ You produce **recommendations**. You do not decide whether to merge. The contrib
 disagree with a finding and ask a maintainer to decide.
 
 First fix the scope. If a pull request is named, review its diff. If a file is named, review
-the whole file, and read `git status` and `git log -1` so you know whether the work is even in
-the tree yet.
+the whole file, and run `git status` and `git log -1 -- <path>` so you know whether the work is
+even in the tree yet. Use the `-- <path>`: a bare `git log -1` reports the branch tip, which is
+usually about something else.
+
+Then check whether an open pull request already touches the file, by path rather than by title.
+Reporting a defect that someone is already fixing wastes a maintainer's time, and a review that
+says "#4934 already makes this change" is worth more than one that does not.
 
 ## Step 1: take the automatic checks as given
 
 ```bash
-lake --wfail build 'FormalConjectures.ErdosProblems.«361»'   # each module in scope
-python3 scripts/check_erdos_status.py                         # only for ErdosProblems/
+lake --wfail build 'FormalConjectures.ErdosProblems.«N»'   # each module in scope
+python3 scripts/check_erdos_status.py                       # only for ErdosProblems/
 ```
 
 If a module does not build, report that and stop.
@@ -32,8 +37,14 @@ they are `leanOptions` in `lakefile.toml`. A clean module build therefore covers
 do not need `check_category_warnings.py`, which takes an `extract_names` dump and needs the
 whole repository built.
 
-`check_erdos_status.py` prints every mismatch in the repository. Find your problem number in
-that list. Absence is the pass.
+`check_erdos_status.py` prints a JSON array of every mismatch in the repository. Match your
+problem against the `number` field, not with a bare grep, which also hits line numbers and
+other fields. Absence is the pass. The `WARNING: unrecognized YAML status state` lines are
+expected noise and are not a check failure.
+
+The script compares a file against the site's single status for the whole problem. A file with
+several variants can carry one whose status the source contradicts while the script stays
+silent, so passing it is not evidence about any individual variant.
 
 ## Step 2: read every definition the statement uses
 
@@ -61,15 +72,22 @@ reads carries status only, and no statement text, so it is not the source.
 
 For a paper, a fetch returns raw PDF bytes. Save the file and run `pdftotext -layout` on it.
 
-**Read the whole document, and check its date.** A source revises. Knuth's *Claude's Cycles* is
-"28 February 2026; revised 14 April 2026". Page 5 says the even case is open, and page 6 opens
-"Breaking news: The problem for even values of m is no longer in doubt!". A reviewer who reads
-the problem statement and stops will pass a file that records a question its own source has
-closed. Read the remarks, the postscripts and any addendum, and compare the source's early
-status claims against its later sections.
+**Read the whole document, and check its date.** A source revises, and a later section can
+close a question its own earlier section calls open. Read the remarks, the postscripts and any
+addendum, and compare the source's early status claims against its later ones. A reviewer who
+reads the problem statement and stops will pass a file that records a settled question as open.
+
+Follow the source's own cross-references. When a page says "see also [1107]", open that
+problem and the file that formalises it. A wrong bound is often a correct bound copied from a
+neighbour whose statement differs by one.
+
+Distinguish a result in the literature from a claim in the site's comments. Both can be true,
+and only the first supports `research solved`. Report a comment-level claim as a question.
 
 Quote formulas from the LaTeX source rather than the rendered page. Rendering runs terms
 together: `3^7\cdot 61^5` reads as `3761^5`, and that misreading is already in this repository.
+When there is no LaTeX, as for a PDF-only paper, do not trust the extracted formula at all.
+`pdftotext` drops overlines and splits sentences across them. Compute the identity instead.
 
 ## Step 4: review, then check yourself
 
@@ -94,26 +112,33 @@ Skip class 5 unless the scope adds or changes a `formal_proof` attribute.
 
 Each finding **must** carry a witness: a concrete case where the Lean and the source disagree.
 Check the witness in Lean where you can, with `lake env lean` on a scratch file outside the
-tree that imports the module.
+tree that imports the module. Run it from the repository root, or `lake` reports a missing
+default toolchain, which looks like a broken install rather than a wrong directory. The scratch
+file will trip `linter.style.moduleDocstring`. That warning is expected.
 
-You may also write a program. Two things repay the effort. Encode the source's own construction
-and run it against the Lean predicate, as a positive control that the definition is faithful and
-not vacuous. And enumerate the smallest case exhaustively. A positive control convinces a
-reviewer more than a second reading of the definition does.
+**Write the positive control.** This is the instruction that repays the most effort. Encode the
+source's own construction, run it against the Lean predicate, and check that it satisfies it.
+That is what lets you write "the definition is faithful" instead of "the definition reads
+correctly", and it is the difference between reporting what a source claims and reporting what
+you checked. Run a negative control too, on a case the source excludes.
+
+If the paper ships code, fetch and run the paper's own program rather than reimplementing the
+construction. A search you write yourself may not terminate on the smallest interesting case.
+Then enumerate that smallest case exhaustively.
 
 Say what the witness shows, and also what it does not show. A finding that claims too much
 costs a reviewer more time than no finding.
 
-A finding looks like this:
+A finding looks like this. The declaration below is invented, so that the shape is the only
+thing you take from it:
 
-> **`erdos_940.variants.large_integers`, 940.lean:62** — quantifies over `r ≥ 2`.
-> The source opens "Let $r \geq 3$". At `r = 2` the statement asserts that almost every integer
-> is a sum of at most two `2`-powerful numbers, so that set is cofinite.
-> `erdos_940.variants.two`, in the same file and `research solved`, states that the same set
-> has density `0`. Both cannot hold.
-> *Shows*: the `r = 2` conjunct is false, so the answer is forced for a reason the source
-> excludes. *Does not show*: anything about `r ≥ 3`, which is the real question.
-> *Suggested change*: `∀ r ≥ 3`, and say so in the docstring.
+> **`erdos_N.variants.small_cases`, N.lean:62** — quantifies over `k ≥ 1`.
+> The source opens "Let $k \geq 2$". At `k = 1` the hypothesis holds for every input, so the
+> statement asserts something about all of `ℕ` that `erdos_N.variants.base`, in the same file
+> and `research solved`, contradicts. Both cannot hold.
+> *Shows*: the `k = 1` conjunct is false, so the answer is forced for a reason the source
+> excludes. *Does not show*: anything about `k ≥ 2`, which is the real question.
+> *Suggested change*: `∀ k ≥ 2`, and say so in the docstring.
 
 Say what you verified, and not only what you found. When the answer to the contributor's
 question is yes, a bare verdict tells them nothing about what was checked, and reads as though

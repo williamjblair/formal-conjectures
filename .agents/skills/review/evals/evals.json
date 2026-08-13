@@ -1,21 +1,79 @@
 {
   "skill_name": "review",
+  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.",
   "evals": [
     {
       "id": 1,
       "prompt": "can you take a look at FormalConjectures/ErdosProblems/940.lean before I send it? something about the large_integers variant feels off but I can't put my finger on it",
-      "expected_output": "NEEDS REVISION. The finding is that erdos_940.variants.large_integers quantifies over r >= 2, and at r = 2 it asserts that almost every integer is a sum of at most two 2-powerful numbers, so that set is cofinite. erdos_940.variants.two is in the same file, is categorised research solved, and states that the same set has density 0. The witness is that both cannot hold. The suggested change is to start the range at r = 3."
+      "expected_output": "NEEDS REVISION. The finding is that erdos_940.variants.large_integers quantifies over r >= 2, and at r = 2 it asserts that almost every integer is a sum of at most two 2-powerful numbers, so that set is cofinite. erdos_940.variants.two is in the same file, is categorised research solved, and states that the same set has density 0. The witness is that both cannot hold. The suggested change is to start the range at r = 3.",
+      "files": ["FormalConjectures/ErdosProblems/940.lean"],
+      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
+      "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4933",
+      "assertions": [
+        "The report names erdos_940.variants.large_integers as the declaration at fault",
+        "The report states that the source restricts the problem to r >= 3",
+        "The report identifies r = 2 as the instance where the statement fails",
+        "The report cites erdos_940.variants.two, in the same file, as the statement that contradicts it",
+        "The report gives a witness for the contradiction rather than asserting it",
+        "The report says what the witness does not show, namely that r >= 3 is unaffected",
+        "The suggested change is to quantify over r >= 3",
+        "The verdict is NEEDS REVISION",
+        "The witness is checked in Lean or by computation, and not only argued"
+      ],
+      "iteration_1": {
+        "with_skill": 1.0,
+        "without_skill": 0.625,
+        "discriminates": true,
+        "detail": "The only case that separated the arms. All three failures had one cause: the baseline hit the 403 from erdosproblems.com, reconstructed intent from 1107.lean, and proposed changing the summand count to r + 1, which converts a 940 question into 1107's problem. The with_skill result is not attributable, because SKILL.md step 5 carried this finding as its worked example until that example was replaced. Rerun in iteration 2.",
+        "last_assertion_added_because": "The original assertion about giving a witness passed in both arms on very different evidence, an axiom-clean Lean proof and a sieve against a paragraph of reasoning."
+      }
     },
     {
       "id": 2,
       "prompt": "Review FormalConjectures/ErdosProblems/939.lean against its source. Kenta reported on #4896 that the summands are missing a positivity condition, so {0,1} satisfies it. Is that right?",
-      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is every prime factor p of n having p^k divide n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show. erdos_939 quantifies over every r >= 4, and at r = 5 a member needs three elements, so {0,1,x} needs x and x+1 both 5-full, which nobody has exhibited. The witness settles r = 4 and does not make the statement vacuous. A report that says 0 is excluded by coprimality fails this case: Finset.Coprime is the gcd of the whole set, so {0,1,x} is coprime for any x."
+      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is every prime factor p of n having p^k divide n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show. erdos_939 quantifies over every r >= 4, and at r = 5 a member needs three elements, so {0,1,x} needs x and x+1 both 5-full, which nobody has exhibited. The witness settles r = 4 and does not make the statement vacuous. A report that says 0 is excluded by coprimality fails this case: Finset.Coprime is the gcd of the whole set, so {0,1,x} is coprime for any x.",
+      "files": ["FormalConjectures/ErdosProblems/939.lean"],
+      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
+      "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4934",
+      "assertions": [
+        "The report confirms that {0, 1} belongs to Erdos939Sums 4",
+        "The report explains the confirmation through primeFactors 0 being empty, so that 0 and 1 are vacuously Nat.Full",
+        "The report states that the witness does not make erdos_939 vacuous",
+        "The report gives the reason, that erdos_939 quantifies over every r >= 4 and the witness settles r = 4 only",
+        "The report does not claim that coprimality excludes 0 from a member set",
+        "The report proposes a positivity condition on the summands"
+      ],
+      "iteration_1": {
+        "with_skill": 1.0,
+        "without_skill": 1.0,
+        "discriminates": false,
+        "detail": "The baseline scored 6 of 6 and independently reproduced every change in pull request 4934. Replace this case rather than keep it. Assertion 5 guards against a claim that coprimality excludes 0, which no run in iteration 1 made, so it may be guarding a mistake specific to one earlier run."
+      }
     },
     {
       "id": 3,
       "prompt": "I'm reviewing the PR that adds Paper/ClaudesCycles.lean. Does the Lean match Knuth's problem?",
       "expected_output": "NEEDS REVISION. The Lean predicate is faithful, and the report should say so and say how it was checked. The finding is that cube_hamiltonian_arc_decomposition_even is categorised research open, and the module docstring says the even case remains open, while the cited paper retracts that. Knuth's Claude's Cycles is dated 28 February 2026, revised 14 April 2026; page 5 says the even case is open and page 6 opens 'Breaking news: The problem for even values of m is no longer in doubt!'. A run that returns CLEAN has read the problem statement and stopped, and fails this case.",
-      "notes": "This case was written as a false-positive control, on the assumption that the file was clean. The first run found the defect above, which was then verified against the PDF. The case now tests whether a reviewer reads a revised source to the end."
+      "files": ["FormalConjectures/Paper/ClaudesCycles.lean"],
+      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
+      "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4935",
+      "notes": "Written as a false-positive control, on the assumption that the file was clean. The first run found the defect below, which was then verified against the PDF. The case now tests whether a reviewer reads a revised source to the end.",
+      "assertions": [
+        "The report says that the Lean predicate matches Knuth's problem, and says how that was checked",
+        "The report identifies cube_hamiltonian_arc_decomposition_even as the declaration at fault",
+        "The report gives the revision date of the cited paper, 14 April 2026",
+        "The report quotes or paraphrases the passage announcing that the even case is settled",
+        "The report says that the module docstring is wrong as well as the category",
+        "The verdict is NEEDS REVISION",
+        "The report runs the source's own construction against the Lean predicate as a positive control, rather than reporting only what the source claims",
+        "The report resolves the formal_proof link to a named file and declaration, and does not accept a bare repository root"
+      ],
+      "iteration_1": {
+        "with_skill": 1.0,
+        "without_skill": 1.0,
+        "discriminates": false,
+        "detail": "The baseline found the defect unaided, dated the revision and quoted the passage. The first six assertions measure nothing. The two added above are the ones that separated the arms in iteration 1, where only the with_skill run verified the source's even-case programs at m = 4 to 16 and caught the under-specified formal_proof link."
+      }
     }
   ]
 }

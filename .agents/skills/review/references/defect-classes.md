@@ -142,6 +142,10 @@ This section is temporary. Comparator answers this question mechanically. It bui
 proof in a sandbox, it checks that the proof establishes the trusted statement, and it enforces a
 list of permitted axioms. Read the comparator result where one exists, and go to the next section.
 
+A `comparator.json` in the linked repository is not a comparator result. It is a configuration
+file, and the repository's CI may only run a plain build. Check what the workflow actually runs
+before you treat the link as mechanically verified.
+
 Comparator does not replace sections 1 to 4. It accepts the statement as given. A machine-checked
 proof of a wrong statement is a machine-checked proof of the wrong thing.
 

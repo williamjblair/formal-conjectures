@@ -111,6 +111,16 @@ lists the ones that recur. Two more from this repository:
   containing `1` is coprime whatever else it holds. Before you propose making it pairwise, check
   the source's own example: for Erdős 939 that example is not pairwise coprime, so the change
   would break it.
+- `∑' n, f n` is `0` when `f` is not `Summable`, and `0` is rational, an integer, and a limit.
+  So `∃ q : ℚ, ∑' n, f n = q` reads as "converges to a rational **or** diverges". `HasSum`
+  carries convergence in the statement and does not have this hole. The same applies to
+  `Filter.limsup` over `ℝ`, which is `sInf ∅ = 0` on an unbounded sequence.
+
+Now read [`references/checking-in-lean.md`](references/checking-in-lean.md), before you go on.
+Its first section says which of these definitions `decide` can settle and which it cannot, and
+that determines which witnesses are worth planning. Six review runs reported reaching step 5,
+finding that the witness they had designed in step 2 was unreachable, and starting again. The
+rest of that file is witness mechanics and keeps until step 5.
 
 ## Step 3: read the cited source
 
@@ -192,11 +202,10 @@ That is what lets you write "the definition is faithful" instead of "the definit
 correctly", and it is the difference between reporting what a source claims and reporting what
 you checked. Run a negative control too, on a case the source excludes.
 
-[`references/checking-in-lean.md`](references/checking-in-lean.md) has the mechanics: scratch
-file setup, axiom provenance, refuting by proving the negation and type-checking your
-transcription against the declaration, which `decide`s reduce and which do not, the two API gaps
-that eat a review, and how to write a control that finishes. Read it before you build a witness,
-not after.
+You read [`references/checking-in-lean.md`](references/checking-in-lean.md) at step 2 for what
+is checkable. The rest of it applies here: scratch file setup, axiom provenance, refuting by
+proving the negation, type-checking your transcription against the declaration, the API gaps
+that eat a review, and how to write a control that finishes.
 
 When the control genuinely cannot run in Lean, running it outside against your own transcription
 of the definitions is a fair fallback, but it tests your reading of the Lean rather than the

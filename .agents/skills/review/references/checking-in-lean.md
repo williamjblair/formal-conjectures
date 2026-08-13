@@ -63,6 +63,10 @@ than a real obstruction.
 | `Nat.Full` | has a `Decidable` instance that does not reduce; it gets stuck on `List.decidableBAll` over `primeFactorsList`. Use `Full.zero_right`, `Full.one_right` and the `primeFactorsEq` dsimproc in `FormalConjecturesForMathlib/Data/Nat/Full.lean`, or `norm_num [Nat.Full, Nat.primeFactors, Nat.primeFactorsList]` with `set_option maxRecDepth 4000`; the default 512 fails |
 | `Equiv.Perm.IsCycle` | no instance, but a Hamiltonian cycle encodes as a nodup `List`, and `List.formPerm`, `List.isCycle_formPerm` and `List.support_formPerm_of_nodup` give a kernel-checked witness |
 | `Collinear ℝ` | no instance. Three integer points are collinear exactly when the integer cross product vanishes, so a control runs outside Lean and you say so |
+| `tsum` / `Filter.limsup` | junk-valued rather than undecidable: `∑' n, f n` is `0` when `f` is not `Summable`, and `limsup` over `ℝ` is `sInf ∅ = 0` on an unbounded sequence. Nothing fails; the statement quietly means something weaker. Prefer `HasSum` when you propose a fix, and check the source's own example still satisfies it |
+| membership in a `Set` | `decide` cannot see through `x ∈ {m | P m}` and reports `failed to synthesize Decidable`. Peel with `Set.mem_setOf_eq` first. Since `sInf {m | ...}` is the canonical shape here, this is the trap you will hit most |
+| a repo-local `def ... : Prop` | instance search will not unfold it, and `∃!` does not resolve either. Both need a two-line `decidable_of_iff _ Iff.rfl` shim before `decide` fires |
+| `Nat.choose` | unfolds by Pascal recursion, so `decide` on `C(120, 5)` walks about `10^8` nodes and never returns. Rewrite with `Nat.choose_eq_descFactorial_div_factorial`, which evaluates in `k` multiplications |
 | `sInf ∅` emptiness | show the set is `∅` with `ext m; simp`, then `simpa [f] using congrArg sInf h`. Watch for `simp` closing the goal without using your hypothesis; the `unusedSimpArgs` linter is what catches that, and without it you ship a witness that proves nothing about the case you meant |
 
 Before you give up on Lean, look for the constructive encoding. A missing instance is not the end

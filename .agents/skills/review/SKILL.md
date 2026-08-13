@@ -17,16 +17,23 @@ disagree with a finding and ask a maintainer to decide.
 First fix the scope. If a pull request is named, review its diff. If a file is named, review
 the whole file, and run `git status` and `git log -1 -- <path>` so you know whether the work is
 even in the tree yet. Use the `-- <path>`: a bare `git log -1` reports the branch tip, which is
-usually about something else.
+usually about something else. If the named pull request does not exist, say so and review the
+file instead. The repository squash-merges, so a local date can belong to a repository-wide
+refactor rather than to the work; confirm with `gh pr list --state all --search` when the commit
+title does not mention the file.
 
-Then check whether an open pull request already touches the file. Match on path, not on title,
-and get every path in one request rather than one request for each of the several hundred open
-pull requests:
+Then check whether an open pull request already touches the file. Match on the full path, not on
+a bare number, which also matches line counts and unrelated files. Get every path in one request
+rather than one request for each of the several hundred open pull requests:
 
 ```bash
-gh pr list --limit 200 --json number,title,files \
-  --jq '.[] | select(.files[].path | contains("939")) | "\(.number) \(.title)"'
+gh pr list --limit 400 --json number,title,files \
+  --jq '.[] | select(.files[].path == "FormalConjectures/ErdosProblems/939.lean")
+        | "\(.number) \(.title)"'
 ```
+
+Read the diff of anything that comes back with `gh api repos/OWNER/REPO/pulls/N/files
+--paginate`. `gh pr diff` returns nothing for a large pull request.
 
 Reporting a defect that someone is already fixing wastes a maintainer's time. If a pull request
 already makes the change, still report the findings in full, then say which one covers them and
@@ -40,6 +47,12 @@ that touch the same lines will conflict, and saying so is worth a finding.
 lake --wfail build 'FormalConjectures.ErdosProblems.«N»'   # each module in scope
 python3 scripts/check_erdos_status.py                       # only for ErdosProblems/
 ```
+
+Run every `lake` command from the repository root. From anywhere else it reports a missing
+default toolchain, which reads as a broken install rather than a wrong directory.
+
+Outside `ErdosProblems/`, build the module in scope and skip the status script. It only knows
+about Erdős problems, and skipping it is not a skipped check.
 
 If a module does not build, report that and stop.
 
@@ -204,7 +217,5 @@ If you cannot give a witness for an item, write it as a question instead of a fi
 - style, naming and format, which `AGENTS.md` and the linters cover
 - a shorter proof for a statement that already builds
 - a different but equivalent formalisation, unless the difference is observable
-- a `sorry` under `research solved`. That category means the result is known in the literature,
-  and almost every statement in this repository is `sorry`
 - whether the conjecture is true
 - whether to merge

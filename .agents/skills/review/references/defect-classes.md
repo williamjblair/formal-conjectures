@@ -88,6 +88,23 @@ the default value, and not about the mathematics.
   the hypothesis. Note that the conclusion already restricts `n` to the range of `φ`. The
   hypothesis needs the same restriction. See #4896.
 
+A junk value is not a defect by itself. Both examples above are defects because a statement
+turned out to be *about* the junk value. Ask instead what reads the definition, and whether any
+of it can reach the degenerate input.
+
+- *(confirmed harmless; the problem is deliberately not named here, because it is one of the
+  cases in `evals/`, and a reference that names a live review target measures recall rather than
+  procedure)*: a definition is an `sInf` whose set is empty at the two smallest arguments, so it
+  returns `0` there. Nothing is broken. Two statements that use it are guarded by a lower bound
+  on the parameter, one names specific small values, one is `=O`/`=o` at `atTop` and so cannot
+  see finitely many inputs, and the last is an upper bound that `0` satisfies. Report this as a
+  docstring omission, where the source states a restriction the docstring drops, and not as a
+  defect in any statement.
+
+Two rules of thumb. A junk value of `0` at the bottom of `ℕ` can only make an *upper* bound
+easier, and is dangerous only for a lower bound, an exact value, or a `≠ 0` claim. And a
+parameter left free at finitely many inputs absorbs any junk value there.
+
 ### 3. Boundary cases
 
 Examine the smallest value of each bound.

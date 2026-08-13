@@ -95,6 +95,7 @@ SUPPORTED_PROPERTIES = frozenset({
     "hypothesis-satisfiability",
     "exact-formal-proof-artifact-identity",
     "comparator-packet-identity",
+    "comparator-tool-availability",
 })
 CORE_ARTIFACT_ROLES = frozenset({
     "generator_identity",
@@ -111,6 +112,38 @@ CORE_ARTIFACT_ROLES = frozenset({
 
 class AuditError(ValueError):
     """Raised when retained input cannot safely produce an audit record."""
+
+
+def _expected_missing_comparator_invocation() -> dict[str, Any]:
+    return {
+        "schema_version": "formal-conjectures.pr-audit-tool-invocation.v1",
+        "tool": "leanprover/comparator",
+        "operation": "availability_preflight_only",
+        "command": ["comparator", "--help"],
+        "resolved_executable": None,
+        "cwd": "repository-root",
+        "environment": {"LANG": "C", "LC_ALL": "C", "PATH": "/usr/bin:/bin"},
+        "resolution_attempted": True,
+        "invocation_attempted": True,
+        "process_started": False,
+        "exit_status": None,
+        "signal": None,
+        "stdout": "",
+        "stderr": "",
+        "error": {
+            "kind": "executable_not_found",
+            "errno": 2,
+            "message": "executable not found under declared PATH",
+        },
+        "outcome": "unavailable",
+        "authority": "producer_evidence_only",
+        "nonclaims": [
+            "no proof comparison ran",
+            "no proof failure was observed",
+            "no source-fidelity conclusion follows",
+            "no merge or acceptance decision follows",
+        ],
+    }
 
 
 class _DuplicateKey(AuditError):
@@ -915,6 +948,8 @@ def _validate_implementation_binding(
         expected = ("retained-formal-proof-metadata-review", "1", "retained_procedure")
     elif locator == "comparator-packet-procedure.json":
         expected = ("comparator-packet-inspection", "1", "retained_procedure")
+    elif locator == "missing-tool-invocation-procedure.py":
+        expected = ("comparator-availability-preflight", "1", "retained_procedure")
     elif locator == "model-advisory-procedure.json":
         expected = ("model-advisory-adapter", "1", "external_checker")
     elif re.fullmatch(r"\.github/workflows/build-and-docs\.yml@[0-9a-f]{40}", locator):
@@ -1359,9 +1394,20 @@ def generate_core(manifest_path: str | os.PathLike[str]) -> dict[str, Any]:
             ):
                 raise AuditError("Comparator packet inspection observation is invalid")
         if check["property"] == "comparator-tool-availability":
-            raise AuditError(
-                "Comparator tool availability requires a real retained invocation and is not implemented by v1"
-            )
+            invocation_results = [
+                loaded[input_record["artifact_id"]][1]
+                for input_record in check["inputs"]
+                if input_record["kind"] == "tool-invocation-result"
+            ]
+            if invocation_results != [_expected_missing_comparator_invocation()]:
+                raise AuditError("Comparator tool availability requires the exact retained missing-tool invocation")
+            if (
+                check["outcome"] != "unavailable"
+                or check["severity"] != "none"
+                or check["mode"] != "retained_replay"
+                or check["role"] != "producer"
+            ):
+                raise AuditError("Comparator missing-tool check projection is invalid")
         if check["property"].startswith("model-"):
             raise AuditError(
                 "model checks are deferred until v1 has a rooted model, prompt, rubric, request, and raw response profile"
@@ -1757,7 +1803,25 @@ def validate_core(value: Any) -> dict[str, Any]:
         if check["property"] == "comparator-packet-identity" and check["outcome"] != "unavailable":
             raise AuditError("core Comparator packet identity outcome must remain unavailable")
         if check["property"] == "comparator-tool-availability":
-            raise AuditError("core Comparator tool availability is not implemented by v1")
+            invocation_inputs = [
+                input_record for input_record in check["inputs"]
+                if input_record["kind"] == "tool-invocation-result"
+                and input_record["locator"] == "comparator-missing-tool-invocation.json"
+            ]
+            if (
+                len(invocation_inputs) != 1
+                or check["outcome"] != "unavailable"
+                or check["severity"] != "none"
+                or check["mode"] != "retained_replay"
+                or check["role"] != "producer"
+            ):
+                raise AuditError("core Comparator missing-tool check projection is invalid")
+            invocation_descriptor = descriptors_by_id[invocation_inputs[0]["artifact_id"]]
+            expected_invocation_root = sha256_digest(
+                canonical_bytes(_expected_missing_comparator_invocation()) + b"\n"
+            )
+            if invocation_descriptor["sha256"] != expected_invocation_root:
+                raise AuditError("core Comparator invocation result does not match the retained missing-tool profile")
         if check["property"].startswith("model-"):
             raise AuditError("core model checks are not implemented by v1")
         _validate_implementation_binding(check, descriptors_by_id, generator)

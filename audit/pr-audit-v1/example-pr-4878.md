@@ -10,6 +10,6 @@ Advisory disposition: **inconclusive**
 
 - **snapshot\-identity:** The retained head path has an exact Git blob OID and SHA\-256 content root\.
 
-Core root: `sha256:a52aee7bff94c1fff837e7e3cc4f7182bbe0c352e2ffeb85167863ac10bd1c80`
+Core root: `sha256:d65141b5031c4be8f3e4a811f24ea1aea7161a9ba2e1a79bdf05741f89515726`
 
 This is advisory evidence, not a merge decision or a claim of mathematical truth.

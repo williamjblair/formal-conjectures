@@ -245,7 +245,7 @@
         "id": {"$ref": "#/$defs/identifier"},
         "kind": {"enum": ["mechanical", "semantic", "proof", "metadata"]},
         "mode": {"enum": ["native", "comparator", "human_review", "retained_replay"]},
-        "property": {"enum": ["immutable-input-identity", "formal-proof-conditions-retained", "lean-build", "answer-slot-scope-fidelity", "hypothesis-satisfiability", "exact-formal-proof-artifact-identity", "comparator-packet-identity"]},
+        "property": {"enum": ["immutable-input-identity", "formal-proof-conditions-retained", "lean-build", "answer-slot-scope-fidelity", "hypothesis-satisfiability", "exact-formal-proof-artifact-identity", "comparator-packet-identity", "comparator-tool-availability"]},
         "role": {"enum": ["producer", "independent", "advisory"]},
         "outcome": {"enum": ["pass", "fail", "inconclusive", "error", "unavailable"]},
         "severity": {"enum": ["none", "nit", "meaning"]},

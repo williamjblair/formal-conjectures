@@ -12,9 +12,10 @@ Before changing version 1:
 6. Keep per-check boundaries in `does_not_establish` and disposition-wide boundaries in `nonclaims`. Do not map `unavailable` or `error` to `fail`, or a mechanical pass to source fidelity.
 7. Require an independently produced, retained human semantic review before an advisory `clean` result.
 8. Require one typed result per check. It must derive the complete check projection and artifact relations; semantic results must bind the exact finding, witness, source, method, scope, preparer/reviewer, authority, and independence.
-9. Escape every string in HTML or Markdown projections. `scripts/pr_audit.py` provides a small escaped Markdown example; downstream renderers remain responsible for their own context.
-10. Rebuild the five fixtures with `python3 scripts/build_pr_audit_fixtures.py`, then review the byte changes and run the full script-test suite.
-11. Keep summary and skill projections thin. They must validate and render the
+9. Keep malformed retained input distinct from a missing tool. An `unavailable` tool check requires a retained procedure and a real attempted invocation with explicit resolution, process-start, exit, stdout, stderr, environment, and nonclaim fields.
+10. Escape every string in HTML or Markdown projections. `scripts/pr_audit.py` provides a small escaped Markdown example; downstream renderers remain responsible for their own context.
+11. Rebuild the five fixtures with `python3 scripts/build_pr_audit_fixtures.py`, then review the byte changes and run the full script-test suite.
+12. Keep summary and skill projections thin. They must validate and render the
     native core rather than carrying a second verdict table, and they must not
     write to GitHub without a separately authorized integration.
 

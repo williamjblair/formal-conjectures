@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from capture_missing_tool_invocation import capture_missing_tool_invocation
 from pr_audit import (
     content_root,
     generate_core,
@@ -433,8 +434,40 @@ def checks_for(case: dict[str, Any], roots: dict[str, str]) -> dict[str, Any]:
                     check_input("observation", "comparator-observation", "packet-inspection-observation", "comparator-packet-observation.json", roots["comparator-observation"]),
                 ],
                 evidence_values=[evidence("packet-inspection-observation", "comparator-packet-observation.json", roots["comparator-observation"], "A retained packet inspection found no exact Comparator executable, toolchain lock, invocation, or execution result in scope.")],
-                limitations=["Unavailable is scoped to Comparator execution identity in this retained packet; no tool resolution or attempted invocation occurred, so the missing-tool execution gate remains unmet."],
+                limitations=["This packet-inspection check alone does not establish attempted invocation; the separate Comparator tool-availability check carries the retained attempt."],
                 does_not_establish=["attempted_invocation", "comparison_result", "proof_correctness", "source_fidelity", "merge_decision"],
+            ),
+            base_check(
+                identifier="comparator-tool-availability", kind="mechanical", mode="retained_replay",
+                property_name="comparator-tool-availability", role="producer", outcome="unavailable", severity="none",
+                path=path, declarations=["Rupert.is_every_convex_polyhedron_rupert"],
+                implementation_value=implementation(
+                    "comparator-availability-preflight", "retained_procedure",
+                    "missing-tool-invocation-procedure.py", roots["comparator-invocation-procedure"],
+                ),
+                inputs=[
+                    check_input("head-lean-blob", "head-source", "git-blob", head_locator, head_root),
+                    check_input(
+                        "method", "comparator-invocation-procedure", "python-source",
+                        "missing-tool-invocation-procedure.py", roots["comparator-invocation-procedure"],
+                    ),
+                    check_input(
+                        "invocation-result", "comparator-invocation-result", "tool-invocation-result",
+                        "comparator-missing-tool-invocation.json", roots["comparator-invocation-result"],
+                    ),
+                ],
+                evidence_values=[evidence(
+                    "tool-invocation-result", "comparator-missing-tool-invocation.json",
+                    roots["comparator-invocation-result"],
+                    "A real inert Comparator availability invocation was attempted under the declared closed PATH; no executable resolved and no process started.",
+                )],
+                limitations=[
+                    "Unavailable is scoped to the Comparator executable in the declared environment; no proof comparison ran."
+                ],
+                does_not_establish=[
+                    "comparison_result", "proof_absence", "proof_failure", "proof_incorrectness",
+                    "source_fidelity", "merge_decision",
+                ],
             ),
         ]
     repository_provenance = [
@@ -631,6 +664,25 @@ def retained_core_artifacts(
         observation_raw = write_json(inputs / "comparator-packet-observation.json", observation)
         retain("comparator-procedure", "method", "comparator-packet-procedure.json", procedure_raw, "application/json")
         retain("comparator-observation", "tool_output", "comparator-packet-observation.json", observation_raw, "application/json")
+        invocation_procedure_raw = (REPO / "scripts/capture_missing_tool_invocation.py").read_bytes()
+        invocation_result = capture_missing_tool_invocation(REPO)
+        if (
+            invocation_result["outcome"] != "unavailable"
+            or invocation_result["error"] is None
+            or invocation_result["error"]["kind"] != "executable_not_found"
+        ):
+            raise RuntimeError("Comparator availability preflight did not produce the required unavailable result")
+        invocation_result_raw = write_json(
+            inputs / "comparator-missing-tool-invocation.json", invocation_result
+        )
+        retain(
+            "comparator-invocation-procedure", "method", "missing-tool-invocation-procedure.py",
+            invocation_procedure_raw, "text/plain",
+        )
+        retain(
+            "comparator-invocation-result", "tool_output", "comparator-missing-tool-invocation.json",
+            invocation_result_raw, "application/json",
+        )
         preparation_event_raw = write_json(inputs / "comparator-packet-preparation-event.json", {
             "schema_version": "formal-conjectures.pr-audit-preparation-event.v1",
             "artifact": "comparator-packet-observation.json",

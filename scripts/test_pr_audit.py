@@ -24,6 +24,7 @@ import unittest
 import unicodedata
 from pathlib import Path
 
+from capture_missing_tool_invocation import capture_missing_tool_invocation
 from pr_audit import (
     AuditError,
     SUPPORTED_PROPERTIES,
@@ -415,7 +416,7 @@ class FrozenFixtureTest(unittest.TestCase):
         self.assertIn("proof_failure", unavailable_check["does_not_establish"])
         comparator = next(check for check in unavailable["checks"] if check["property"] == "comparator-packet-identity")
         self.assertEqual(comparator["outcome"], "unavailable")
-        self.assertIn("missing-tool execution gate remains unmet", comparator["limitations"][0])
+        self.assertIn("separate Comparator tool-availability check", comparator["limitations"][0])
 
     def test_proof_target_negative_controls(self):
         self.assertEqual(
@@ -1099,14 +1100,108 @@ class MutationAndRefusalTest(unittest.TestCase):
         with self.assertRaisesRegex(AuditError, "inspection observation is invalid"):
             generate_core(self.directory / "core-input.json")
 
-    def test_missing_tool_execution_claim_is_deferred_without_real_invocation(self):
+    def test_missing_tool_execution_is_retained_and_reports_unavailable(self):
         self.directory = Path(self.temporary.name) / "missing-tool"
         shutil.copytree(FIXTURES / "unavailable-rupert-3959", self.directory)
-        self.rewrite_checks(lambda value: next(
-            item for item in value["checks"] if item["property"] == "comparator-packet-identity"
-        ).update({"property": "comparator-tool-availability"}))
-        with self.assertRaisesRegex(AuditError, "unsupported or unimplemented"):
+        core = generate_core(self.directory / "core-input.json")
+        check = next(
+            item for item in core["checks"] if item["property"] == "comparator-tool-availability"
+        )
+        retained = load(
+            self.directory / "inputs" / "comparator-missing-tool-invocation.json"
+        )
+        self.assertEqual(retained, capture_missing_tool_invocation(REPO))
+        self.assertEqual(check["outcome"], "unavailable")
+        self.assertTrue(retained["resolution_attempted"])
+        self.assertTrue(retained["invocation_attempted"])
+        self.assertFalse(retained["process_started"])
+        self.assertIsNone(retained["resolved_executable"])
+        self.assertIsNone(retained["exit_status"])
+        self.assertEqual(retained["error"]["kind"], "executable_not_found")
+        self.assertIn("proof_failure", check["does_not_establish"])
+
+    def test_missing_tool_result_cannot_be_relabelled_without_a_real_attempt(self):
+        self.directory = Path(self.temporary.name) / "missing-tool-mutation"
+        shutil.copytree(FIXTURES / "unavailable-rupert-3959", self.directory)
+        result_path = self.directory / "inputs" / "comparator-missing-tool-invocation.json"
+        result = load(result_path)
+        result["invocation_attempted"] = False
+        write_canonical(result_path, result)
+        update_manifest_artifact(
+            self.directory, "core-input.json", "inputs/comparator-missing-tool-invocation.json"
+        )
+        root = sha256_digest(result_path.read_bytes())
+
+        def update_result_root(value):
+            check = next(
+                item for item in value["checks"]
+                if item["property"] == "comparator-tool-availability"
+            )
+            relation = next(
+                item for item in check["inputs"]
+                if item["kind"] == "tool-invocation-result"
+            )
+            relation["root"] = root
+            check["evidence"][0]["sha256"] = root
+
+        self.rewrite_checks(update_result_root, sync_typed_result=True)
+        with self.assertRaisesRegex(AuditError, "exact retained missing-tool invocation"):
             generate_core(self.directory / "core-input.json")
+
+    def test_published_core_refuses_consistently_rerooted_missing_tool_result(self):
+        core = generate_core(FIXTURES / "unavailable-rupert-3959" / "core-input.json")
+        check = next(
+            item for item in core["checks"] if item["property"] == "comparator-tool-availability"
+        )
+        invocation_relation = next(
+            item for item in check["inputs"] if item["kind"] == "tool-invocation-result"
+        )
+        forged_root = "sha256:" + "0" * 64
+        invocation_relation["root"] = forged_root
+        check["evidence"][0]["sha256"] = forged_root
+        next(
+            item for item in core["inputs"]["artifacts"]
+            if item["id"] == invocation_relation["artifact_id"]
+        )["sha256"] = forged_root
+
+        typed_relation = next(item for item in check["inputs"] if item["kind"] == "typed-result")
+        typed_result = {
+            "schema_version": "formal-conjectures.pr-audit-typed-result.v1",
+            "result_id": check["id"],
+            "check": {key: value for key, value in check.items() if key != "inputs"},
+            "artifacts": [item for item in check["inputs"] if item["kind"] != "typed-result"],
+            "producer": {
+                "kind": "deterministic_adapter",
+                "id": "formal_conjectures_pr_audit",
+                "authority": "producer_evidence_only",
+                "independent": False,
+            },
+            "semantic_review": None,
+        }
+        typed_root = sha256_digest(framed(typed_result))
+        typed_relation["root"] = typed_root
+        next(
+            item for item in core["inputs"]["artifacts"]
+            if item["id"] == typed_relation["artifact_id"]
+        )["sha256"] = typed_root
+
+        checks_value = {
+            "schema_version": "formal-conjectures.pr-audit-checks.v1",
+            "checks": core["checks"],
+        }
+        next(
+            item for item in core["inputs"]["artifacts"] if item["role"] == "check_results"
+        )["sha256"] = sha256_digest(framed(checks_value))
+        core["inputs"]["artifact_root"] = content_root({"artifacts": core["inputs"]["artifacts"]})
+        reconstructed = {
+            "schema_version": "formal-conjectures.pr-audit-input.v1",
+            "artifact_root": core["inputs"]["artifact_root"],
+            "artifacts": core["inputs"]["artifacts"],
+        }
+        core["inputs"]["manifest_sha256"] = sha256_digest(framed(reconstructed))
+        core["root"] = content_root({key: value for key, value in core.items() if key != "root"})
+        with self.assertRaisesRegex(AuditError, "does not match the retained missing-tool profile"):
+            validate_core(core)
 
     def test_passing_external_proof_must_be_immutable_and_retained(self):
         self.rewrite_checks(lambda value: value["checks"][0]["proofs"][0].update({

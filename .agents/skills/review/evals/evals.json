@@ -1,6 +1,6 @@
 {
   "skill_name": "review",
-  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.\n\nCase 2 was Erd\u0151s 939 through iteration 2. It was retired because it does not discriminate: the reviewer with no skill scored 6 of 6 on it in both iterations, and its finding is a worked example in references/defect-classes.md, so the runs were measuring recall rather than procedure. Both iteration 2 runs said so unprompted. Erd\u0151s 1063 replaces it and is named nowhere in the skill.",
+  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.\n\nCase 2 was Erd\u0151s 939 through iteration 2. It was retired because it does not discriminate: the reviewer with no skill scored 6 of 6 on it in both iterations, and its finding is a worked example in references/defect-classes.md, so the runs were measuring recall rather than procedure. Both iteration 2 runs said so unprompted. Erd\u0151s 1063 replaces it and is named nowhere in the skill.\n\nCases 4 to 6 are different in kind. They come from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Their expected outputs are my adjudication of someone else's hypothesis, not a defect I found and fixed, so a run that produces a witness against the expected output is evidence the case is wrong. That has already happened twice, on case 3 in iteration 1 and case 2 in iteration 3.\n\nKeep eval targets and the worked examples in references/defect-classes.md disjoint. A reference that names a live review target measures recall rather than procedure, which is why the 939 case had to be retired.",
   "evals": [
     {
       "id": 1,
@@ -75,6 +75,64 @@
         "discriminates": false,
         "detail": "The baseline found the defect unaided, dated the revision and quoted the passage. The first six assertions measure nothing. The two added above are the ones that separated the arms in iteration 1, where only the with_skill run verified the source's even-case programs at m = 4 to 16 and caught the under-specified formal_proof link."
       }
+    },
+    {
+      "id": 4,
+      "prompt": "Someone on the audit issue says GreensOpenProblems/72.lean has the conclusion the wrong way round. Is that right?",
+      "expected_output": "A nit at least, on the module docstring. The module docstring asks 'Given N > 2 and more than 2*N points on an N x N-grid, are there 3 of the points on a common line?', which is the upper bound, and allowedSetSize_le in the same file already proves it by pigeonhole. So the docstring poses as the problem the one direction the file settles. NoKInLineFor is an equality, AllowedSetSize k N = (k-1)*N, so its open content is the other direction: that (k-1)*N points with no k collinear can actually be achieved. A report that says the Lean is reversed is wrong; the Lean is right and the module docstring describes the wrong half. The verdict is ACCEPT WITH NITS unless the reviewer finds something else.",
+      "files": [
+        "FormalConjectures/GreensOpenProblems/72.lean"
+      ],
+      "pinned_commit": "3f08b849788e5e73d52069c616469ea995aac7d7",
+      "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
+      "notes": "Closes the non-Erdos gap. Both iteration 3 runs reported that step 1's commands and most of step 3 are erdosproblems.com-shaped, and only one case could catch that. Also a partial specificity case: the reported defect is in the docstring, not where the report points.",
+      "assertions": [
+        "The report states that allowedSetSize_le already proves AllowedSetSize k N <= (k-1)*N",
+        "The report concludes from that, that the open content of NoKInLineFor is the other direction, that (k-1)*N is achievable",
+        "The report identifies the module docstring, not the Lean, as the thing that states the wrong half",
+        "The report does not claim that green_72 or NoKInLineFor is itself reversed",
+        "The report reads Green's own problem 72 rather than only the file",
+        "The verdict is CLEAN or ACCEPT WITH NITS, not NEEDS REVISION on the Lean statement"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "audit issue flags ErdosProblems/918.lean: 'fixed omega versus a universal ordinal binder'. can you check parts.ii?",
+      "expected_output": "NEEDS REVISION. erdos_918.parts.ii reads `answer(sorry) <-> forall (omega : Ordinal), exists V G, #V = aleph_ (omega + 1) ...`. The binder is named omega, so it reads like the fixed first infinite ordinal, but it is a universally quantified variable ranging over every ordinal. The source asks about one cardinal, aleph_{omega+1} for the fixed omega. The Lean therefore asks a strictly stronger question, since it must hold at every ordinal, and the naming makes the difference invisible on a read. erdos_918.variants.all_subgraphs.parts.ii has the same shape. The suggested change is to use the fixed ordinal, or to rename the binder and say in the docstring that the generalisation is deliberate.",
+      "files": [
+        "FormalConjectures/ErdosProblems/918.lean"
+      ],
+      "pinned_commit": "3f08b849788e5e73d52069c616469ea995aac7d7",
+      "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
+      "notes": "Quantifier scope, class 1. Tests whether a reviewer notices a binder whose name impersonates a constant.",
+      "assertions": [
+        "The report identifies erdos_918.parts.ii as binding omega as a universal variable rather than using the fixed ordinal",
+        "The report says the source asks about the single cardinal aleph_{omega+1} for the fixed omega",
+        "The report says which direction the mismatch goes, that the Lean is strictly stronger because it must hold at every ordinal",
+        "The report notes that the binder's name is what hides the problem",
+        "The report checks the other declarations and reports that all_subgraphs.parts.ii has the same shape",
+        "The verdict is NEEDS REVISION"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "can you review PR #4660 before I approve it? someone said the tsum has no Summable hypothesis and I want to know if that actually matters",
+      "expected_output": "NEEDS REVISION, and the reported concern is real rather than theoretical. IsRationalPairSequence requires `exists q : Q, tsum n, 1/(a n) = q`. In Mathlib tsum of a family that is not Summable is 0, and 0 is rational, so the condition is satisfied by any divergent series with q = 0. The witness is a n = n + 2: it is StrictMono, a 0 = 2, and both sums are harmonic tails that diverge, so both tsum values are 0 and both conjuncts hold. The definition is therefore satisfied by a sequence that has no rational reciprocal sum at all, which is the opposite of what the problem is about. The suggested change is to require Summable, or to state the conditions with HasSum, which carries convergence in the statement.",
+      "files": [
+        "FormalConjectures/ErdosProblems/265.lean"
+      ],
+      "pinned_commit": "04418fa73a34fa8e5b063276ca577e00bb6fb0f8",
+      "reviews_pull_request": 4660,
+      "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
+      "notes": "The only case that reviews a pull request diff rather than a file, so it is the only one that exercises the skill's first scoping branch. Also restores class 2 coverage, lost when the 939 case was retired. The file does not exist on main; the pin is the pull request head.",
+      "assertions": [
+        "The report confirms that the missing Summable hypothesis matters, rather than treating it as a style point",
+        "The report gives the reason, that tsum of a non-summable family is 0 in Mathlib",
+        "The report gives a concrete witness sequence and checks it against every conjunct of IsRationalPairSequence",
+        "The report says that the witness has no rational reciprocal sum, so the definition admits exactly what the problem excludes",
+        "The report proposes requiring Summable or restating with HasSum",
+        "The verdict is NEEDS REVISION"
+      ]
     }
   ]
 }

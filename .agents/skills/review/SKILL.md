@@ -19,9 +19,20 @@ the whole file, and run `git status` and `git log -1 -- <path>` so you know whet
 even in the tree yet. Use the `-- <path>`: a bare `git log -1` reports the branch tip, which is
 usually about something else.
 
-Then check whether an open pull request already touches the file, by path rather than by title.
-Reporting a defect that someone is already fixing wastes a maintainer's time, and a review that
-says "#4934 already makes this change" is worth more than one that does not.
+Then check whether an open pull request already touches the file. Match on path, not on title,
+and get every path in one request rather than one request for each of the several hundred open
+pull requests:
+
+```bash
+gh pr list --limit 200 --json number,title,files \
+  --jq '.[] | select(.files[].path | contains("939")) | "\(.number) \(.title)"'
+```
+
+Reporting a defect that someone is already fixing wastes a maintainer's time. If a pull request
+already makes the change, still report the findings in full, then say which one covers them and
+what it misses. "See #4934" alone gives the contributor nothing to check. Read its diff rather
+than its title: a title that names the problem is luck, not evidence. Two open pull requests
+that touch the same lines will conflict, and saying so is worth a finding.
 
 ## Step 1: take the automatic checks as given
 
@@ -56,9 +67,15 @@ what it does at its degenerate values. The *Check the degenerate cases* table in
 lists the ones that recur. Two more from this repository:
 
 - `Nat.Full k n` is `∀ p ∈ n.primeFactors, p ^ k ∣ n`, and `primeFactors 0 = ∅`, so `0` and `1`
-  are vacuously Full.
+  are vacuously Full. `decide` cannot settle it: the `Decidable` instance exists but does not
+  reduce, and gets stuck on `List.decidableBAll` over `primeFactorsList`. Use the lemmas in
+  `FormalConjecturesForMathlib/Data/Nat/Full.lean`, which ships `Full.zero_right`,
+  `Full.one_right` and a `primeFactorsEq` dsimproc, or `norm_num [Nat.Full, Nat.primeFactors,
+  Nat.primeFactorsList]`, which needs a raised `maxRecDepth`.
 - `Finset.Coprime S` is `S.gcd id = 1`, the gcd of the whole set. It is not pairwise, so a set
-  containing `1` is coprime whatever else it holds.
+  containing `1` is coprime whatever else it holds. Before you propose making it pairwise, check
+  the source's own example: for Erdős 939 that example is not pairwise coprime, so the change
+  would break it.
 
 ## Step 3: read the cited source
 
@@ -66,8 +83,9 @@ Open the source the module docstring cites. Do not review the Lean against the d
 The docstring is also under review, and a docstring that disagrees with its own Lean is itself
 a finding.
 
-For an Erdős problem, read `https://www.erdosproblems.com/latex/<n>`, which serves the LaTeX
-instead of the rendered page. The site refuses a request that does not identify itself, so a
+For an Erdős problem, read `https://www.erdosproblems.com/latex/<n>`. That is still a full HTML
+page, but the LaTeX is unrendered inside it: the statement sits in the `#content` div and the
+remarks in `problem-additional-text`. The site refuses a request that does not identify itself, so a
 web fetch tool and the default `Python-urllib` user agent both get a 403 while `curl`
 succeeds. Send a user agent that names you. Do not imitate a browser, and do not conclude from
 the 403 that the source is unreadable: a reviewer who gives up there reconstructs the statement
@@ -82,6 +100,9 @@ For a paper, a fetch returns raw PDF bytes. Save the file and run `pdftotext -la
 close a question its own earlier section calls open. Read the remarks, the postscripts and any
 addendum, and compare the source's early status claims against its later ones. A reviewer who
 reads the problem statement and stops will pass a file that records a settled question as open.
+
+Then compare the source's revision date against the date the file landed, with
+`git log -1 --format=%as -- <path>`. A file older than the revision is where this defect lives.
 
 Follow the source's own cross-references. When a page says "see also [1107]", open that
 problem and the file that formalises it. A wrong bound is often a correct bound copied from a
@@ -114,13 +135,26 @@ you to its examples, and it contains the answer to some reviews outright.
 
 Skip class 5 unless the scope adds or changes a `formal_proof` attribute.
 
+Two things are sanctioned and are not defects. Do not report either. `answer(sorry) ↔ ∀ᵉ ...`,
+with the answer slot outside the binders, is the shape the `AnswerLinter` recommends. And a
+`sorry` under `research solved` records a result known in the literature.
+
 ## Step 5: report
 
-Each finding **must** carry a witness: a concrete case where the Lean and the source disagree.
+Each finding **must** carry a witness: checkable evidence, which is usually a concrete case
+where the Lean and the source disagree. Not every class produces a disagreement of that shape.
+A `formal_proof` link that names no file, or points at a `sorry`, is a defect whose witness is
+what the linked repository contains.
+
 Check the witness in Lean where you can, with `lake env lean` on a scratch file outside the
 tree that imports the module. Run it from the repository root, or `lake` reports a missing
 default toolchain, which looks like a broken install rather than a wrong directory. The scratch
 file will trip `linter.style.moduleDocstring`. That warning is expected.
+
+**A contradiction derived from a `sorry` proves nothing.** Almost every statement here is
+`sorry`, so a witness that uses one inherits it. Run `#print axioms` on your witness and say
+where each `sorryAx` comes from. "The only `sorryAx` is the cited declaration's, not my proof's"
+is the claim that makes the witness mean something.
 
 **Write the positive control.** This is the instruction that repays the most effort. Encode the
 source's own construction, run it against the Lean predicate, and check that it satisfies it.
@@ -131,6 +165,11 @@ you checked. Run a negative control too, on a case the source excludes.
 If the paper ships code, fetch and run the paper's own program rather than reimplementing the
 construction. A search you write yourself may not terminate on the smallest interesting case.
 Then enumerate that smallest case exhaustively.
+
+The control is not always reachable in Lean. `Equiv.Perm.IsCycle` has no `Decidable` instance,
+for one. Running the control outside Lean, against your own transcription of the definitions,
+is a fair fallback, but it tests your reading of the Lean rather than the Lean. Say which one
+you did.
 
 Say what the witness shows, and also what it does not show. A finding that claims too much
 costs a reviewer more time than no finding.

@@ -9,7 +9,7 @@
     {
       "id": 2,
       "prompt": "Review FormalConjectures/ErdosProblems/939.lean against its source. Kenta reported on #4896 that the summands are missing a positivity condition, so {0,1} satisfies it. Is that right?",
-      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is defined as every prime factor of n having p^k dividing n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show: erdos_939 quantifies over every r >= 4, and at r = 5 a set of three pairwise coprime Full numbers cannot contain 0, because gcd 0 x = x. So the witness settles r = 4 and does not make the statement vacuous."
+      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is every prime factor p of n having p^k divide n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show. erdos_939 quantifies over every r >= 4, and at r = 5 a member needs three elements, so {0,1,x} needs x and x+1 both 5-full, which nobody has exhibited. The witness settles r = 4 and does not make the statement vacuous. A report that says 0 is excluded by coprimality fails this case: Finset.Coprime is the gcd of the whole set, so {0,1,x} is coprime for any x."
     },
     {
       "id": 3,

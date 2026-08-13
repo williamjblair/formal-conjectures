@@ -176,6 +176,12 @@ you to its examples, and it contains the answer to some reviews outright.
 Apply class 5 whenever the scope *contains* a `formal_proof` attribute, not only when it adds or
 changes one. On a whole-file review that means any file carrying one.
 
+Apply class 4 the same way, to every declaration carrying an `answer(sorry)` slot, as its own pass.
+Ask whether the slot accepts the term it is meant to determine. Do this even when you are deep in
+another class: one run auditing junk values built a table over every declaration in the file, marked
+such a slot clean on the junk question, and never asked the `answer` question of it. It lost a
+finding an earlier run had made.
+
 Two things are sanctioned and are not defects. Do not report either. `answer(sorry) ↔ ∀ᵉ ...`,
 with the answer slot outside the binders, is the shape the `AnswerLinter` recommends. And a
 `sorry` under `research solved` records a result known in the literature.

@@ -1,12 +1,14 @@
 {
   "skill_name": "review",
-  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.",
+  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.\n\nCase 2 was Erd\u0151s 939 through iteration 2. It was retired because it does not discriminate: the reviewer with no skill scored 6 of 6 on it in both iterations, and its finding is a worked example in references/defect-classes.md, so the runs were measuring recall rather than procedure. Both iteration 2 runs said so unprompted. Erd\u0151s 1063 replaces it and is named nowhere in the skill.",
   "evals": [
     {
       "id": 1,
       "prompt": "can you take a look at FormalConjectures/ErdosProblems/940.lean before I send it? something about the large_integers variant feels off but I can't put my finger on it",
       "expected_output": "NEEDS REVISION. The finding is that erdos_940.variants.large_integers quantifies over r >= 2, and at r = 2 it asserts that almost every integer is a sum of at most two 2-powerful numbers, so that set is cofinite. erdos_940.variants.two is in the same file, is categorised research solved, and states that the same set has density 0. The witness is that both cannot hold. The suggested change is to start the range at r = 3.",
-      "files": ["FormalConjectures/ErdosProblems/940.lean"],
+      "files": [
+        "FormalConjectures/ErdosProblems/940.lean"
+      ],
       "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
       "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4933",
       "assertions": [
@@ -30,31 +32,30 @@
     },
     {
       "id": 2,
-      "prompt": "Review FormalConjectures/ErdosProblems/939.lean against its source. Kenta reported on #4896 that the summands are missing a positivity condition, so {0,1} satisfies it. Is that right?",
-      "expected_output": "The finding is confirmed but narrower than reported, and the report says so. Nat.Full k n is every prime factor p of n having p^k divide n, and primeFactors 0 is empty, so 0 and 1 are vacuously Full and {0,1} is in Erdos939Sums 4. The report must also say what the witness does not show. erdos_939 quantifies over every r >= 4, and at r = 5 a member needs three elements, so {0,1,x} needs x and x+1 both 5-full, which nobody has exhibited. The witness settles r = 4 and does not make the statement vacuous. A report that says 0 is excluded by coprimality fails this case: Finset.Coprime is the gcd of the whole set, so {0,1,x} is coprime for any x.",
-      "files": ["FormalConjectures/ErdosProblems/939.lean"],
-      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
-      "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4934",
-      "assertions": [
-        "The report confirms that {0, 1} belongs to Erdos939Sums 4",
-        "The report explains the confirmation through primeFactors 0 being empty, so that 0 and 1 are vacuously Nat.Full",
-        "The report states that the witness does not make erdos_939 vacuous",
-        "The report gives the reason, that erdos_939 quantifies over every r >= 4 and the witness settles r = 4 only",
-        "The report does not claim that coprimality excludes 0 from a member set",
-        "The report proposes a positivity condition on the summands"
+      "prompt": "someone on the tracker says ErdosProblems/1063.lean is broken because `n k` is an sInf over a set that can be empty, and sInf of the empty set is 0 in Lean, so n 0 and n 1 are junk. does that break the upper bound theorems?",
+      "expected_output": "ACCEPT WITH NITS. The junk values are real: n 0 = n 1 = 0, because at k = 0 the condition `exists i0 < k` is unsatisfiable and at k = 1 it needs `not (m divides m)`, so both defining sets are empty. They are not a defect, and the report must say why rather than report them. Every statement that uses `n` is guarded by k >= 3 (monier_upper_bound, cambie_upper_bound), or asymptotic at atTop so finitely many values cannot matter (better_upper), or names a specific k between 2 and 5 (small_values), or is satisfied by 0 anyway (exp_upper_bound). The report should also not report the range as a mismatch: the Lean writes lcm over Finset.Icc 1 (k-1) where the source writes k[2,3,...,k-1], and those are equal because lcm with 1 is the identity. The one real item is that the module docstring records `[Mo85] Monier (1985). No reference found.` with a TODO, while erdosproblems.com/1063 gives the full citation: Monier, Jean-Marie, Problems and Solutions: Solutions of Advanced Problems: 6447, Amer. Math. Monthly (1985), 435-436. A run that returns NEEDS REVISION on the sInf junk value fails this case.",
+      "files": [
+        "FormalConjectures/ErdosProblems/1063.lean"
       ],
-      "iteration_1": {
-        "with_skill": 1.0,
-        "without_skill": 1.0,
-        "discriminates": false,
-        "detail": "The baseline scored 6 of 6 and independently reproduced every change in pull request 4934. Replace this case rather than keep it. Assertion 5 guards against a claim that coprimality excludes 0, which no run in iteration 1 made, so it may be guarding a mistake specific to one earlier run."
-      }
+      "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
+      "notes": "The specificity case. The other two cases are both NEEDS REVISION, so a reviewer that always cries defect scores full marks on them. This one is mostly decoys: the correct answer is that the alarming-looking thing is harmless, with one small real nit. It also tests the rule that an item without a witness is written as a question rather than a finding.",
+      "assertions": [
+        "The report confirms that n 0 and n 1 are 0, and gives the reason, that both defining sets are empty and sInf of the empty set is 0",
+        "The report states that this does not break the upper bound theorems",
+        "The report gives the reason, naming that the consumers of n are either guarded by k >= 3, or asymptotic at atTop, or applied at a specific k between 2 and 5",
+        "The report does not raise the sInf junk value as a finding, and does not return NEEDS REVISION on account of it",
+        "The report does not report lcm over Finset.Icc 1 (k-1) as a mismatch with the source's k[2,3,...,k-1], or explicitly says the two are equal",
+        "The report supplies the [Mo85] citation, which the module docstring records as not found",
+        "The verdict is CLEAN or ACCEPT WITH NITS"
+      ]
     },
     {
       "id": 3,
       "prompt": "I'm reviewing the PR that adds Paper/ClaudesCycles.lean. Does the Lean match Knuth's problem?",
       "expected_output": "NEEDS REVISION. The Lean predicate is faithful, and the report should say so and say how it was checked. The finding is that cube_hamiltonian_arc_decomposition_even is categorised research open, and the module docstring says the even case remains open, while the cited paper retracts that. Knuth's Claude's Cycles is dated 28 February 2026, revised 14 April 2026; page 5 says the even case is open and page 6 opens 'Breaking news: The problem for even values of m is no longer in doubt!'. A run that returns CLEAN has read the problem statement and stopped, and fails this case.",
-      "files": ["FormalConjectures/Paper/ClaudesCycles.lean"],
+      "files": [
+        "FormalConjectures/Paper/ClaudesCycles.lean"
+      ],
       "pinned_commit": "7a38c469ec329d0c97c068e03c58834f61628e7e",
       "fixed_by": "https://github.com/google-deepmind/formal-conjectures/pull/4935",
       "notes": "Written as a false-positive control, on the assumption that the file was clean. The first run found the defect below, which was then verified against the PDF. The case now tests whether a reviewer reads a revised source to the end.",

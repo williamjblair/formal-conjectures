@@ -83,14 +83,14 @@ Every record carries the exact upstream baseline commit and tree plus a content-
 
 | Fixture | Distinction represented | Advisory result |
 | --- | --- | --- |
-| `clean-candidate-dean-4878` | mechanically well-identified candidate, without retained independent semantic ground truth | `inconclusive` |
+| `clean-source-faithful-min-modulus-4829` | the paper author's source-fidelity review, applied correction, unchanged theorem statement, byte-identical applied/final source, and maintainer approval on the exact final head | `clean` |
 | `conditional-erdos-427-4884` | full formal-proof tuple with an explicit Shiu assumption | `inconclusive` |
 | `fidelity-erdos-887-1237` | `answer(sorry)` under `C`/`n` binders despite the exact-head docstring asking for one absolute `K` | `needs_revision` |
 | `vacuity-erdos-80-4830` | impossible density witness at `c = 2`, `n = 100` | `needs_revision` |
 | `unavailable-rupert-3959` | exact-head build passes; proof metadata names only a mutable repository root, and a separate retained Comparator availability preflight records a missing executable in its declared environment | `unavailable` |
 
-The first fixture is intentionally named `clean-candidate` and is not marked `clean` in its record. The generator permits `clean` only when a retained passing semantic check is in `human_review` mode and has the `independent` role. GitHub approval in an observation does not silently become that semantic ground truth.
+The clean fixture is not inferred from merge, CI, or approval alone. Its typed result binds the paper author's explicit statement-fidelity review to the retained review-context source, the revision applying that review, an unchanged `min_modulus` theorem block, byte-identical applied and final source, and a maintainer approval on the exact final head. The v1 validator refuses missing, substituted, or drifted links in that chain.
 
-The FC-03 five-case ground-truth exit remains unmet. An exact-head independent human fidelity review is still required for the clean candidate; the fixtures must not be described as a completed clean/source-faithful ground-truth set until that record exists. The Erdős 887 and 80 witnesses are rooted to their exact PR-head blobs and are retained replays, not substitutes for that clean-case review.
+This completes the FC-03 five-case fixture distinction, not scientific acceptance or repository Standing. The Erdős 887 and 80 witnesses remain rooted retained replays. The retired PR 4878 candidate was removed after primary-source checking found incorrect author and page-range citations; neither mechanical approval nor a passing build can override that source-fidelity failure.
 
-See [example-pr-4878.md](example-pr-4878.md) for the escaped human-readable projection. The JSON record is authoritative.
+See [example-pr-4829.md](example-pr-4829.md) for the escaped human-readable projection. The JSON record is authoritative.

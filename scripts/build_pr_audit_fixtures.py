@@ -57,7 +57,7 @@ GRAPHQL_OPERATION = """query PullRequestAuditObservation($owner:String!,$name:St
 CORE_GRAPHQL_OPERATION = """query PullRequestAuditCoreSnapshot($owner:String!,$name:String!,$number:Int!,$baseOid:GitObjectID!,$headOid:GitObjectID!,$baseExpression:String!,$headExpression:String!){repository(owner:$owner,name:$name){pullRequest(number:$number){number url baseRefOid headRefOid files(first:100){nodes{path changeType} pageInfo{hasNextPage endCursor}}} baseCommit:object(oid:$baseOid){... on Commit{oid tree{oid}}} headCommit:object(oid:$headOid){... on Commit{oid tree{oid}}} baseBlob:object(expression:$baseExpression){... on Blob{oid byteSize isBinary text}} headBlob:object(expression:$headExpression){... on Blob{oid byteSize isBinary text}}}}"""
 CORE_ACQUIRED_AT = "2026-08-12T20:18:00Z"
 OBSERVATION_RECEIPTS = {
-    "clean-candidate-dean-4878": {"acquired_at": "2026-08-12T20:25:18Z", "request_id": "DFD6:170E7:188D09E:5486E3A:6A7CD6AD"},
+    "clean-source-faithful-min-modulus-4829": {"acquired_at": "2026-08-13T11:50:00Z", "request_id": "not-retained"},
     "conditional-erdos-427-4884": {"acquired_at": "2026-08-12T20:25:19Z", "request_id": "F0D9:4757A:17F52D1:51A205C:6A7CD6AF"},
     "fidelity-erdos-887-1237": {"acquired_at": "2026-08-12T20:25:21Z", "request_id": "DCB0:F4954:1718059:4EB15DF:6A7CD6B0"},
     "vacuity-erdos-80-4830": {"acquired_at": "2026-08-12T20:25:22Z", "request_id": "C5A9:3F5EEC:15B9084:4A06857:6A7CD6B2"},
@@ -122,25 +122,25 @@ def base_check(
 
 
 CASES: dict[str, dict[str, Any]] = {
-    "clean-candidate-dean-4878": {
-        "pr": 4878,
-        "base": {"commit_oid": "9118d083ffca1536f521f9a7d103201f537ea670", "tree_oid": "ea976b76d71431ee9e5a782312774cdd2d44a156"},
-        "head": {"commit_oid": "521f6a64402d238f1d040edfeda42c3d8eeb0b98", "tree_oid": "817cc51ddd02cb689ebda8acd4624a0cb58415b1"},
+    "clean-source-faithful-min-modulus-4829": {
+        "pr": 4829,
+        "core_acquired_at": "2026-08-13T11:50:00Z",
+        "base": {"commit_oid": "5fe1f74ad497d950e4c2094879ab10708907f7c6", "tree_oid": "ab398d8cf338f90ca240c93b4a8a6d2583a93315"},
+        "head": {"commit_oid": "0f8d60f1a5811eb00ad9f12cf8031ee5c1cc215c", "tree_oid": "8fab282d6af58b35db7d82ef02d53167dce0fe60"},
         "change": {
-            "path": "FormalConjectures/Arxiv/2605.02731/DeanCycles.lean",
+            "path": "FormalConjectures/Arxiv/2607.08366/MinModulus.lean",
             "status": "added",
             "base_blob_oid": None,
             "base_blob_sha256": None,
-            "head_blob_oid": "4a65620a7ff37a6d3f005f6db3705e26d793b3cf",
-            "head_blob_sha256": "sha256:c3d4a7ba8473304689b0d03548157376ce7958155085a9feb8d08552fc7e025e",
+            "head_blob_oid": "4c68a8c3788f805e29588bfefdac1fec079e9193",
+            "head_blob_sha256": "sha256:abb822a6dd603f95a9c9d773c199399222539c9cd91c8a124a3cc5429d9da416",
         },
-        "checks": "clean_candidate",
+        "checks": "clean_ground_truth",
         "observation": {
-            "state": "OPEN", "isDraft": False, "mergeStateStatus": "CLEAN", "reviewDecision": "APPROVED",
-            "updatedAt": "2026-08-12T16:30:14Z",
+            "state": "MERGED", "isDraft": False, "mergeStateStatus": "UNKNOWN", "reviewDecision": "APPROVED",
+            "updatedAt": "2026-08-11T21:39:27Z",
             "reviews": [
-                {"id": "PRR_kwDOOogmB88AAAABJP22IQ", "author": "mo271", "state": "APPROVED", "submittedAt": "2026-08-12T10:40:42Z", "commitOid": "55772e9a889d6cdc0fdb36ab802648bdc2d2b75e"},
-                {"id": "PRR_kwDOOogmB88AAAABJRKzkw", "author": "mo271", "state": "COMMENTED", "submittedAt": "2026-08-12T13:22:15Z", "commitOid": "126d471043b40a98c833535f1b73a9b8d40d821e"},
+                {"id": "PRR_kwDOOogmB88AAAABJKwQiw", "author": "mo271", "state": "APPROVED", "submittedAt": "2026-08-11T19:58:39Z", "commitOid": "0f8d60f1a5811eb00ad9f12cf8031ee5c1cc215c"},
             ],
         },
     },
@@ -280,19 +280,55 @@ def checks_for(case: dict[str, Any], roots: dict[str, str]) -> dict[str, Any]:
     head_root = case["change"]["head_blob_sha256"]
     head_locator = f"{path}@{case['head']['commit_oid']}"
     kind = case["checks"]
-    if kind == "clean_candidate":
+    if kind == "clean_ground_truth":
         checks = [base_check(
+            identifier="source-statement-fidelity", kind="semantic", mode="human_review",
+            property_name="source-statement-fidelity", role="independent", outcome="pass", severity="none",
+            path=path, declarations=["MinModulus.min_modulus"],
+            implementation_value=implementation(
+                "retained-source-fidelity-chain", "human_review_guide",
+                "human-source-fidelity-method.json", roots["human-source-fidelity-method"],
+            ),
+            inputs=[
+                check_input("head-lean-blob", "head-source", "git-blob", head_locator, head_root),
+                check_input("review-context-lean-blob", "review-context-source", "git-blob", f"{path}@61fd97db4c6533c007d6e7857b2eb94fcdf90463", roots["review-context-source"]),
+                check_input("applied-lean-blob", "applied-source", "git-blob", f"{path}@225c54f1deb0a9e6043465a5c768295740895ccf", roots["applied-source"]),
+                check_input("method", "human-source-fidelity-method", "human-review-guide", "human-source-fidelity-method.json", roots["human-source-fidelity-method"]),
+                check_input("human-review", "human-source-fidelity-review", "human-review-observation", "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5227429390", roots["human-source-fidelity-review"]),
+                check_input("source-author-review-body", "source-author-review-body", "human-review-body", "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5227429390", roots["source-author-review-body"]),
+                check_input("applied-review-response-body", "applied-review-response-body", "human-review-body", "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5228066477", roots["applied-review-response-body"]),
+                check_input("exact-head-approval-body", "exact-head-approval-body", "human-review-body", "https://github.com/google-deepmind/formal-conjectures/pull/4829#pullrequestreview-4910223499", roots["exact-head-approval-body"]),
+            ],
+            evidence_values=[evidence(
+                "source-author-review",
+                "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5227429390",
+                roots["human-source-fidelity-review"],
+                "The paper author explicitly found the open theorem statement faithful to Conjecture 1 and supplied the zero-modulus witness for its guard.",
+                "The reviewed theorem block is unchanged through the applied revision and exact final head; the final head has a retained maintainer approval.",
+            )],
+            limitations=[
+                "The source-author comment is a public GitHub observation, not a cryptographic signature; the packet binds its exact identity and text to retained source revisions.",
+                "This check covers the open min_modulus declaration only, not every declaration or the truth of Conjecture 1.",
+            ],
+            does_not_establish=["lean_build", "mathematical_truth", "merge_decision", "proof_correctness"],
+        ), base_check(
             identifier="snapshot-identity", kind="mechanical", mode="retained_replay",
             property_name="immutable-input-identity", role="producer", outcome="pass", severity="none",
-            path=path, declarations=["DeanCycles.dean_conjecture"],
-            implementation_value=implementation("pr-audit-snapshot-validator", "retained_procedure", "scripts/pr_audit.py", roots["method-pr-audit"]),
+            path=path, declarations=["MinModulus.min_modulus"],
+            implementation_value=implementation(
+                "pr-audit-snapshot-validator", "retained_procedure",
+                "scripts/pr_audit.py", roots["method-pr-audit"],
+            ),
             inputs=[
                 check_input("head-lean-blob", "head-source", "git-blob", head_locator, head_root),
                 check_input("method", "method-pr-audit", "python-source", "scripts/pr_audit.py", roots["method-pr-audit"]),
             ],
-            evidence_values=[evidence("git-blob-identity", head_locator, head_root, "The retained head path has an exact Git blob OID and SHA-256 content root.")],
-            limitations=["No independent human source-fidelity record is retained, so the advisory disposition remains inconclusive."],
-            does_not_establish=["lean_build", "merge_decision", "source_fidelity"],
+            evidence_values=[evidence(
+                "git-blob-identity", head_locator, head_root,
+                "The retained final path has an exact Git blob OID and SHA-256 content root.",
+            )],
+            limitations=["Exact byte identity is separate from the human source-fidelity judgment."],
+            does_not_establish=["lean_build", "mathematical_truth", "merge_decision", "source_fidelity"],
         )]
     elif kind == "conditional":
         assumption = condition(
@@ -625,7 +661,7 @@ def retained_core_artifacts(
         "endpoint": "https://api.github.com/graphql",
         "operation_name": "PullRequestAuditCoreSnapshot",
         "variables": variables,
-        "acquired_at": CORE_ACQUIRED_AT,
+        "acquired_at": case.get("core_acquired_at", CORE_ACQUIRED_AT),
         "response_sha256": sha256_digest(authority_raw),
         "query_sha256": sha256_digest(query_raw),
         "http_status": 200,
@@ -638,8 +674,21 @@ def retained_core_artifacts(
         receipt_raw, "application/json",
     )
     kind = case["checks"]
-    if kind in {"clean_candidate", "unavailable"}:
+    if kind == "unavailable":
         retain("method-pr-audit", "method", "method-pr-audit.py", (REPO / "scripts/pr_audit.py").read_bytes(), "text/plain")
+    if kind == "clean_ground_truth":
+        retain("method-pr-audit", "method", "method-pr-audit.py", (REPO / "scripts/pr_audit.py").read_bytes(), "text/plain")
+        review_context_raw = (inputs / "review-context-source.lean").read_bytes()
+        applied_raw = (inputs / "applied-source.lean").read_bytes()
+        retain("review-context-source", "source_file", "review-context-source.lean", review_context_raw, "text/x-lean")
+        retain("applied-source", "source_file", "applied-source.lean", applied_raw, "text/x-lean")
+        method_raw = (inputs / "human-source-fidelity-method.json").read_bytes()
+        review_raw = (inputs / "human-source-fidelity-review.json").read_bytes()
+        retain("human-source-fidelity-method", "method", "human-source-fidelity-method.json", method_raw, "application/json")
+        retain("human-source-fidelity-review", "tool_output", "human-source-fidelity-review.json", review_raw, "application/json")
+        retain("source-author-review-body", "tool_output", "source-author-review.txt", (inputs / "source-author-review.txt").read_bytes(), "text/plain")
+        retain("applied-review-response-body", "tool_output", "applied-review-response.txt", (inputs / "applied-review-response.txt").read_bytes(), "text/plain")
+        retain("exact-head-approval-body", "tool_output", "exact-head-approval.txt", (inputs / "exact-head-approval.txt").read_bytes(), "text/plain")
     if kind == "unavailable":
         procedure = {
             "schema_version": "formal-conjectures.pr-audit-packet-inspection-procedure.v1",
@@ -899,7 +948,14 @@ def attach_typed_results(
 ) -> None:
     inputs = directory / "inputs"
     for check in checks_value["checks"]:
-        if check["kind"] == "semantic" or check["mode"] == "human_review":
+        if check["kind"] == "semantic" and check["role"] == "independent":
+            producer = {
+                "kind": "human_reviewer",
+                "id": "jarfo",
+                "authority": "independent_human_review",
+                "independent": True,
+            }
+        elif check["kind"] == "semantic" or check["mode"] == "human_review":
             producer = {
                 "kind": "ai_review_preparer",
                 "id": "codex_ai_packet_preparer",
@@ -917,9 +973,9 @@ def attach_typed_results(
             finding = check["evidence"][0]
             semantic_review: dict[str, Any] | None = {
                 "preparer": producer["id"],
-                "reviewer": None,
+                "reviewer": producer["id"] if producer["independent"] else None,
                 "authority": producer["authority"],
-                "independent": False,
+                "independent": producer["independent"],
                 "outcome": check["outcome"],
                 "severity": check["severity"],
                 "finding": finding["statement"],
@@ -1031,8 +1087,8 @@ def main() -> None:
     generator = generator_identity()
     for name, case in CASES.items():
         build_case(name, case, generator)
-    clean_core = generate_core(FIXTURES / "clean-candidate-dean-4878" / "core-input.json")
-    (PACKET / "example-pr-4878.md").write_text(render_markdown(clean_core), encoding="utf-8")
+    clean_core = generate_core(FIXTURES / "clean-source-faithful-min-modulus-4829" / "core-input.json")
+    (PACKET / "example-pr-4829.md").write_text(render_markdown(clean_core), encoding="utf-8")
 
 
 if __name__ == "__main__":

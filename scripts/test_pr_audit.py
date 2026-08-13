@@ -47,7 +47,7 @@ from pr_audit import (
 REPO = Path(__file__).resolve().parent.parent
 FIXTURES = REPO / "audit" / "pr-audit-v1" / "fixtures"
 NAMES = (
-    "clean-candidate-dean-4878",
+    "clean-source-faithful-min-modulus-4829",
     "conditional-erdos-427-4884",
     "fidelity-erdos-887-1237",
     "vacuity-erdos-80-4830",
@@ -399,7 +399,7 @@ class FrozenFixtureTest(unittest.TestCase):
 
     def test_five_fixture_distinctions(self):
         cores = {name: generate_core(FIXTURES / name / "core-input.json") for name in NAMES}
-        self.assertEqual(cores["clean-candidate-dean-4878"]["disposition"]["advisory"], "inconclusive")
+        self.assertEqual(cores["clean-source-faithful-min-modulus-4829"]["disposition"]["advisory"], "clean")
         self.assertEqual(cores["conditional-erdos-427-4884"]["disposition"]["advisory"], "inconclusive")
         self.assertEqual(cores["fidelity-erdos-887-1237"]["disposition"]["advisory"], "needs_revision")
         self.assertEqual(cores["vacuity-erdos-80-4830"]["disposition"]["advisory"], "needs_revision")
@@ -491,7 +491,7 @@ class FrozenFixtureTest(unittest.TestCase):
             self.assertNotIn(drifted_identity, encoded)
 
     def test_disposition_nonclaims_are_complete(self):
-        core = generate_core(FIXTURES / "clean-candidate-dean-4878" / "core-input.json")
+        core = generate_core(FIXTURES / "clean-source-faithful-min-modulus-4829" / "core-input.json")
         self.assertEqual(core["disposition"]["nonclaims"], [
             "not_a_claim_of_mathematical_truth",
             "not_a_claim_that_unlisted_checks_ran",
@@ -1046,13 +1046,16 @@ class MutationAndRefusalTest(unittest.TestCase):
 
     def test_retained_internal_method_must_match_generator_overlay(self):
         self.directory = Path(self.temporary.name) / "internal-method"
-        shutil.copytree(FIXTURES / "clean-candidate-dean-4878", self.directory)
+        shutil.copytree(FIXTURES / "unavailable-rupert-3959", self.directory)
         method_path = self.directory / "inputs" / "method-pr-audit.py"
         method_path.write_bytes(method_path.read_bytes() + b"\n# forged method\n")
         update_manifest_artifact(self.directory, "core-input.json", "inputs/method-pr-audit.py")
         method_root = sha256_digest(method_path.read_bytes())
         def update_method(value):
-            check = value["checks"][0]
+            check = next(
+                item for item in value["checks"]
+                if item["property"] == "exact-formal-proof-artifact-identity"
+            )
             check["implementation"]["root"] = method_root
             next(item for item in check["inputs"] if item["artifact_id"] == "method-pr-audit")["root"] = method_root
         self.rewrite_checks(update_method, sync_typed_result=True)
@@ -1071,6 +1074,67 @@ class MutationAndRefusalTest(unittest.TestCase):
             "locator": "https://attacker.example/unbound-context"
         }), sync_typed_result=True)
         with self.assertRaisesRegex(AuditError, "evidence locator/root tuple"):
+            generate_core(self.directory / "core-input.json")
+
+    def test_clean_source_fidelity_chain_is_complete_and_exact(self):
+        self.directory = Path(self.temporary.name) / "clean-chain"
+        shutil.copytree(FIXTURES / "clean-source-faithful-min-modulus-4829", self.directory)
+        core = generate_core(self.directory / "core-input.json")
+        check = next(item for item in core["checks"] if item["property"] == "source-statement-fidelity")
+        self.assertEqual(core["disposition"]["advisory"], "clean")
+        self.assertEqual(check["property"], "source-statement-fidelity")
+        self.assertEqual(check["role"], "independent")
+        self.assertEqual(
+            next(item for item in check["inputs"] if item["artifact_id"] == "human-source-fidelity-review")["locator"],
+            "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5227429390",
+        )
+
+    def test_clean_source_fidelity_review_cannot_be_consistently_substituted(self):
+        self.directory = Path(self.temporary.name) / "clean-review-drift"
+        shutil.copytree(FIXTURES / "clean-source-faithful-min-modulus-4829", self.directory)
+        review_path = self.directory / "inputs" / "human-source-fidelity-review.json"
+        review = load(review_path)
+        review["final_head"]["approval_commit_oid"] = "0" * 40
+        write_canonical(review_path, review)
+        update_manifest_artifact(self.directory, "core-input.json", "inputs/human-source-fidelity-review.json")
+        review_root = sha256_digest(review_path.read_bytes())
+        def update_review_relation(value):
+            check = next(item for item in value["checks"] if item["property"] == "source-statement-fidelity")
+            next(item for item in check["inputs"] if item["artifact_id"] == "human-source-fidelity-review")["root"] = review_root
+            check["evidence"][0]["sha256"] = review_root
+        self.rewrite_checks(update_review_relation, sync_typed_result=True)
+        with self.assertRaisesRegex(AuditError, "source-statement fidelity artifact"):
+            generate_core(self.directory / "core-input.json")
+
+    def test_clean_source_fidelity_statement_drift_is_refused(self):
+        self.directory = Path(self.temporary.name) / "clean-statement-drift"
+        shutil.copytree(FIXTURES / "clean-source-faithful-min-modulus-4829", self.directory)
+        source_path = self.directory / "inputs" / "review-context-source.lean"
+        source_path.write_text(
+            source_path.read_text(encoding="utf-8").replace("0 < N → N < minModulus n", "1 < N → N < minModulus n", 1),
+            encoding="utf-8",
+        )
+        update_manifest_artifact(self.directory, "core-input.json", "inputs/review-context-source.lean")
+        source_root = sha256_digest(source_path.read_bytes())
+        def update_source_relation(value):
+            check = next(item for item in value["checks"] if item["property"] == "source-statement-fidelity")
+            next(item for item in check["inputs"] if item["artifact_id"] == "review-context-source")["root"] = source_root
+        self.rewrite_checks(update_source_relation, sync_typed_result=True)
+        with self.assertRaisesRegex(AuditError, "source-statement fidelity artifact"):
+            generate_core(self.directory / "core-input.json")
+
+    def test_clean_source_author_body_cannot_be_consistently_substituted(self):
+        self.directory = Path(self.temporary.name) / "clean-review-body-drift"
+        shutil.copytree(FIXTURES / "clean-source-faithful-min-modulus-4829", self.directory)
+        body_path = self.directory / "inputs" / "source-author-review.txt"
+        body_path.write_text("Looks good to me.\n", encoding="utf-8")
+        update_manifest_artifact(self.directory, "core-input.json", "inputs/source-author-review.txt")
+        body_root = sha256_digest(body_path.read_bytes())
+        def update_body_relation(value):
+            check = next(item for item in value["checks"] if item["property"] == "source-statement-fidelity")
+            next(item for item in check["inputs"] if item["artifact_id"] == "source-author-review-body")["root"] = body_root
+        self.rewrite_checks(update_body_relation, sync_typed_result=True)
+        with self.assertRaisesRegex(AuditError, "source-statement fidelity artifact"):
             generate_core(self.directory / "core-input.json")
 
     def test_unavailable_outcome_must_match_retained_classifier(self):
@@ -1348,8 +1412,8 @@ class MutationAndRefusalTest(unittest.TestCase):
             validate_observation(observation)
 
         observation = generate_observation(
-            FIXTURES / "clean-candidate-dean-4878" / "observation-input.json",
-            FIXTURES / "clean-candidate-dean-4878" / "expected-core.json",
+            FIXTURES / "clean-source-faithful-min-modulus-4829" / "observation-input.json",
+            FIXTURES / "clean-source-faithful-min-modulus-4829" / "expected-core.json",
         )
         observation["pull_request"]["reviews"].append(copy.deepcopy(observation["pull_request"]["reviews"][0]))
         observation["root"] = content_root({key: value for key, value in observation.items() if key != "root"})
@@ -1358,8 +1422,8 @@ class MutationAndRefusalTest(unittest.TestCase):
 
     def test_observation_review_order_is_chronological_then_identity(self):
         observation = generate_observation(
-            FIXTURES / "clean-candidate-dean-4878" / "observation-input.json",
-            FIXTURES / "clean-candidate-dean-4878" / "expected-core.json",
+            FIXTURES / "fidelity-erdos-887-1237" / "observation-input.json",
+            FIXTURES / "fidelity-erdos-887-1237" / "expected-core.json",
         )
         reviews = observation["pull_request"]["reviews"]
         self.assertLess(reviews[0]["submitted_at"], reviews[1]["submitted_at"])

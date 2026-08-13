@@ -1,0 +1,9 @@
+Thanks so much for the paper + your feedback. All applied in 225c54f.
+
+1. Link added, pinned to a commit and to `#L837-L838`.
+2. Fixed. It said attainment rules out smaller moduli; it bounds from above, and `min_modulus` is the open half.
+3. Moved to the PR description. Kept one line for why `0 < N` is there, and added your `N = 1` point.
+4. Already `AMS 5 11`.
+5. Can't edit #4811, it's @mo271's. Putting it here instead: least-for-the-super-increasing-set is proved (`nmin_eq`), only optimality across all size-`n` sets is conjectural.
+
+I'd argued against the link on encoding grounds. You wrote both, so I'll take your reading.

@@ -96,7 +96,25 @@ SUPPORTED_PROPERTIES = frozenset({
     "exact-formal-proof-artifact-identity",
     "comparator-packet-identity",
     "comparator-tool-availability",
+    "source-statement-fidelity",
 })
+SOURCE_FIDELITY_PROFILE = {
+    "pull_request": 4829,
+    "head_commit_oid": "0f8d60f1a5811eb00ad9f12cf8031ee5c1cc215c",
+    "path": "FormalConjectures/Arxiv/2607.08366/MinModulus.lean",
+    "declaration": "MinModulus.min_modulus",
+    "review_commit_oid": "61fd97db4c6533c007d6e7857b2eb94fcdf90463",
+    "applied_commit_oid": "225c54f1deb0a9e6043465a5c768295740895ccf",
+    "head_root": "sha256:abb822a6dd603f95a9c9d773c199399222539c9cd91c8a124a3cc5429d9da416",
+    "review_source_root": "sha256:da888073c89c610e99a039a133198369bc8e3b5fcbc8a0a61209184be2c387f3",
+    "statement_root": "sha256:5e2207335e2f604f78619ee54deb243366a84d2b9efd1ad895a382e7331d33a8",
+    "method_root": "sha256:5160a68f4c1bf6cf20c1c0baf0b36040601a4b624ea62f3878d1f4e579416794",
+    "review_root": "sha256:8e9107794109066b556f6d40bcd706a4c84d45cab7e6c3baa83e18b90364dffd",
+    "source_author_body_root": "sha256:647c6cbf06860be8f7de3dc6274de8059f5d5184aa28bf38f3fe39c78b931b35",
+    "applied_response_body_root": "sha256:025fc83a538261701889168daf8c007779989549159534194ab46311ee1d3efa",
+    "approval_body_root": "sha256:50fb366fc1eab571e74fc0543f52f4326fa50a91c16d77f81505d5d958eed4cc",
+    "review_url": "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5227429390",
+}
 CORE_ARTIFACT_ROLES = frozenset({
     "generator_identity",
     "repository_snapshot",
@@ -112,6 +130,99 @@ CORE_ARTIFACT_ROLES = frozenset({
 
 class AuditError(ValueError):
     """Raised when retained input cannot safely produce an audit record."""
+
+
+def _lean_theorem_block(raw: bytes, declaration: str) -> bytes:
+    text = raw.decode("utf-8")
+    marker = f"theorem {declaration.rsplit('.', 1)[-1]} :"
+    try:
+        start = text.index(marker)
+        end = text.index("\n\n/--", start)
+    except ValueError as error:
+        raise AuditError(f"retained source does not contain an isolated {declaration} theorem block") from error
+    return text[start:end].encode("utf-8")
+
+
+def _validate_source_statement_fidelity_profile(
+    check: Mapping[str, Any],
+    repository: Mapping[str, Any],
+    descriptors_by_id: Mapping[str, Mapping[str, Any]],
+    loaded: Mapping[str, tuple[Mapping[str, Any], Any, bytes]] | None = None,
+) -> None:
+    """Require the complete retained human review chain for the v1 clean fixture."""
+
+    profile = SOURCE_FIDELITY_PROFILE
+    if (
+        repository["pull_request"]["number"] != profile["pull_request"]
+        or repository["head"]["commit_oid"] != profile["head_commit_oid"]
+        or check["id"] != "source-statement-fidelity"
+        or check["kind"] != "semantic"
+        or check["mode"] != "human_review"
+        or check["role"] != "independent"
+        or check["outcome"] != "pass"
+        or check["severity"] != "none"
+        or check["scope"] != {
+            "revision": "head",
+            "paths": [profile["path"]],
+            "declarations": [profile["declaration"]],
+        }
+        or check["implementation"] != {
+            "name": "retained-source-fidelity-chain",
+            "version": "1",
+            "kind": "human_review_guide",
+            "locator": "human-source-fidelity-method.json",
+            "root": profile["method_root"],
+        }
+    ):
+        raise AuditError("source-statement fidelity check does not match the retained v1 human-review profile")
+
+    required = {
+        "head-source": ("source_file", "inputs/head-source.lean", profile["head_root"]),
+        "review-context-source": ("source_file", "inputs/review-context-source.lean", profile["review_source_root"]),
+        "applied-source": ("source_file", "inputs/applied-source.lean", profile["head_root"]),
+        "human-source-fidelity-method": ("method", "inputs/human-source-fidelity-method.json", profile["method_root"]),
+        "human-source-fidelity-review": ("tool_output", "inputs/human-source-fidelity-review.json", profile["review_root"]),
+        "source-author-review-body": ("tool_output", "inputs/source-author-review.txt", profile["source_author_body_root"]),
+        "applied-review-response-body": ("tool_output", "inputs/applied-review-response.txt", profile["applied_response_body_root"]),
+        "exact-head-approval-body": ("tool_output", "inputs/exact-head-approval.txt", profile["approval_body_root"]),
+    }
+    for artifact_id, expected in required.items():
+        descriptor = descriptors_by_id.get(artifact_id)
+        if descriptor is None or (descriptor["role"], descriptor["path"], descriptor["sha256"]) != expected:
+            raise AuditError(f"source-statement fidelity artifact {artifact_id!r} is missing or drifted")
+
+    expected_relations = {
+        ("head-source", f"{profile['path']}@{profile['head_commit_oid']}", profile["head_root"]),
+        ("review-context-source", f"{profile['path']}@{profile['review_commit_oid']}", profile["review_source_root"]),
+        ("applied-source", f"{profile['path']}@{profile['applied_commit_oid']}", profile["head_root"]),
+        ("human-source-fidelity-method", "human-source-fidelity-method.json", profile["method_root"]),
+        ("human-source-fidelity-review", profile["review_url"], profile["review_root"]),
+        ("source-author-review-body", profile["review_url"], profile["source_author_body_root"]),
+        ("applied-review-response-body", "https://github.com/google-deepmind/formal-conjectures/pull/4829#issuecomment-5228066477", profile["applied_response_body_root"]),
+        ("exact-head-approval-body", "https://github.com/google-deepmind/formal-conjectures/pull/4829#pullrequestreview-4910223499", profile["approval_body_root"]),
+    }
+    actual_relations = {
+        (item["artifact_id"], item["locator"], item["root"])
+        for item in check["inputs"]
+        if item["artifact_id"] in required
+    }
+    if actual_relations != expected_relations:
+        raise AuditError("source-statement fidelity check is not bound to the complete retained review chain")
+    if len(check["evidence"]) != 1 or (
+        check["evidence"][0]["locator"], check["evidence"][0]["sha256"]
+    ) != (profile["review_url"], profile["review_root"]):
+        raise AuditError("source-statement fidelity evidence is not the retained source-author review")
+
+    if loaded is not None:
+        review_raw = loaded["review-context-source"][2]
+        applied_raw = loaded["applied-source"][2]
+        head_raw = loaded["head-source"][2]
+        if applied_raw != head_raw:
+            raise AuditError("source-statement fidelity applied revision is not byte-identical to final head")
+        review_statement = _lean_theorem_block(review_raw, profile["declaration"])
+        head_statement = _lean_theorem_block(head_raw, profile["declaration"])
+        if review_statement != head_statement or sha256_digest(head_statement) != profile["statement_root"]:
+            raise AuditError("source-statement fidelity theorem changed after the source-author review")
 
 
 def _expected_missing_comparator_invocation() -> dict[str, Any]:
@@ -952,6 +1063,8 @@ def _validate_implementation_binding(
         expected = ("comparator-availability-preflight", "1", "retained_procedure")
     elif locator == "model-advisory-procedure.json":
         expected = ("model-advisory-adapter", "1", "external_checker")
+    elif locator == "human-source-fidelity-method.json":
+        expected = ("retained-source-fidelity-chain", "1", "human_review_guide")
     elif re.fullmatch(r"\.github/workflows/build-and-docs\.yml@[0-9a-f]{40}", locator):
         expected = ("build-and-docs", "1", "github_actions_workflow")
     elif re.fullmatch(r"REVIEW_MATH\.md@[0-9a-f]{40}#L[0-9]+-L[0-9]+", locator):
@@ -1413,6 +1526,10 @@ def generate_core(manifest_path: str | os.PathLike[str]) -> dict[str, Any]:
                 "model checks are deferred until v1 has a rooted model, prompt, rubric, request, and raw response profile"
             )
         _validate_implementation_binding(check, descriptors_by_id, generator)
+        if check["property"] == "source-statement-fidelity":
+            _validate_source_statement_fidelity_profile(
+                check, repository, descriptors_by_id, loaded
+            )
         if check["property"] == "exact-formal-proof-artifact-identity":
             if len(check["proofs"]) != 1:
                 raise AuditError("formal-proof artifact identity check requires exactly one proof target")
@@ -1470,7 +1587,10 @@ def generate_core(manifest_path: str | os.PathLike[str]) -> dict[str, Any]:
                 "authority": "retained_exact_head_git_object_identity",
             }:
                 raise AuditError("workflow Git object identity does not bind exact head method bytes")
-        if implementation["kind"] == "human_review_guide":
+        if (
+            implementation["kind"] == "human_review_guide"
+            and implementation_locator.startswith("REVIEW_MATH.md@")
+        ):
             method_input = next(
                 item for item in check["inputs"]
                 if item["root"] == implementation["root"]
@@ -1825,6 +1945,8 @@ def validate_core(value: Any) -> dict[str, Any]:
         if check["property"].startswith("model-"):
             raise AuditError("core model checks are not implemented by v1")
         _validate_implementation_binding(check, descriptors_by_id, generator)
+        if check["property"] == "source-statement-fidelity":
+            _validate_source_statement_fidelity_profile(check, repository, descriptors_by_id)
         if check["property"] == "exact-formal-proof-artifact-identity":
             if len(check["proofs"]) != 1:
                 raise AuditError("core formal-proof artifact identity check requires exactly one proof target")

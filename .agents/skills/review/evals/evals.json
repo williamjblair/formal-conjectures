@@ -1,6 +1,6 @@
 {
   "skill_name": "review",
-  "notes": "Each case reviews a file in this repository, not a fixture. A case is therefore only valid at a commit where the defect is still present. `pinned_commit` gives one such commit. When the linked pull request merges, the case stops testing anything and must be repinned or replaced.\n\nCase 2 was Erd\u0151s 939 through iteration 2. It was retired because it does not discriminate: the reviewer with no skill scored 6 of 6 on it in both iterations, and its finding is a worked example in references/defect-classes.md, so the runs were measuring recall rather than procedure. Both iteration 2 runs said so unprompted. Erd\u0151s 1063 replaces it and is named nowhere in the skill.\n\nCases 4 to 6 are different in kind. They come from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Their expected outputs are my adjudication of someone else's hypothesis, not a defect I found and fixed, so a run that produces a witness against the expected output is evidence the case is wrong. That has already happened twice, on case 3 in iteration 1 and case 2 in iteration 3.\n\nKeep eval targets and the worked examples in references/defect-classes.md disjoint. A reference that names a live review target measures recall rather than procedure, which is why the 939 case had to be retired.",
+  "notes": "Each case reviews a file in this repository, not a fixture, so a case is only valid at a commit where the defect is still present. Runs must review the worktree that evals/materialise.sh builds from `pinned_commit`, never the working tree. Reviewing the working tree is what retired the 940 case when its fix merged, and 940 was the strongest case in the set.\n\nSelection rule: keep a case only if it separates the arms. Measured in iteration 4, the one iteration where all six cases ran with and without the skill:\n  940            9/9 vs 5/9   +0.444\n  ClaudesCycles  8/8 vs 6/8   +0.250\n  1063           7/7 vs 6/7   +0.143\n  PR 4660        8/8 vs 7/8   +0.125\n  918            6/6 vs 6/6    0.000\n  Green 72       6/6 vs 6/6    0.000\n918 and Green 72 were dropped after that run. Neither measured anything across four iterations. Mean gap over the retained four is 0.240, against 0.160 over the original six.\n\nWhy those two scored zero is the rule for choosing replacements. A stray `∀ (ω : Ordinal)` binder and a reversed conclusion are both visible by reading the file against its own docstring, and the control reads carefully too. The cases that separate the arms need something outside the file: 940 needs erdosproblems.com, which returns 403 to the control, and ClaudesCycles needs a kernel-checked witness rather than an argument. Before adding a case, ask whether a careful reader with no network and no Lean could reach the answer. If yes it is documentation, not a test.\n\nAn expected output is only as good as its check. Four have been overturned by runs: case 3 in iteration 1, case 2 in iteration 3, Green 72 in iteration 4, case 2 again in iteration 7. Every one of those was a key I reasoned out rather than checked. The two cases that have never been overturned are the two whose keys are backed by a Lean proof. Prefer keys a machine settles.\n\nCase 2 was Erdős 939 through iteration 2, retired for the same reason as 918 and Green 72: the control scored 6 of 6 twice, and the finding is a worked example in references/defect-classes.md, so the runs measured recall rather than procedure. Keep eval targets and the worked examples in that reference disjoint.\n\nCase 4 comes from the unresolved leads in #4896, which are triage notes rather than confirmed defects, and whose author warns they may contain transcription errors. Its expected output is my adjudication of someone else's hypothesis, so a run that produces a witness against it is evidence the case is wrong, not the run.\n\nThe baseline is stale. `without_skill` read 0.8396 in iterations 4 through 7 because it was run once and reused. Any further comparison needs the control re-run against this four-case set.",
   "evals": [
     {
       "id": 1,
@@ -28,6 +28,13 @@
         "discriminates": true,
         "detail": "The only case that separated the arms. All three failures had one cause: the baseline hit the 403 from erdosproblems.com, reconstructed intent from 1107.lean, and proposed changing the summand count to r + 1, which converts a 940 question into 1107's problem. The with_skill result is not attributable, because SKILL.md step 5 carried this finding as its worked example until that example was replaced. Rerun in iteration 2.",
         "last_assertion_added_because": "The original assertion about giving a witness passed in both arms on very different evidence, an axiom-clean Lean proof and a sieve against a paragraph of reasoning."
+      },
+      "retired_id": 1,
+      "discrimination": {
+        "measured_in": "iteration_4",
+        "with_skill": "9/9",
+        "without_skill": "5/9",
+        "gap": 0.444
       }
     },
     {
@@ -48,7 +55,14 @@
         "The report identifies that better_upper's comparator takes its lcm in the reals, so it collapses to k",
         "The report states the consequence, that the statement is then unsatisfiable because n k >= 2k on a non-empty set",
         "The verdict is NEEDS REVISION, on the comparator rather than on the junk values"
-      ]
+      ],
+      "retired_id": 2,
+      "discrimination": {
+        "measured_in": "iteration_4",
+        "with_skill": "7/7",
+        "without_skill": "6/7",
+        "gap": 0.143
+      }
     },
     {
       "id": 3,
@@ -75,48 +89,17 @@
         "without_skill": 1.0,
         "discriminates": false,
         "detail": "The baseline found the defect unaided, dated the revision and quoted the passage. The first six assertions measure nothing. The two added above are the ones that separated the arms in iteration 1, where only the with_skill run verified the source's even-case programs at m = 4 to 16 and caught the under-specified formal_proof link."
+      },
+      "retired_id": 3,
+      "discrimination": {
+        "measured_in": "iteration_4",
+        "with_skill": "8/8",
+        "without_skill": "6/8",
+        "gap": 0.25
       }
     },
     {
       "id": 4,
-      "prompt": "Someone on the audit issue says GreensOpenProblems/72.lean has the conclusion the wrong way round. Is that right?",
-      "expected_output": "NEEDS REVISION. Green's Problem 72 asks 'What is the largest subset of the grid [N]^2 with no three points in a line? In particular, for N sufficiently large is it impossible to have a set of size 2N with this property?' His comments add that configurations of 2N points exist only for N up to around 50, that (3/2 + o(1))N points are achievable for arbitrary N, and 'my personal suspicion is that this is optimal'. So the source expects 2N to be unachievable for large N. green_72 asserts NoKInLineFor 3 N, which unfolds to AllowedSetSize 3 N = 2*N, for every N >= 3. That is the claim Green expects to be false, asserted as a bare theorem under research open rather than put in an answer(sorry) slot. green_72.variants.eventually states the same proposition in answer form, so the file both asserts the claim and asks whether it holds. NoKInLine inherits it at k = 3. Separately the module docstring asks the pigeonhole direction, which allowedSetSize_le in the same file already proves, so it states the settled half rather than the problem.",
-      "files": [
-        "FormalConjectures/GreensOpenProblems/72.lean"
-      ],
-      "pinned_commit": "3f08b849788e5e73d52069c616469ea995aac7d7",
-      "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
-      "notes": "Closes the non-Erdos gap. Also the case where my own adjudication was wrong: I wrote the expected output saying the Lean was right and only the docstring stated the wrong half. The control run read Green's comments, found that he expects 2N to fail for large N, and showed the headline theorem asserts what the source expects to be false. I checked the PDF and the run is right. Corrected before grading. This is the third time a run has beaten my expected output, after case 3 in iteration 1 and case 2 in iteration 3.",
-      "assertions": [
-        "The report quotes Green's actual question, that for N sufficiently large it is impossible to have a set of size 2N",
-        "The report states that Green expects 2N to be unachievable for large N, citing his suspicion that (3/2 + o(1))N is optimal",
-        "The report identifies green_72 as asserting the opposite, that 2N is attained for every N >= 3",
-        "The report notes that allowedSetSize_le already proves the <= direction, so the module docstring states the settled half",
-        "The report notes that green_72 and green_72.variants.eventually are the same proposition asserted and asked",
-        "The verdict is NEEDS REVISION"
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "audit issue flags ErdosProblems/918.lean: 'fixed omega versus a universal ordinal binder'. can you check parts.ii?",
-      "expected_output": "NEEDS REVISION. erdos_918.parts.ii reads `answer(sorry) <-> forall (omega : Ordinal), exists V G, #V = aleph_ (omega + 1) ...`. The binder is named omega, so it reads like the fixed first infinite ordinal, but it is a universally quantified variable ranging over every ordinal. The source asks about one cardinal, aleph_{omega+1} for the fixed omega. The Lean therefore asks a strictly stronger question, since it must hold at every ordinal, and the naming makes the difference invisible on a read. erdos_918.variants.all_subgraphs.parts.ii has the same shape. The suggested change is to use the fixed ordinal, or to rename the binder and say in the docstring that the generalisation is deliberate.",
-      "files": [
-        "FormalConjectures/ErdosProblems/918.lean"
-      ],
-      "pinned_commit": "3f08b849788e5e73d52069c616469ea995aac7d7",
-      "lead": "https://github.com/google-deepmind/formal-conjectures/issues/4896",
-      "notes": "Quantifier scope, class 1. Tests whether a reviewer notices a binder whose name impersonates a constant.",
-      "assertions": [
-        "The report identifies erdos_918.parts.ii as binding omega as a universal variable rather than using the fixed ordinal",
-        "The report says the source asks about the single cardinal aleph_{omega+1} for the fixed omega",
-        "The report says which direction the mismatch goes, that the Lean is strictly stronger because it must hold at every ordinal",
-        "The report notes that the binder's name is what hides the problem",
-        "The report checks the other declarations and reports that all_subgraphs.parts.ii has the same shape",
-        "The verdict is NEEDS REVISION"
-      ]
-    },
-    {
-      "id": 6,
       "prompt": "can you review PR #4660 before I approve it? someone said the tsum has no Summable hypothesis and I want to know if that actually matters",
       "expected_output": "NEEDS REVISION, and blocking. IsRationalPairSequence requires `exists q : Q, tsum n, 1/(a n) = q`. In Mathlib tsum of a family that is not Summable is 0, and 0 is rational, so the condition reads 'sums to a rational OR diverges'. The consequence is worse than a loose definition: erdos_265 itself becomes provable. Its growth condition GrowthExceedsOne is exists-frequently, `exists-freq n, c^(2^n) <= a n`, which does not force summability, so a sequence can spike doubly exponentially at sparse indices and still have a divergent reciprocal sum. Both tsums are then 0, IsRationalPairSequence holds vacuously, and the existential the statement asks about is witnessed, collapsing answer(sorry) to True. A witness must satisfy the growth condition as well: a n = n + 2 satisfies IsRationalPairSequence but not GrowthExceedsOne, so it is not sufficient on its own. The fix is HasSum, which bundles convergence and is already the form used in 266.lean for the same circle of problems, plus a negative regression test that the current definition would fail. There is a second, independent defect: erdos_265.variants.sup_rate is `sSup AchievableRates = answer(sorry)`, so the slot can be filled with the term it is meant to determine and the statement closes by rfl. That is the mirror of the Erdos 195 entry in defect-classes.md class 4, and no linter catches it.",
       "files": [
@@ -135,8 +118,15 @@
         "The report proposes HasSum or Summable, and does not merely note the hazard",
         "The verdict is NEEDS REVISION",
         "The report identifies erdos_265.variants.sup_rate as a self-answer, where the slot can be filled with sSup AchievableRates so the statement closes by rfl"
-      ]
+      ],
+      "retired_id": 6,
+      "discrimination": {
+        "measured_in": "iteration_4",
+        "with_skill": "8/8",
+        "without_skill": "7/8",
+        "gap": 0.125
+      }
     }
   ],
-  "harness_note": "Prompt the runs with the contents of SKILL.md, or tell them to read that one file and nothing else in the directory. Pointing a run at the skill's path invites it to list the directory, and one iteration 4 run found this file that way and read the expected outputs before opening the Lean. A real client injects SKILL.md through the skill system and never exposes evals/, so that leak is an artefact of the harness rather than of the skill. SKILL.md also says not to open this directory, which is defence in depth rather than the fix."
+  "harness_note": "Materialise each case with `evals/materialise.sh <case-id> <dest>` and point the run at that worktree. Runs that read the working tree measure whatever the branch happens to hold. Case 4 reviews a pull request head that is on no branch; the script fetches refs/pull/4660/head first. Remove each worktree with `git worktree remove <dest>` when the run finishes.\n\nPrompt the runs with the contents of SKILL.md, or tell them to read that one file and nothing else in the directory. Pointing a run at the skill's path invites it to list the directory, and one iteration 4 run found this file that way and read the expected outputs before opening the Lean. A real client injects SKILL.md through the skill system and never exposes evals/, so that leak is an artefact of the harness rather than of the skill. SKILL.md also says not to open this directory, which is defence in depth rather than the fix."
 }

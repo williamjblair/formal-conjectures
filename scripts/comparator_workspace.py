@@ -23,18 +23,22 @@ Known limits, which are the point of the prototype:
   * The split into definitions and statement is textual. It takes the file up to the target
     declaration as the dependencies. A file whose later declarations the statement needs will
     not work.
-  * It handles a problem file that imports only `FormalConjecturesUtil`. A file that imports
-    `FormalConjecturesForMathlib` needs those modules vendored into `ChallengeDeps`.
-  * It rejects a statement containing `answer(`. That elaborator is defined in this repository,
-    so a Mathlib-only workspace cannot elaborate it. lean-eval models an unknown value as a
-    `def` hole, which is the shape that would fit.
+  * The statement may use definitions from `FormalConjecturesForMathlib`. Every problem file has
+    those in scope, because `FormalConjecturesUtil` re-exports the whole library, so the source
+    text does not say whether a statement needs them. Pass `--check` to compile the generated
+    workspace against Mathlib alone and find out.
+  * An `answer(...)` becomes a `def` hole, which is how comparator models an unknown value. The
+    type comes from the source: `answer(sorry : T)` states it, and `answer(...) ↔ P` makes it
+    `Prop`. Any other shape needs the elaborator, and the script says so rather than guess.
 """
 
 import argparse
 import json
 import pathlib
 import re
+import subprocess
 import sys
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -109,16 +113,58 @@ def statement_of(declaration):
     return body.rstrip().rstrip(":=").rstrip()
 
 
+def find_answer(statement):
+    """Locate `answer(...)` and return its span and its contents, matching parentheses.
+
+    A regex cannot do this, because the contents frequently contain parentheses.
+    """
+    start = statement.find("answer(")
+    if start < 0:
+        return None
+    i = start + len("answer(")
+    depth = 1
+    while i < len(statement) and depth:
+        if statement[i] == "(":
+            depth += 1
+        elif statement[i] == ")":
+            depth -= 1
+        i += 1
+    if depth:
+        sys.exit("unbalanced parentheses in `answer(`")
+    return start, i, statement[start + len("answer("):i - 1]
+
+
+def answer_type(statement, span):
+    """The type of the answer, inferred from the source.
+
+    Two shapes cover almost all of the repository:
+
+      * `answer(sorry : T)` states the type outright
+      * `answer(...) ↔ P` makes the answer a `Prop`
+
+    Anything else needs the elaborator, so report it rather than guess.
+    """
+    start, end, contents = span
+    depth = 0
+    for index, char in enumerate(contents):
+        if char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+        elif char == ":" and depth == 0 and contents[index:index + 2] != ":=":
+            return contents[index + 1:].strip()
+    if statement[end:].lstrip().startswith("↔"):
+        return "Prop"
+    sys.exit(
+        "cannot infer the type of the answer. Write it as `answer(sorry : T)`, or extend this "
+        "script to elaborate the statement."
+    )
+
+
 def generate(problem_file, name, out_dir):
     source = (ROOT / problem_file).read_text()
 
-    if "FormalConjecturesForMathlib" in source:
-        sys.exit("this file imports FormalConjecturesForMathlib; vendor those modules first")
-
     before, declaration = split_at_declaration(source, name)
-    if "answer(" in declaration:
-        sys.exit(f"{name} uses `answer(`, which needs a def hole; see the module docstring")
-
     namespace = namespace_of(source)
     if namespace is None:
         sys.exit("no namespace found in the problem file")
@@ -129,40 +175,73 @@ def generate(problem_file, name, out_dir):
     deps = deps.rstrip() + f"\n\nend {namespace}\n"
 
     statement = statement_of(declaration)
-    signature = re.sub(r"^(theorem|lemma)\s+\S+", r"\1 " + name.split(".")[-1], statement)
+    basename = name.split(".")[-1]
+    signature = re.sub(r"^(theorem|lemma)\s+\S+", r"\1 " + basename, statement)
+
+    # An `answer(...)` marks the unknown part of the problem. comparator models an unknown value
+    # as a `def` hole listed in `definition_names`, so split the statement into the two holes.
+    span = find_answer(signature)
+    if span is None:
+        answer_def = None
+    else:
+        start, end, _ = span
+        answer_name = f"{basename}_answer"
+        answer_def = (answer_name, answer_type(signature, span))
+        signature = signature[:start] + answer_name + signature[end:]
 
     out = ROOT / out_dir
     out.mkdir(parents=True, exist_ok=True)
     toolchain, rev = pins()
 
+    challenge_def = solution_def = submission_def = ""
+    if answer_def:
+        answer_name, answer_ty = answer_def
+        challenge_def = f"noncomputable def {answer_name} : {answer_ty} := sorry\n\n"
+        submission_def = f"noncomputable def {answer_name} : {answer_ty} := sorry\n\n"
+        solution_def = (f"@[reducible] noncomputable def {answer_name} : {answer_ty} := "
+                        f"Submission.{answer_name}\n\n")
+
     (out / "ChallengeDeps.lean").write_text(deps)
     (out / "Challenge.lean").write_text(
-        f"import ChallengeDeps\n\nopen {namespace}\n\n{signature} := by\n  sorry\n"
+        f"import ChallengeDeps\n\nopen {namespace}\n\n{challenge_def}{signature} := by\n  sorry\n"
     )
     (out / "Submission.lean").write_text(
         f"import ChallengeDeps\n\nopen {namespace}\n\nnamespace Submission\n\n"
-        f"{signature} := by\n  sorry\n\nend Submission\n"
+        f"{submission_def}{signature} := by\n  sorry\n\nend Submission\n"
     )
     (out / "Solution.lean").write_text(
         f"import ChallengeDeps\nimport Submission\n\nopen {namespace}\n\n"
-        f"{signature} := by\n  exact Submission.{name.split('.')[-1]} ..\n"
+        f"{solution_def}{signature} :=\n  Submission.{basename}\n"
     )
-    (out / "config.json").write_text(json.dumps({
+    config = {
         "challenge_module": "Challenge",
         "solution_module": "Solution",
-        "theorem_names": [name.split(".")[-1]],
+        "theorem_names": [basename],
         "permitted_axioms": STANDARD_AXIOMS,
         "enable_nanoda": False,
-    }, indent=2) + "\n")
+    }
+    if answer_def:
+        config["definition_names"] = [answer_def[0]]
+    (out / "config.json").write_text(json.dumps(config, indent=2) + "\n")
+
+    holes = []
+    if answer_def:
+        holes.append({
+            "name": f"{namespace}.{answer_def[0]}",
+            "basename": answer_def[0],
+            "kind": "def",
+            "body": f"noncomputable def {answer_def[0]} : {answer_def[1]} := sorry",
+        })
+    holes.append({
+        "name": f"{namespace}.{name}",
+        "basename": basename,
+        "kind": "theorem",
+        "body": declaration.strip(),
+    })
     (out / "holes.json").write_text(json.dumps({
-        "id": name.split(".")[-1],
+        "id": basename,
         "module": str(problem_file),
-        "holes": [{
-            "name": f"{namespace}.{name}",
-            "basename": name.split(".")[-1],
-            "kind": "theorem",
-            "body": declaration.strip(),
-        }],
+        "holes": holes,
     }, indent=2) + "\n")
     (out / "lakefile.toml").write_text(
         f'name = "{name.split(".")[-1]}"\n'
@@ -179,14 +258,43 @@ def generate(problem_file, name, out_dir):
     print(f"wrote {out.relative_to(ROOT)} for {namespace}.{name}")
 
 
+def check(out_dir):
+    """Compile the generated challenge against Mathlib alone.
+
+    A statement that needs `FormalConjecturesForMathlib` fails here, which is the point: the
+    source text cannot tell you, because every problem file imports the whole library.
+    """
+    out = ROOT / out_dir
+    body = (out / "ChallengeDeps.lean").read_text()
+    body += "\n" + re.sub(r"^import .*\n", "", (out / "Challenge.lean").read_text(), flags=re.M)
+    with tempfile.NamedTemporaryFile("w", suffix=".lean", delete=False) as handle:
+        handle.write(body)
+        path = handle.name
+    result = subprocess.run(["lake", "env", "lean", path], cwd=ROOT,
+                            capture_output=True, text=True)
+    errors = [line for line in (result.stdout + result.stderr).splitlines()
+              if "error" in line.lower()]
+    if errors:
+        print(f"FAIL {out_dir}")
+        for line in errors[:6]:
+            print("  " + line.split(":", 3)[-1].strip()[:110])
+        return False
+    print(f"OK   {out_dir}: the challenge builds over Mathlib alone")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("problem_file")
     parser.add_argument("declaration")
     parser.add_argument("--out", default=None)
+    parser.add_argument("--check", action="store_true",
+                        help="compile the generated challenge against Mathlib alone")
     args = parser.parse_args()
     out = args.out or f".comparator/{args.declaration.split('.')[-1]}"
     generate(args.problem_file, args.declaration, out)
+    if args.check and not check(out):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

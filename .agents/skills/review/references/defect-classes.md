@@ -62,8 +62,9 @@ contradict its own file.
 Check that first, because it is cheap. These leads need the cited papers, and they are open in
 #4896:
 
-- *Green 72*: the statement may assert that the extremal value is `2N`. The source asks whether
-  `2N` is eventually impossible.
+- *(unnamed, because it is a case in `evals/`)*: a file states an extremal value as an equality
+  where the source asks whether that value is eventually unattainable. The pigeonhole half is
+  already a theorem in the same file, so the open content is the other half.
 - *Erdős 757*: `IsAdmissible` may use `(B - B).ncard = 11`, where the source has `11 ≤`.
 - *Erdős 1167*: the module docstring records the condition `κ α > r`. The theorem may omit it.
 
@@ -110,10 +111,12 @@ statement.
 
 Examine the smallest value of each bound.
 
-- *Erdős 940* (confirmed): `large_integers` quantifies over `r ≥ 2`. At `r = 2` it asserts that
-  almost every integer is a sum of at most two `2`-powerful numbers. Thus that set is cofinite.
-  `erdos_940.variants.two` is in the same file, it is `research solved`, and it states that the
-  same set has density `0`. Both cannot hold.
+- *(confirmed; unnamed, because it is a case in `evals/`)*: a variant quantifies from one below
+  the bound its source states. At that value it asserts a set is cofinite, while a `research
+  solved` statement in the same file gives the same set density `0`. Both cannot hold, so the
+  answer slot on a `research open` statement is already decided, for a value the source excludes.
+  Two statements in one file contradicting each other is the cheapest boundary defect to find and
+  the easiest to read past.
 - *Green 21* (confirmed): `fox_kleitman_modular` permits `k = 0`. The hypothesis then holds
   vacuously, and the conclusion becomes `(0 : ZMod p) ≠ 0`. Thus no `f` exists, and the answer is
   `False` for a reason that has nothing to do with the question.

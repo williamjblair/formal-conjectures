@@ -21,21 +21,37 @@ and reconstructed one statement from a neighbouring problem file, which produced
 wrong fix. So the steps that earn their cost are step 3 and step 5: read the source, and make
 every finding checkable rather than argued. Spend the effort there.
 
-First fix the scope. If a pull request is named, review its diff. If a file is named, review
-the whole file, and run `git status` and `git log -1 -- <path>` so you know whether the work is
-even in the tree yet. Use the `-- <path>`: a bare `git log -1` reports the branch tip, which is
-usually about something else. If the named pull request does not exist, say so and review the
-file instead. The repository squash-merges, so a local date can belong to a repository-wide
-refactor rather than to the work; confirm with `gh pr list --state all --search` when the commit
-title does not mention the file.
+Do not open `evals/`. It holds the graded answers to a handful of files in this repository, and
+reading it before you review one of them turns the review into recall.
+
+First fix the scope. If a file is named, review the whole file, and run `git status` and
+`git diff origin/main -- <path>`. The diff is what tells you whether there is pending local work;
+the log does not.
+
+If a pull request is named, review its diff. Nothing else in this file assumes that, so get the
+work into the tree first, and put it back afterwards:
+
+```bash
+git fetch origin pull/N/head:pr-N && git show pr-N:<path> > <path>   # materialise
+# ... review, build, write witnesses ...
+rm <path> && git branch -D pr-N                                      # restore
+```
+
+`git status` will show the file as untracked while you work. Do not stage it. Report final-file
+line numbers rather than patch offsets. If the named pull request does not exist, say so and
+review the file instead.
+
+For when the file landed, use `gh api "repos/OWNER/REPO/commits?path=<path>"`. Do not use
+`git log`: this repository squash-merges and rewrites, so `-1` returns a repository-wide refactor
+or a change to a different declaration, and even `--diff-filter=A` has attributed a file's
+creation to a pull request that never touched it.
 
 Then check whether an open pull request already touches the file. Match on the full path, not on
-a bare number, which also matches line counts and unrelated files. Get every path in one request
-rather than one request for each of the several hundred open pull requests:
+a bare number, which also matches line counts and unrelated files:
 
 ```bash
 gh pr list --limit 400 --json number,title,files \
-  --jq '.[] | select(.files[].path == "FormalConjectures/ErdosProblems/939.lean")
+  --jq '.[] | select(any(.files[]; .path == "FormalConjectures/ErdosProblems/939.lean"))
         | "\(.number) \(.title)"'
 ```
 
@@ -51,15 +67,14 @@ that touch the same lines will conflict, and saying so is worth a finding.
 ## Step 1: take the automatic checks as given
 
 ```bash
-lake --wfail build 'FormalConjectures.ErdosProblems.«N»'   # each module in scope
-python3 scripts/check_erdos_status.py                       # only for ErdosProblems/
+lake --wfail build 'FormalConjectures.<Dir>.«N»'   # each module in scope
+python3 scripts/check_erdos_status.py              # ErdosProblems/ only; skip it elsewhere
 ```
 
-Run every `lake` command from the repository root. From anywhere else it reports a missing
-default toolchain, which reads as a broken install rather than a wrong directory.
-
-Outside `ErdosProblems/`, build the module in scope and skip the status script. It only knows
-about Erdős problems, and skipping it is not a skipped check.
+Run `lake` from the repository root and pass absolute paths. Never `cd` elsewhere, including
+inside a compound command: the working directory persists into the next call, and `lake` then
+reports a missing default toolchain, which reads as a broken install rather than a wrong
+directory. Skipping the status script outside `ErdosProblems/` is not a skipped check.
 
 If a module does not build, report that and stop.
 
@@ -91,7 +106,7 @@ lists the ones that recur. Two more from this repository:
   reduce, and gets stuck on `List.decidableBAll` over `primeFactorsList`. Use the lemmas in
   `FormalConjecturesForMathlib/Data/Nat/Full.lean`, which ships `Full.zero_right`,
   `Full.one_right` and a `primeFactorsEq` dsimproc, or `norm_num [Nat.Full, Nat.primeFactors,
-  Nat.primeFactorsList]`, which needs a raised `maxRecDepth`.
+  Nat.primeFactorsList]`, which needs `set_option maxRecDepth 4000`; the default 512 fails.
 - `Finset.Coprime S` is `S.gcd id = 1`, the gcd of the whole set. It is not pairwise, so a set
   containing `1` is coprime whatever else it holds. Before you propose making it pairwise, check
   the source's own example: for Erdős 939 that example is not pairwise coprime, so the change
@@ -121,8 +136,9 @@ close a question its own earlier section calls open. Read the remarks, the posts
 addendum, and compare the source's early status claims against its later ones. A reviewer who
 reads the problem statement and stops will pass a file that records a settled question as open.
 
-Then compare the source's revision date against the date the file landed, with
-`git log -1 --format=%as -- <path>`. A file older than the revision is where this defect lives.
+Where the source carries a revision date, compare it against the date the file landed. A file
+older than the revision is where this defect lives. Many sources carry no date, erdosproblems.com
+among them; skip the comparison there rather than inventing one.
 
 Follow the source's own cross-references. When a page says "see also [1107]", open that
 problem and the file that formalises it. A wrong bound is often a correct bound copied from a
@@ -153,7 +169,8 @@ you to its examples, and it contains the answer to some reviews outright.
 5. what a `formal_proof` link shows
 6. variants
 
-Skip class 5 unless the scope adds or changes a `formal_proof` attribute.
+Apply class 5 whenever the scope *contains* a `formal_proof` attribute, not only when it adds or
+changes one. On a whole-file review that means any file carrying one.
 
 Two things are sanctioned and are not defects. Do not report either. `answer(sorry) ↔ ∀ᵉ ...`,
 with the answer slot outside the binders, is the shape the `AnswerLinter` recommends. And a
@@ -186,10 +203,14 @@ If the paper ships code, fetch and run the paper's own program rather than reimp
 construction. A search you write yourself may not terminate on the smallest interesting case.
 Then enumerate that smallest case exhaustively.
 
-The control is not always reachable in Lean. `Equiv.Perm.IsCycle` has no `Decidable` instance,
-for one. Running the control outside Lean, against your own transcription of the definitions,
-is a fair fallback, but it tests your reading of the Lean rather than the Lean. Say which one
-you did.
+A missing `Decidable` instance is not the end of the road. `Equiv.Perm.IsCycle` has none, but a
+Hamiltonian cycle encodes as a nodup `List` and `List.formPerm`, `List.isCycle_formPerm` and
+`List.support_formPerm_of_nodup` then give a kernel-checked witness. Look for the constructive
+encoding before you give up on Lean.
+
+When the control genuinely cannot run in Lean, running it outside against your own transcription
+of the definitions is a fair fallback, but it tests your reading of the Lean rather than the
+Lean. Say which one you did, and for a mixed witness say which half is machine-checked.
 
 Say what the witness shows, and also what it does not show. A finding that claims too much
 costs a reviewer more time than no finding.
@@ -215,7 +236,12 @@ Then give one verdict:
 - **ACCEPT WITH NITS**: the findings do not change the meaning of the statement.
 - **NEEDS REVISION**: at least one finding changes the meaning, or makes the statement vacuous,
   or shows that a `formal_proof` claims more than the linked proof gives, or records a status or
-  category that the cited source contradicts.
+  category that the cited source contradicts, or asserts a direction the cited source expects to
+  be false.
+
+That last one is in scope and "whether the conjecture is true" is not. The difference is whose
+opinion it is. You doubting a conjecture is out of scope. The source saying it expects the
+opposite answer, and the file asserting it anyway, is a finding, and the witness is the quotation.
 
 If you cannot give a witness for an item, write it as a question instead of a finding.
 

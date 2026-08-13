@@ -53,6 +53,13 @@ A missing required method/configuration file is a malformed input packet and gen
 
 Model checks are likewise deferred in v1. The generator rejects `model-*` properties until a profile roots the model/version, provider or local weights, prompt, rubric, exact inputs, request parameters, and raw output. This keeps a copied metadata check from masquerading as a model error or disagreement record.
 
+The bounded FC-07 Comparator evidence packet lives in
+`comparator-pilot/`. It retains a clean unconditional pass, a named permitted-
+axiom pass, a target-mismatch refusal, a definition-hole pass with its semantic
+gap made explicit, and the existing unavailable proof-target case. The capture
+uses Comparator's development fake-landrun on macOS and therefore makes no
+sandbox-isolation claim.
+
 The core examples retain exact source bytes, commit/tree/blob identities, commit-qualified workflow or review-guide bytes, the exact named snapshot query and variables, a time-free normalized repository result, and a time-free normalized job result where a build is claimed. The request identity binds the exact query and normalized-result digests without importing an acquisition clock. The generator recomputes Git blob OIDs, binds every implementation and evidence tuple to retained inputs, and verifies the exact job/workflow, job/run/head/success, and URL tuple. Immutable linked proof bytes remain core evidence; their HTTP acquisition event remains outside the core.
 
 The observation manifests retain the raw public GitHub GraphQL and job responses, named observation query, acquisition receipts, HTTP/raw-URL provenance, and AI packet-preparation events. Changing any of those event or presentation fields changes the observation root but not the core root. The primary GraphQL receipt-derived fields are embedded in the published envelope so standalone validation can recompute that descriptor binding rather than trusting a detached summary. Auxiliary provenance artifacts are content-rooted as events; their presence is not an authenticated-host claim. No receipt is a cryptographic GitHub signature.

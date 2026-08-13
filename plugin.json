@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "formal-conjectures",
+  "description": "Skills for contributing to and reviewing Formal Conjectures.",
+  "homepage": "https://google-deepmind.github.io/formal-conjectures/",
+  "repository": "https://github.com/google-deepmind/formal-conjectures",
+  "license": "Apache-2.0",
+  "keywords": ["lean", "mathematics", "formalization", "review"]
+}

@@ -1,10 +1,11 @@
-# Mathematical Review Guide
+# Defect classes
 
-This guide is for the second pass over a formalisation. It answers one question: does the Lean
-statement say what the source says?
+This is the reference for the `review-statement` skill. `SKILL.md` gives the procedure. This
+file gives the classes of defect that the procedure looks for, each with an example from this
+repository.
 
-`AGENTS.md` covers the first pass, which is mechanical. This file covers the part that needs
-judgement.
+It answers one question: does the Lean statement say what the source says? `AGENTS.md` covers
+the mechanical pass. This covers the part that needs judgement.
 
 A tool such as `leanprover/comparator` decides whether a submitted proof establishes a given
 statement, under a permitted set of axioms. That question is mechanical, and it is being automated.

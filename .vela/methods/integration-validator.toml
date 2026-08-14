@@ -1,0 +1,36 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:656d9fb5b48c69f53b913f6ed4cd9b26637074aa85880b6dc73d93b32fdcbc53"
+method_id = "integration-validator"
+version = "0.1"
+inputs = [
+  "Vela Core integration checker@bea4ec2af0772e366a0670d49a10b7085a4c73c1",
+  "vela.toml and its rooted Profile, Binding, and Method inventory",
+  "retained source-owned PR-audit and review bytes",
+]
+outputs = ["scoped integration conformance result", "optional verification input"]
+limitations = [
+  "Vela Core validates the shared rooted Manifest, Profile, Binding, Method, and Exact Reference waist before source-owned checks run.",
+  "The source-local validator retains Formal Conjectures ownership, PR-audit, review, proof-condition, rights, availability, provenance, and retained-byte semantics; it is not a Protocol 1 verifier.",
+  "The emitted portable declaration export is source-owned verification input; its mechanical, semantic, merge, and approval observations do not establish acceptance or Standing.",
+]
+nonclaims = [
+  "Integration conformance is not scientific acceptance, a Vela Decision, or Standing.",
+]
+authority_effect = "none"
+
+[implementation]
+path = "scripts/formal_conjectures_integration.py"
+digest = "sha256:17eea1d7ff77d84955f48b23decb986d1e123aead6d45cf5838f635d96af2b4c"
+
+[environment]
+kind = "exact"
+revision = "96eeecf40bc06ddc8bae6d106f461d4fd774858a"
+runtime = "Python 3.11 or newer with the repository test environment"
+
+[environment.core]
+repository = "https://github.com/vela-science/vela.git"
+revision = "bea4ec2af0772e366a0670d49a10b7085a4c73c1"
+binary = "vela"
+version = "0.974.2"
+command = "vela integration check <repository> --json"
+result_schema = "vela.cli.integration-check.v1"

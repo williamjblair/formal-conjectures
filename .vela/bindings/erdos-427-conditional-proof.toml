@@ -1,5 +1,5 @@
 schema = "vela.integration-binding.v0.1"
-binding_root = "sha256:a90be2426350a8c334cc64948c7c21d860940f61a3adc351d9d86b871a8235fd"
+binding_root = "sha256:08800e062dd8797742a6057b48c1c6b1a173ba3282eaef0c21341c73394ca712"
 binding_id = "erdos-427-conditional-proof"
 outputs = ["exact_reference", "verification_input"]
 limitations = [
@@ -129,6 +129,10 @@ root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
 [[methods]]
 id = "formal-proof-condition-review"
 root = "sha256:0a5c29f9ce0d53ce029e963aaf1fa782c7c88d00c3d46074061e55405d0ee944"
+
+[[methods]]
+id = "integration-validator"
+root = "sha256:656d9fb5b48c69f53b913f6ed4cd9b26637074aa85880b6dc73d93b32fdcbc53"
 
 [source.audit]
 core_path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/expected-core.json"

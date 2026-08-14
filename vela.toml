@@ -1,5 +1,5 @@
 schema = "vela.integration-manifest.v0.1"
-manifest_root = "sha256:437769ab287f1d4b1aaae9aea9e4f090dbb46e8c380617489a5f9b958e0dfded"
+manifest_root = "sha256:7048a8aa1176c87d48b48557d366b506ba1520b9d1771adb70d1f5ed13e0ae2e"
 outputs = ["exact_reference", "submission_draft", "verification_input"]
 limitations = [
   "This is a source-owned contributor-fork integration laboratory, not adoption by google-deepmind/formal-conjectures.",
@@ -35,17 +35,17 @@ root = "sha256:6207334bb4e00a033b21012bbac1f9a4413d845960c5a48787e42dceff703a45"
 [[bindings]]
 id = "erdos-887-selected-declaration"
 path = ".vela/bindings/erdos-887.toml"
-root = "sha256:e7820a98b0ad50d1430b4878d9d59bb52f91d010b9fdbaa55c90051e5e154704"
+root = "sha256:01476435ebe8f7359d608b37e8d48595f1d694e41f960e287ce77d74f43619e5"
 
 [[bindings]]
 id = "erdos-427-conditional-proof"
 path = ".vela/bindings/erdos-427-conditional-proof.toml"
-root = "sha256:a90be2426350a8c334cc64948c7c21d860940f61a3adc351d9d86b871a8235fd"
+root = "sha256:08800e062dd8797742a6057b48c1c6b1a173ba3282eaef0c21341c73394ca712"
 
 [[bindings]]
 id = "min-modulus-statement-fidelity"
 path = ".vela/bindings/min-modulus-statement-fidelity.toml"
-root = "sha256:76dba12a802a8615ed1a2f513ec6c8882c8b7308b64d13537661e745505c6ddb"
+root = "sha256:6d5be0337c6a9616bc25145ef973764f24c04ae8fb84e06f28c7b4e4fa4af8c2"
 
 [[methods]]
 id = "pr-audit-core-replay"
@@ -71,6 +71,11 @@ root = "sha256:0a5c29f9ce0d53ce029e963aaf1fa782c7c88d00c3d46074061e55405d0ee944"
 id = "source-statement-fidelity-review"
 path = ".vela/methods/source-statement-fidelity-review.toml"
 root = "sha256:b04be736f7a37d43e5d863ee33ba942658d8659a13834d99e3e9adc9da41e311"
+
+[[methods]]
+id = "integration-validator"
+path = ".vela/methods/integration-validator.toml"
+root = "sha256:656d9fb5b48c69f53b913f6ed4cd9b26637074aa85880b6dc73d93b32fdcbc53"
 
 [rights]
 license = "NOASSERTION"

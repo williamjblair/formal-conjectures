@@ -44,6 +44,21 @@ class IntegrationError(ValueError):
 
 CORE_CHECK_ENV = "VELA_INTEGRATION_CHECK_BIN"
 CORE_CHECK_SCHEMA = "vela.cli.integration-check.v1"
+CORE_METHOD_ID = "integration-validator"
+CORE_METHOD_IMPLEMENTATION = "scripts/formal_conjectures_integration.py"
+CORE_METHOD_ENVIRONMENT = {
+    "kind": "exact",
+    "revision": "96eeecf40bc06ddc8bae6d106f461d4fd774858a",
+    "runtime": "Python 3.11 or newer with the repository test environment",
+    "core": {
+        "repository": "https://github.com/vela-science/vela.git",
+        "revision": "bea4ec2af0772e366a0670d49a10b7085a4c73c1",
+        "binary": "vela",
+        "version": "0.974.2",
+        "command": "vela integration check <repository> --json",
+        "result_schema": CORE_CHECK_SCHEMA,
+    },
+}
 LEAN_DECLARATION_RE = re.compile(
     r"(?m)^(?:theorem|lemma|def|abbrev|axiom)\s+([^\s(:]+)"
 )
@@ -419,11 +434,23 @@ def validate_repository(root: Path) -> dict[str, Any]:
         path = _retained_file(root, item["path"], "manifest.methods.path")
         method = _load_toml(path)
         methods[method["method_id"]] = method
+    core_method = methods.get(CORE_METHOD_ID)
+    if core_method is None:
+        raise IntegrationError("published Vela Core integration Method is missing")
+    if (
+        core_method["implementation"]["path"] != CORE_METHOD_IMPLEMENTATION
+        or core_method["environment"] != CORE_METHOD_ENVIRONMENT
+    ):
+        raise IntegrationError("published Vela Core integration Method drift")
     bindings: dict[str, dict[str, Any]] = {}
     for item in manifest["bindings"]:
         path = _retained_file(root, item["path"], "manifest.bindings.path")
         binding = _load_toml(path)
         _validate_source_binding(binding, path, root)
+        if CORE_METHOD_ID not in {method["id"] for method in binding["methods"]}:
+            raise IntegrationError(
+                f"{path}: published Vela Core integration Method is missing"
+            )
         bindings[binding["binding_id"]] = binding
     if core_check["manifest_root"] != manifest["manifest_root"]:
         raise IntegrationError("shared Vela check returned a different Manifest root")

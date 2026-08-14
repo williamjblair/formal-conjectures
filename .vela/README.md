@@ -16,12 +16,20 @@ the interface without claiming adoption by `google-deepmind/formal-conjectures`.
 Validate and reproduce the committed portable example offline:
 
 ```sh
-export VELA_INTEGRATION_CHECK_BIN=/path/to/exact/reviewed/vela
+git clone https://github.com/vela-science/vela.git /tmp/vela-integration-checker
+git -C /tmp/vela-integration-checker checkout --detach bea4ec2af0772e366a0670d49a10b7085a4c73c1
+cargo build --locked --manifest-path /tmp/vela-integration-checker/Cargo.toml -p vela-cli
+export VELA_INTEGRATION_CHECK_BIN=/tmp/vela-integration-checker/target/debug/vela
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/validate_formal_conjectures_integration.py
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/build_formal_conjectures_integration_example.py --check
 ```
 
-The source validator first invokes that binary as `vela integration check`.
+The source-owned `integration-validator` Method pins the published Vela Core
+repository, commit `bea4ec2af0772e366a0670d49a10b7085a4c73c1`, CLI version
+`0.974.2`, command, and result schema. The source validator first invokes the
+locally built binary as `vela integration check`; the binary does not
+self-attest its Git commit, so evidentiary and cold runs build it from that
+exact published revision as shown above.
 Core owns the four document root domains and inventories, the shared envelopes,
 Exact Reference shape, generic mapping and translation vocabularies, Method
 implementation fixity, and structural authority, result, selector, and path

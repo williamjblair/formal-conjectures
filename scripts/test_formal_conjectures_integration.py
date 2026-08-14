@@ -80,7 +80,7 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         packet = validate_repository(self.root)
         self.assertEqual(len(packet["profiles"]), 2)
         self.assertEqual(len(packet["bindings"]), 3)
-        self.assertEqual(len(packet["methods"]), 5)
+        self.assertEqual(len(packet["methods"]), 6)
         for profile in packet["profiles"].values():
             self.assertEqual(set(profile["source"]), {"owner"})
         all_references = [
@@ -94,6 +94,25 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
                 set(binding["source"]),
                 {"audit", "rights", "availability", "provenance"},
             )
+            self.assertIn(
+                integration.CORE_METHOD_ID,
+                {method["id"] for method in binding["methods"]},
+            )
+
+    def test_published_core_method_revision_and_binding_coverage_refuse(self) -> None:
+        method = self.root / ".vela/methods/integration-validator.toml"
+        _replace(
+            method,
+            '[environment.core]\nrepository = "https://github.com/vela-science/vela.git"\nrevision = "bea4ec2af0772e366a0670d49a10b7085a4c73c1"',
+            '[environment.core]\nrepository = "https://github.com/vela-science/vela.git"\nrevision = "aea4ec2af0772e366a0670d49a10b7085a4c73c1"',
+        )
+        self.assert_source_refused("published Vela Core integration Method drift")
+        shutil.rmtree(self.root)
+        self.root.mkdir()
+        _copy_packet(self.root)
+        binding = self.root / ".vela/bindings/erdos-887.toml"
+        _replace(binding, 'id = "integration-validator"', 'id = "pr-audit-core-replay"')
+        self.assert_source_refused("published Vela Core integration Method is missing")
 
     def test_portable_export_keeps_mechanical_semantic_and_review_state_separate(
         self,

@@ -1,5 +1,5 @@
 schema = "vela.integration-binding.v0.1"
-binding_root = "sha256:e7820a98b0ad50d1430b4878d9d59bb52f91d010b9fdbaa55c90051e5e154704"
+binding_root = "sha256:01476435ebe8f7359d608b37e8d48595f1d694e41f960e287ce77d74f43619e5"
 binding_id = "erdos-887-selected-declaration"
 outputs = ["exact_reference", "verification_input"]
 limitations = [
@@ -79,6 +79,10 @@ root = "sha256:84a3a40ef361206dc6c062066ea3bc4ded4dbc0721dea1d04153f4854fc518d6"
 [[methods]]
 id = "answer-slot-scope-review"
 root = "sha256:e7f0f3152f5409e5e6e8eedf94d2c18141c860e981c418486cf74d1e668b264d"
+
+[[methods]]
+id = "integration-validator"
+root = "sha256:656d9fb5b48c69f53b913f6ed4cd9b26637074aa85880b6dc73d93b32fdcbc53"
 
 [source.audit]
 core_path = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/expected-core.json"

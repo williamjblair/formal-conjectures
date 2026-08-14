@@ -52,9 +52,14 @@ jobs:
         with:
           go-version: stable
 
+      # Comparator at this pin spawns `landrun` and `lean4export` by name,
+      # so both go on PATH; lean-eval's CI installs them the same way. The
+      # env vars stay as a second route.
       - name: Build landrun
         working-directory: .ci/landrun
-        run: go build -o landrun cmd/landrun/main.go
+        run: |
+          go build -o landrun cmd/landrun/main.go
+          echo "$GITHUB_WORKSPACE/.ci/landrun" >> "$GITHUB_PATH"
 
       - name: Install elan
         run: |
@@ -80,7 +85,9 @@ jobs:
 
       - name: Build lean4export
         working-directory: .ci/lean4export
-        run: lake build lean4export
+        run: |
+          lake build lean4export
+          echo "$GITHUB_WORKSPACE/.ci/lean4export/.lake/build/bin" >> "$GITHUB_PATH"
 
       - name: Build comparator
         working-directory: .ci/comparator

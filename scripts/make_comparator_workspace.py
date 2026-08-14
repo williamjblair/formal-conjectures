@@ -335,6 +335,9 @@ def generate(basename, out_dir, answer_type):
     ws = pathlib.Path(out_dir) / basename
     ws.mkdir(parents=True, exist_ok=True)
     (ws / "lakefile.toml").write_text(lakefile(basename, mathlib_rev, fc_rev))
+    # Without a toolchain file, lake in the workspace falls back to elan's
+    # default, which need not exist and need not match the pinned Mathlib.
+    (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
     (ws / "ChallengeDeps.lean").write_text(challenge_deps)
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)

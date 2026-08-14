@@ -3,17 +3,22 @@
 
 `leanprover/lean-eval` verifies a submission by building it against a Challenge
 module whose statement the maintainers trust, under a config that pins the
-permitted axioms. The `.comparator/dean_conjecture` workspace in this repository
-was written by hand to that shape; this script generates the same shape from any
-problem file, so every trusted statement can have one.
+permitted axioms. This script generates that shape from any problem file in
+this repository.
 
-Layout produced, matching the hand-made prototype:
+Challenge.lean imports the problem's own module. lean-eval's generated
+Challenge is one `import Mathlib` and one statement, because its problems are
+authored self-contained; this repository's are not, so the import here is the
+problem's module and the statement's context comes with it. Only what Lean
+scopes to a file has to be copied: `open`, `variable`, `set_option` and
+`local notation`.
+
+Layout produced:
 
   <out>/<id>/
     lakefile.toml       pins: this checkout's Mathlib rev and FC commit
-    ChallengeDeps.lean  the problem file's docstring, imports and supporting
-                        definitions, with research statements removed
-    Challenge.lean      the target statement, attributes stripped, proof
+    Challenge.lean      the import, the file-scoped preamble, the target
+                        statement with attributes stripped and its proof
                         replaced by `sorry`, and each `answer(sorry)` hoisted
                         into a definition hole the solver must fill
     Solution.lean       a stub the solver replaces
@@ -71,10 +76,11 @@ DECL_START = re.compile(
 KEEP_LOOSE = re.compile(
     r"^(open|variable|universe|section|namespace|end|attribute|set_option)\b")
 
-# Lean scopes these to the file, so ChallengeDeps holding them does not give
-# them to Challenge, which is a separate module importing it. Both files need
-# them. Erdos 940 lost `atTop` this way, and Erdos 125 lost `A` and `B`.
-FILE_SCOPED = ("open", "variable", "set_option", "notation")
+# Lean scopes these to the file that writes them, so importing the problem's
+# module does not bring them along and Challenge.lean has to restate them.
+# Erdos 940's statement needs `atTop`, and Erdos 125's needs the `A` and `B`
+# its two `local notation` lines define.
+FILE_SCOPED = ("open", "variable", "universe", "set_option", "notation")
 
 
 class Block:
@@ -96,7 +102,11 @@ class Block:
         depth = 0
         for line in lines:
             if depth == 0:
-                if KEEP_LOOSE.match(line):
+                # `open X in` modifies the declaration below it and is not a
+                # directive in its own right. Typing the block `open` swept
+                # Koethe's whole research statement, `@[category]` and all,
+                # into Challenge.lean as if it were preamble.
+                if KEEP_LOOSE.match(line) and not line.rstrip().endswith(" in"):
                     self.kind = line.split()[0]
                     self.kind_line = line
                     break
@@ -126,11 +136,10 @@ def peel_loose(lines):
     lost `variable {α : Type}` and Erdos 269 lost `HasPrimeFactorsIn`. Both
     workspaces generated, and both failed only when Lean elaborated them.
 
-    A trailing `end X` is peeled for the same reason. Swallowed into the
-    declaration above it, it would be carried into ChallengeDeps verbatim, and
-    an `end` closing the wrapped namespace would then be emitted twice.
-    `KEEP_LOOSE` anchors at column zero, so an indented line inside a proof
-    body cannot be peeled by mistake.
+    A trailing `end X` is peeled for the same reason: the namespace stack is
+    read off these lines, and an `end` hidden inside a declaration's block
+    would leave the stack too deep. `KEEP_LOOSE` anchors at column zero, so an
+    indented line inside a proof body cannot be peeled by mistake.
 
     `open X in` is a modifier on the declaration below it, so it is not peeled.
     """
@@ -201,6 +210,18 @@ def slug(name):
     return re.sub(r"[^0-9A-Za-z_]", "_", name)
 
 
+def module_name(rel_path):
+    """The Lean module name for a path under `FormalConjectures/`.
+
+    Most problem files are named for a number, which is not an identifier, so
+    the component is written in guillemets:
+    `FormalConjectures.ErdosProblems.«940»`.
+    """
+    parts = [c if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", c) else f"«{c}»"
+             for c in str(rel_path)[:-len(".lean")].split("/")]
+    return ".".join(parts)
+
+
 def find_declaration(basename):
     """Locate the file declaring `basename`. Returns (path, module_docstring, body)."""
     pattern = re.compile(rf"^(?:theorem|lemma|def)\s.*\b{re.escape(basename)}\b",
@@ -232,25 +253,29 @@ def find_declaration(basename):
 
 
 def strip_decorations(block_text):
-    """Remove the docstring and attribute list from a declaration block."""
-    block_text = re.sub(r"\A\s*/--.*?-/\s*", "", block_text, flags=re.DOTALL)
-    return re.sub(r"\A\s*@\[[^\]]*\]\s*", "", block_text, flags=re.DOTALL)
+    """Remove the docstring, line comments and attributes from a declaration.
 
-
-def drop_problem_attributes(block_text):
-    """Remove `category` and `AMS` from a carried declaration's attributes.
-
-    ChallengeDeps imports `FormalConjecturesForMathlib`, which deliberately
-    carries no problem-attribute machinery, so a dependency arriving with
-    `@[category test, AMS 5]` fails to elaborate with "Unknown attribute".
-    Other attributes, `simp` and `ext` among them, are real Lean and stay.
+    These interleave. Erdos 918 puts a `--` formalisation note between its
+    docstring and its `@[category ...]` line, and one anchored pass each left
+    the attribute in place. `@[category research open, AMS 5]` then reached
+    Challenge.lean, where the workspace has no such attribute, and Lean parsed
+    as far as the `open` inside it before giving up.
     """
-    def prune(match):
-        kept = [a.strip() for a in match.group(1).split(",")
-                if not re.match(r"\s*(category|AMS)\b", a)]
-        return f"@[{', '.join(kept)}]\n" if kept else ""
-
-    return re.sub(r"@\[([^\]]*)\]\s*\n", prune, block_text)
+    # `open X in` binds to the declaration and has to survive, but it sits
+    # above the docstring, so stripping anchored at the start would stop dead
+    # on it.
+    prefix = ""
+    m = re.match(r"\A\s*(open\b[^\n]*\bin)\n", block_text)
+    if m:
+        prefix = m.group(1) + "\n"
+        block_text = block_text[m.end():]
+    while True:
+        stripped = re.sub(r"\A\s*/--.*?-/\s*", "", block_text, flags=re.DOTALL)
+        stripped = re.sub(r"\A\s*--[^\n]*\n", "", stripped)
+        stripped = re.sub(r"\A\s*@\[[^\]]*\]\s*", "", stripped, flags=re.DOTALL)
+        if stripped == block_text:
+            return prefix + stripped
+        block_text = stripped
 
 
 def replace_proof_with_sorry(text):
@@ -337,9 +362,6 @@ git = "https://github.com/google-deepmind/formal-conjectures.git"
 rev = "{fc_rev}"
 
 [[lean_lib]]
-name = "ChallengeDeps"
-
-[[lean_lib]]
 name = "Challenge"
 
 [[lean_lib]]
@@ -350,119 +372,76 @@ name = "Submission"
 """
 
 
-def generate(basename, out_dir, answer_type):
-    path, imports, module_doc, body = find_declaration(basename)
+def generate(basename, out_dir, answer_type=None):
+    """Write a comparator workspace for one declaration.
+
+    Challenge.lean imports the problem's own module rather than restating its
+    dependencies. `leanprover/lean-eval` generates a Challenge that is one
+    `import` and one statement, and reconstructing the surrounding definitions
+    by hand instead cost six defects that only Lean could find: file-scoped
+    `open` and `variable` lost, `local notation` unrecognised, a `namespace`
+    swallowing the declaration below it, `section` lines left unclosed. An
+    import has none of those failure modes.
+
+    Importing a repository full of `sorry` is safe here because comparator
+    checks axioms. A solution closing the goal with the imported statement
+    reports `sorryAx`, which `permitted_axioms` does not allow.
+    """
+    path, _imports, _module_doc, body = find_declaration(basename)
     blocks = split_blocks(body)
 
-    target = None
-    matches = []
-    deps, namespaces, opens = [], [], []
+    target, matches, preamble = None, [], []
+    stack, namespaces_at_target = [], []
     for b in blocks:
+        if b.kind == "namespace":
+            name = (b.kind_line or "").split(None, 1)
+            if len(name) > 1:
+                stack.append(name[1].strip())
+            continue
+        if b.kind == "end":
+            name = (b.kind_line or "").split(None, 1)
+            if len(name) > 1 and stack and stack[-1] == name[1].strip():
+                stack.pop()
+            continue
         if b.name and declares(b.name, basename):
             matches.append(b)
             target = b
-            continue
-        if b.kind == "namespace":
-            parts_ = (b.kind_line or "").split(None, 1)
-            if len(parts_) > 1:
-                namespaces.append(parts_[1].strip())
-            continue
-        if b.kind == "end":
-            # `section` blocks are carried, so their `end` lines have to be
-            # carried with them. Paper/MonochromaticQuantumGraph opens three
-            # sections; dropping every `end` left all three unclosed, and the
-            # error surfaced 200 lines later against the namespace's own
-            # closer. Only that closer is dropped here, since the generator
-            # emits its own.
-            closing = (b.kind_line or "").split(None, 1)
-            name = closing[1].strip() if len(closing) > 1 else ""
-            if name and name in namespaces:
-                continue
-            deps.append(b.text)
+            # The namespaces open *here*, which is what the statement's short
+            # names resolve against. Tracking the stack rather than collecting
+            # every `namespace` line handles both nesting and siblings.
+            namespaces_at_target = list(stack)
             continue
         if b.kind in FILE_SCOPED:
-            opens.append(b.text)
-            continue
-        if b.kind in ("theorem", "lemma"):
-            # Another statement in the file. Research statements are separate
-            # problems and their sorries must not enter the challenge; test and
-            # API lemmas are usually sorried scaffolding here. Proved supporting
-            # lemmas do get carried, since a statement may genuinely use them.
-            if b.category in ("research open", "research solved") or "sorry" in b.text:
-                continue
-            deps.append(drop_problem_attributes(b.text))
-            continue
-        if b.kind in ("def", "abbrev", "structure", "inductive", "instance",
-                      "universe", "attribute", "section"):
-            deps.append(drop_problem_attributes(b.text))
+            # Lean scopes these to their file, so an import does not carry
+            # them and they have to be copied. Everything else the statement
+            # needs is a real declaration, and the import supplies it.
+            preamble.append(b.text)
 
     if target is None:
         raise SystemExit(f"{basename!r} not found as a block in {path}")
     if len(matches) > 1:
-        # Taking the last silently would generate a workspace for a statement
-        # the caller did not name, and nothing downstream would notice.
+        # Taking the last silently would pose a problem the caller did not ask
+        # for, and nothing downstream would notice.
         raise SystemExit(
             f"{basename!r} matches more than one declaration in {path}: "
             + ", ".join(b.name for b in matches)
             + "; name one of them in full")
 
     declared = target.name
-
-    # ChallengeDeps is imported *by* Challenge, so a carried lemma that mentions
-    # the target cannot sit in it. Millenium/RiemannHypothesis states such a
-    # lemma with `type_of%`, and the workspace built ChallengeDeps against a
-    # name that had moved to Challenge.lean.
-    target_ref = re.compile(rf"(?<![\w.]){re.escape(declared)}(?![\w])")
-    deps = [d for d in deps if not target_ref.search(d)]
-
-    # One namespace is wrapped back around the carried definitions. A file that
-    # opens several in sequence needs them matched to their own `end` lines, and
-    # a flat list closes them in an order Lean rejects. 23 files are like this.
-    if len(dict.fromkeys(namespaces)) > 1:
-        raise SystemExit(
-            f"{path} declares more than one namespace ("
-            + ", ".join(dict.fromkeys(namespaces))
-            + "); this generator wraps a single namespace and would emit "
-              "mismatched `end` lines")
-
     statement = strip_decorations(target.text)
     statement = replace_proof_with_sorry(statement)
     statement, holes = hoist_answers(statement, declared, answer_type)
 
-    ns_open = f"open {' '.join(dict.fromkeys(namespaces))}\n" if namespaces else ""
-    ns_wrap_open = "".join(f"namespace {n}\n" for n in dict.fromkeys(namespaces))
-    ns_wrap_close = "".join(f"end {n}\n" for n in reversed(list(dict.fromkeys(namespaces))))
+    # `open A`, then `open A.B`: opening the inner namespace does not open the
+    # outer one, and a statement may name siblings from either.
+    opens = [f"open {'.'.join(namespaces_at_target[:i + 1])}"
+             for i in range(len(namespaces_at_target))]
 
-    # ChallengeDeps: imports mapped off the problem-attribute machinery, which
-    # the challenge must not depend on. FormalConjecturesForMathlib carries the
-    # repository's supporting definitions without the attributes.
-    dep_imports = sorted({
-        "FormalConjecturesForMathlib" if imp.startswith(("FormalConjecturesUtil",
-                                                         "FormalConjectures.Util"))
-        else imp
-        for imp in imports
-    }) or ["FormalConjecturesForMathlib"]
-
-    deps_body = "\n\n".join(deps)
-    challenge_deps = (
-        LICENSE_HEADER + "\n"
-        + "\n".join(f"import {i}" for i in dep_imports) + "\n\n"
-        + (module_doc + "\n\n" if module_doc else "")
-        + ns_wrap_open
-        + "\n".join(opens) + ("\n\n" if opens else "")
-        + (deps_body + "\n" if deps_body else "")
-        + ns_wrap_close
-    )
-
-    # `open` is file-scoped in Lean 4, so putting the problem file's opens into
-    # ChallengeDeps alone leaves the statement without them. Erdos 940 opens
-    # `Filter` and its statement says `atTop`, which does not resolve here
-    # without this line.
     challenge = (
-        "import ChallengeDeps\n\n"
-        + (ns_open if ns_open else "")
+        f"import {module_name(path.relative_to(ROOT))}\n\n"
         + ("\n".join(opens) + "\n" if opens else "")
-        + ("\n" if opens or ns_open else "")
+        + ("\n".join(preamble) + "\n" if preamble else "")
+        + ("\n" if opens or preamble else "")
         + "\n\n".join(holes) + ("\n\n" if holes else "")
         + statement + "\n"
     )
@@ -475,8 +454,7 @@ def generate(basename, out_dir, answer_type):
     )
 
     mathlib_rev, fc_rev = pins(path.relative_to(ROOT))
-    full_names = [f"{'.'.join(dict.fromkeys(namespaces))}.{declared}"
-                  if namespaces else declared]
+    full_name = ".".join(namespaces_at_target + [declared])
     hole_names = [h.split()[2] for h in holes]
 
     ws = pathlib.Path(out_dir) / slug(declared)
@@ -485,7 +463,6 @@ def generate(basename, out_dir, answer_type):
     # Without a toolchain file, lake in the workspace falls back to elan's
     # default, which need not exist and need not match the pinned Mathlib.
     (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
-    (ws / "ChallengeDeps.lean").write_text(challenge_deps)
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)
     (ws / "config.json").write_text(json.dumps({
@@ -497,16 +474,14 @@ def generate(basename, out_dir, answer_type):
         "definition_names": hole_names,
     }, indent=2) + "\n")
     (ws / "holes.json").write_text(json.dumps({
-        "id": basename,
+        "id": declared,
         "module": str(path.relative_to(ROOT)),
         "holes": [
-            {"name": n, "basename": n.rsplit(".", 1)[-1], "kind": "def",
-             "body": h}
-            for n, h in zip(
-                [f"{'.'.join(dict.fromkeys(namespaces))}.{hn}" if namespaces else hn
-                 for hn in hole_names], holes)
+            {"name": ".".join(namespaces_at_target + [hn]), "basename": hn,
+             "kind": "def", "body": body_}
+            for hn, body_ in zip(hole_names, holes)
         ] + [
-            {"name": full_names[0], "basename": declared, "kind": "theorem",
+            {"name": full_name, "basename": declared, "kind": "theorem",
              "body": target.text}
         ],
     }, indent=2, ensure_ascii=False) + "\n")

@@ -23,32 +23,14 @@ import unittest
 
 from make_comparator_workspace import (
     declares,
-    drop_problem_attributes,
     hoist_answers,
+    module_name,
     peel_loose,
     replace_proof_with_sorry,
     slug,
     split_blocks,
     strip_decorations,
 )
-
-
-class AttributeTest(unittest.TestCase):
-    """ChallengeDeps imports the module without the problem attributes."""
-
-    def test_category_and_ams_only_leaves_bare_declaration(self):
-        out = drop_problem_attributes("@[category test, AMS 5]\ntheorem t : True := trivial")
-        self.assertTrue(out.startswith("theorem"))
-
-    def test_real_lean_attributes_survive(self):
-        out = drop_problem_attributes("@[simp, category API, AMS 11]\ntheorem t : True := trivial")
-        self.assertIn("@[simp]", out)
-        self.assertNotIn("category", out)
-        self.assertNotIn("AMS", out)
-
-    def test_untouched_when_there_is_nothing_to_prune(self):
-        src = "@[simp, ext]\ntheorem t : True := trivial"
-        self.assertEqual(drop_problem_attributes(src), src)
 
 
 class HoistTest(unittest.TestCase):
@@ -96,6 +78,22 @@ class StatementTest(unittest.TestCase):
         out = replace_proof_with_sorry("theorem t : True := trivial")
         self.assertNotIn("trivial", out)
         self.assertTrue(out.rstrip().endswith("sorry"))
+
+    def test_a_line_comment_between_docstring_and_attribute_is_stripped(self):
+        # Erdos 918 writes a `--` formalisation note there. One anchored pass
+        # each left `@[category research open]` on the statement, and Lean
+        # parsed as far as the `open` inside it.
+        out = strip_decorations(
+            "/-- doc -/\n-- note\n@[category research open, AMS 5]\n"
+            "theorem t : True := by\n  sorry")
+        self.assertTrue(out.startswith("theorem"))
+
+    def test_open_in_survives_stripping(self):
+        # It binds to the declaration, and it sits above the docstring.
+        out = strip_decorations(
+            "open scoped Classical in\n/-- doc -/\n@[category research open]\n"
+            "theorem t : True := by\n  sorry")
+        self.assertTrue(out.startswith("open scoped Classical in\ntheorem"))
 
     def test_decorations_are_stripped_from_the_target(self):
         out = strip_decorations("/-- doc -/\n@[category research open]\ntheorem t : True := by\n  sorry")
@@ -160,9 +158,13 @@ class SplitTest(unittest.TestCase):
 
     def test_open_in_stays_with_its_declaration(self):
         # `open X in` modifies the declaration below, so peeling it would
-        # detach the modifier from what it modifies.
+        # detach the modifier from what it modifies, and typing the block
+        # `open` would carry the declaration into the preamble.
         self.assertEqual(peel_loose(["open Classical in", "theorem t : True := trivial"]),
                          [["open Classical in", "theorem t : True := trivial"]])
+        blocks = split_blocks("open Classical in\ntheorem t : True := trivial\n")
+        self.assertEqual(blocks[0].kind, "theorem")
+        self.assertEqual(blocks[0].name, "t")
 
 
 class NameTest(unittest.TestCase):
@@ -179,6 +181,15 @@ class NameTest(unittest.TestCase):
     def test_a_partial_component_does_not_match(self):
         self.assertFalse(declares("erdos_940.variants.large_integers", "integers"))
         self.assertFalse(declares("erdos_940.variants.large_integers", "erdos_940.variants"))
+
+    def test_module_name_quotes_a_numeric_component(self):
+        # Problem files are named for a number, which is not an identifier.
+        self.assertEqual(module_name("FormalConjectures/ErdosProblems/940.lean"),
+                         "FormalConjectures.ErdosProblems.«940»")
+        self.assertEqual(module_name("FormalConjectures/Wikipedia/Hadamard.lean"),
+                         "FormalConjectures.Wikipedia.Hadamard")
+        self.assertEqual(module_name("FormalConjectures/Arxiv/1609.08688/S.lean"),
+                         "FormalConjectures.Arxiv.«1609.08688».S")
 
     def test_slug_makes_a_lake_package_name(self):
         # Lake package names are identifiers, so the dots cannot survive.

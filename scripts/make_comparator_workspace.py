@@ -21,7 +21,11 @@ Layout produced:
                         statement with attributes stripped and its proof
                         replaced by `sorry`, and each `answer(sorry)` hoisted
                         into a definition hole the solver must fill
-    Solution.lean       a stub the solver replaces
+    Submission.lean     where the solver works; helper modules go under
+                        Submission/
+    Solution.lean       fixed: restates the statement and closes it with the
+                        Submission theorem, so the statement cannot drift
+    WorkspaceTest.lean  `lake test` runs comparator on config.json
     README.md           what the solver needs to know, cache fetch included
     config.json         theorem and definition names, permitted axioms
     holes.json          the extracted blocks, for tooling and for review
@@ -403,6 +407,70 @@ def hoist_answers(statement, basename, answer_type):
     return statement, holes
 
 
+def hole_names_of(holes):
+    return [h.split()[2] for h in holes]
+
+
+def explicit_binder_names(signature):
+    """Names of the explicit binders in a theorem signature.
+
+    Solution.lean proves the statement by applying the participant's
+    `Submission` theorem to exactly these, the way lean-eval's generated
+    adapter writes `exact Submission.abel_ruffini n _hn`. Implicit and
+    instance binders are left to elaboration. A group this cannot read is
+    refused, as everywhere else the script cannot decide.
+    """
+    lines = signature.split("\n")
+    for i, line in enumerate(lines):
+        m = DECL_START.match(line)
+        if m:
+            rest = "\n".join(lines[i:])[m.end():]
+            break
+    else:
+        raise SystemExit("no declaration line in the signature")
+    nm = re.match(r"\s*([\w.«»]+)", rest)
+    rest = rest[nm.end():]
+    um = re.match(r"\.\{[^}]*\}", rest)
+    if um:
+        rest = rest[um.end():]
+
+    names, depth, i = [], 0, 0
+    openers, closers = "({[⦃⟨", ")}]⦄⟩"
+    while i < len(rest):
+        c = rest[i]
+        if depth == 0 and c == ":":
+            return names
+        if c in openers:
+            if depth == 0 and c == "(":
+                j, d = i, 0
+                while j < len(rest):
+                    if rest[j] in openers:
+                        d += 1
+                    elif rest[j] in closers:
+                        d -= 1
+                    if d == 0:
+                        break
+                    j += 1
+                group = rest[i + 1:j]
+                # `(r)` is a binder too: no ascription, type left to Lean.
+                # Erdos 1055 writes one. The names are the whole group then.
+                head, _, _ = group.partition(":")
+                got = head.split()
+                if not got or not all(
+                        re.fullmatch(r"[^\s(){}\[\]:]+", n) for n in got):
+                    raise SystemExit(
+                        f"cannot read the explicit binder group ({group.strip()}); "
+                        "the Solution adapter needs its names")
+                names.extend(got)
+                i = j + 1
+                continue
+            depth += 1
+        elif c in closers:
+            depth -= 1
+        i += 1
+    raise SystemExit("no top-level `:` in the signature")
+
+
 def pins(source_path=None):
     """Revisions the workspace's own build can actually fetch.
 
@@ -434,13 +502,9 @@ def pins(source_path=None):
 
 
 def lakefile(workspace_id, mathlib_rev, fc_rev):
-    # Only the two libraries that are written. The hand-made prototype copied
-    # lean-eval's `Submission` library and `workspace_test` driver, which this
-    # generator does not produce, so a plain `lake build` or `lake test` in the
-    # workspace failed on a missing target. Naming `Challenge` explicitly, as
-    # the validation harness did, hid that for the whole of its development.
     return f"""name = "{workspace_id}"
-defaultTargets = ["Challenge", "Solution"]
+testDriver = "workspace_test"
+defaultTargets = ["Challenge", "Solution", "Submission"]
 
 [leanOptions]
 autoImplicit = false
@@ -460,6 +524,37 @@ name = "Challenge"
 
 [[lean_lib]]
 name = "Solution"
+
+[[lean_lib]]
+name = "Submission"
+
+[[lean_exe]]
+name = "workspace_test"
+root = "WorkspaceTest"
+"""
+
+
+WORKSPACE_TEST = """import Lean
+
+open Lean
+
+/-- Run comparator on this workspace's `config.json`, so that `lake test`
+is the check. Adapted from `leanprover/lean-eval`'s workspace test template.
+The binary comes from `PATH`, or from `COMPARATOR_BIN`. -/
+def main : IO UInt32 := do
+  let comparatorBin := (← IO.getEnv "COMPARATOR_BIN").getD "comparator"
+  try
+    let child ← IO.Process.spawn {
+      cmd := "lake"
+      args := #["env", comparatorBin, "config.json"]
+    }
+    child.wait
+  catch err =>
+    IO.eprintln s!"Failed to run comparator via `{comparatorBin}`."
+    IO.eprintln "Install comparator, with landrun and lean4export, and put it \
+on PATH, or set COMPARATOR_BIN. See leanprover/comparator's README."
+    IO.eprintln s!"Original error: {err}"
+    pure 1
 """
 
 
@@ -548,25 +643,52 @@ def generate(basename, out_dir, answer_type=None, module=None):
     opens = [f"open {'.'.join(namespaces_at_target[:i + 1])}"
              for i in range(len(namespaces_at_target))]
 
-    challenge = (
-        f"import {module_name(path.relative_to(ROOT))}\n\n"
-        + ("\n".join(opens) + "\n" if opens else "")
+    # One header shared by all three Lean files: the statement's text is
+    # identical in each, so what it needs to elaborate must be too.
+    header = (
+        ("\n".join(opens) + "\n" if opens else "")
         + ("\n".join(preamble) + "\n" if preamble else "")
         + ("\n" if opens or preamble else "")
+    )
+    fc_module = module_name(path.relative_to(ROOT))
+    suffix = ":= by\n  sorry"
+    signature = statement.rstrip()
+    if signature.endswith(suffix):
+        signature = signature[: -len(suffix)].rstrip()
+    args = explicit_binder_names(statement)
+
+    challenge = (
+        f"import {fc_module}\n\n" + header
         + "\n\n".join(holes) + ("\n\n" if holes else "")
         + statement + "\n"
     )
 
+    # The participant's file. The statement sits inside `namespace Submission`
+    # so nothing here can collide with, or stand in for, the trusted names.
+    submission = (
+        f"import {fc_module}\n\n" + header
+        + "namespace Submission\n\n"
+        + "\n\n".join(holes) + ("\n\n" if holes else "")
+        + statement + "\n\n"
+        + "end Submission\n"
+    )
+
+    # The fixed adapter, lean-eval's shape: it restates the trusted statement
+    # and closes it with the Submission theorem, so it fails to compile the
+    # moment the submission proves anything else. The participant never edits
+    # it, which is what keeps the statement pinned.
+    delegated = [h.rsplit(":= sorry", 1)[0] + ":= Submission." + hn
+                 for h, hn in zip(holes, hole_names_of(holes))]
     solution = (
-        "import Challenge\n\n"
-        "/- Replace this file with a proof of the Challenge statement. The\n"
-        "comparator builds it under config.json's permitted axioms; `sorry`\n"
-        "does not pass. -/\n"
+        f"import {fc_module}\nimport Submission\n\n" + header
+        + "\n\n".join(delegated) + ("\n\n" if delegated else "")
+        + signature + " :=\n  Submission." + declared
+        + ("".join(" " + a for a in args)) + "\n"
     )
 
     mathlib_rev, fc_rev = pins(path.relative_to(ROOT))
     full_name = ".".join(namespaces_at_target + [declared])
-    hole_names = [h.split()[2] for h in holes]
+    hole_names = hole_names_of(holes)
 
     workspace_id = slug(manifest.get("id", declared))
     ws = pathlib.Path(out_dir) / workspace_id
@@ -576,19 +698,28 @@ def generate(basename, out_dir, answer_type=None, module=None):
     # default, which need not exist and need not match the pinned Mathlib.
     (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
     holes_line = (
-        "\nFill each definition hole with the same name and type. Hole answers "
+        "\nFill each definition hole in `Submission.lean` too. Hole answers "
         "also get a\nhuman check, because a hole can be gamed in ways the "
         "comparator cannot see.\n" if holes else "")
+    manifest_lines = "".join(
+        f"- {field.capitalize()}: {' '.join(str(manifest[field]).split())}\n"
+        for field in ("source", "notes") if manifest.get(field))
     (ws / "README.md").write_text(
         f"# {workspace_id}\n\n"
         f"A comparator challenge for `{declared}`, generated from\n"
         f"`{path.relative_to(ROOT)}` in google-deepmind/formal-conjectures.\n\n"
-        "Replace `Solution.lean` with a proof of the statement in "
-        "`Challenge.lean`.\n"
-        "Comparator accepts it only if it proves the same statement under the "
-        "axioms in\n`config.json`. `sorry` adds `sorryAx`, which is not "
-        "permitted, and closing the\ngoal with the imported original fails "
-        "the same way, since that is `sorry` too.\n"
+        + manifest_lines +
+        "\nProve the statement in `Submission.lean`, keeping it as it stands; "
+        "put helper\nmodules under `Submission/` if you need them. Do not "
+        "modify `Challenge.lean` or\n`Solution.lean`: the trusted statement "
+        "lives there, and `Solution.lean` closes it\nwith your `Submission` "
+        "theorem, so it fails to compile if the submission proves\nanything "
+        "else.\n"
+        "\nComparator accepts the workspace only if the statement is proved "
+        "under the\naxioms in `config.json`. `sorry` adds `sorryAx`, which is "
+        "not permitted, and\nclosing the goal with the imported original "
+        "fails the same way, since that is\n`sorry` too. `lake test` runs "
+        "comparator, from `PATH` or `COMPARATOR_BIN`.\n"
         + holes_line +
         "\nFetch the Mathlib cache before the first build; a cold build takes "
         "the best\npart of an hour without it:\n\n"
@@ -596,6 +727,8 @@ def generate(basename, out_dir, answer_type=None, module=None):
         "    lake build\n")
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)
+    (ws / "Submission.lean").write_text(submission)
+    (ws / "WorkspaceTest.lean").write_text(WORKSPACE_TEST)
     config = {
         "challenge_module": "Challenge",
         "solution_module": "Solution",

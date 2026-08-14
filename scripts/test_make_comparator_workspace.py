@@ -26,6 +26,7 @@ import unittest
 import make_comparator_workspace as mcw
 from make_comparator_workspace import (
     declares,
+    explicit_binder_names,
     load_manifest,
     resolve,
     hoist_answers,
@@ -187,6 +188,29 @@ class SplitTest(unittest.TestCase):
         blocks = split_blocks("open Classical in\ntheorem t : True := trivial\n")
         self.assertEqual(blocks[0].kind, "theorem")
         self.assertEqual(blocks[0].name, "t")
+
+
+class BinderTest(unittest.TestCase):
+    """The Solution adapter applies the Submission theorem to these."""
+
+    def test_no_binders(self):
+        self.assertEqual(explicit_binder_names("theorem t :\n    True"), [])
+
+    def test_explicit_groups_only(self):
+        sig = "theorem t (a b : Nat) {V : Type*} [Fintype V] (h : a < b) : True"
+        self.assertEqual(explicit_binder_names(sig), ["a", "b", "h"])
+
+    def test_unascribed_binder_is_its_own_name(self):
+        # Erdos 1055 writes `(r)`, leaving the type to Lean.
+        self.assertEqual(explicit_binder_names("theorem t (r) : P r"), ["r"])
+
+    def test_open_in_prefix_is_skipped(self):
+        sig = "open scoped Classical in\ntheorem t (n : Nat) : P n"
+        self.assertEqual(explicit_binder_names(sig), ["n"])
+
+    def test_colon_inside_a_group_does_not_end_the_signature(self):
+        sig = "theorem k {I : Ideal R} (hI : IsNil I) :\n  (I : Set R) ⊆ K"
+        self.assertEqual(explicit_binder_names(sig), ["hI"])
 
 
 class LocateTest(unittest.TestCase):

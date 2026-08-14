@@ -1,5 +1,5 @@
 schema = "vela.integration-manifest.v0.1"
-manifest_root = "sha256:9f839593ee5a72c2fba51d0064b2b5c63c32d0a8e1cf9d44d2e62d979ecae3ec"
+manifest_root = "sha256:437769ab287f1d4b1aaae9aea9e4f090dbb46e8c380617489a5f9b958e0dfded"
 outputs = ["exact_reference", "submission_draft", "verification_input"]
 limitations = [
   "This is a source-owned contributor-fork integration laboratory, not adoption by google-deepmind/formal-conjectures.",
@@ -24,28 +24,28 @@ revision = "96eeecf40bc06ddc8bae6d106f461d4fd774858a"
 id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/audited-declaration/v0.1"
 version = "0.1"
 path = ".vela/profiles/audited-declaration-v0.1.toml"
-root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
+root = "sha256:3c1a50de5f98899c5f85897449ca69484086489cf8dc657f5c2fcf7cee4b8eab"
 
 [[profiles]]
 id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/conditional-formal-proof/v0.1"
 version = "0.1"
 path = ".vela/profiles/conditional-formal-proof-v0.1.toml"
-root = "sha256:d3d99125438ff6e8e27953d7fcb8031720e2ca9c4abbbbf149f54efed19b0212"
+root = "sha256:6207334bb4e00a033b21012bbac1f9a4413d845960c5a48787e42dceff703a45"
 
 [[bindings]]
 id = "erdos-887-selected-declaration"
 path = ".vela/bindings/erdos-887.toml"
-root = "sha256:8698957b371fb8fbbc7de04c6d5d4e0f0982f39a92798b43fa8a3cbb5f2216d6"
+root = "sha256:e7820a98b0ad50d1430b4878d9d59bb52f91d010b9fdbaa55c90051e5e154704"
 
 [[bindings]]
 id = "erdos-427-conditional-proof"
 path = ".vela/bindings/erdos-427-conditional-proof.toml"
-root = "sha256:cb234c49c67565961a61e856099ba6a079fa170c50771aa8fa2b73beda43aca7"
+root = "sha256:a90be2426350a8c334cc64948c7c21d860940f61a3adc351d9d86b871a8235fd"
 
 [[bindings]]
 id = "min-modulus-statement-fidelity"
 path = ".vela/bindings/min-modulus-statement-fidelity.toml"
-root = "sha256:051ab0b812ff3a56caa6732718faabf7669a22172728870b5be65dc9e96e5fde"
+root = "sha256:76dba12a802a8615ed1a2f513ec6c8882c8b7308b64d13537661e745505c6ddb"
 
 [[methods]]
 id = "pr-audit-core-replay"

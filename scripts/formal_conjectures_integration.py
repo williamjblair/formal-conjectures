@@ -13,14 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Source-owned, non-authoritative Formal Conjectures integration checks."""
+"""Source-owned Formal Conjectures semantics above the shared Vela waist."""
 
 from __future__ import annotations
 
-from copy import deepcopy
 import hashlib
+import json
+import os
 from pathlib import Path
 import re
+import shutil
+import stat
+import subprocess
 import tomllib
 from typing import Any, Mapping
 
@@ -38,42 +42,16 @@ class IntegrationError(ValueError):
     """The source-owned integration packet is malformed or has drifted."""
 
 
-SCHEMAS = {
-    "manifest": "vela.integration-manifest.v0.1",
-    "profile": "vela.integration-profile.v0.1",
-    "binding": "vela.integration-binding.v0.1",
-    "method": "vela.integration-method.v0.1",
-}
-ROOT_FIELDS = {kind: f"{kind}_root" for kind in SCHEMAS}
-ROOT_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
-OID_RE = re.compile(r"[0-9a-f]{40}\Z")
+CORE_CHECK_ENV = "VELA_INTEGRATION_CHECK_BIN"
+CORE_CHECK_SCHEMA = "vela.cli.integration-check.v1"
 LEAN_DECLARATION_RE = re.compile(
     r"(?m)^(?:theorem|lemma|def|abbrev|axiom)\s+([^\s(:]+)"
 )
-MAPPING_RELATIONS = {"exact", "close", "broader", "narrower", "related"}
-TRANSLATION_DISPOSITIONS = {
-    "preserved",
-    "normalized",
-    "derived",
-    "approximated",
-    "omitted",
-    "unsupported",
-    "assumed",
-    "unresolved",
-}
-OUTPUTS = {"exact_reference", "submission_draft", "verification_input"}
-PROHIBITED_KEYS = {
-    "acceptance_result",
-    "authority_key",
-    "decision",
-    "event",
-    "repository_policy",
-    "standing",
-}
 REQUIRED_NONCLAIMS = {
     "not_an_acceptance_or_merge_decision",
     "not_a_vela_decision_event_or_standing",
 }
+SOURCE_OWNER = "williamjblair/formal-conjectures contributor fork"
 SOURCE_REPOSITORY_IDENTITY = "https://github.com/williamjblair/formal-conjectures"
 SOURCE_PACKET_REVISION = "96eeecf40bc06ddc8bae6d106f461d4fd774858a"
 
@@ -87,12 +65,6 @@ def _expect_mapping(value: Any, label: str) -> dict[str, Any]:
 def _expect_list(value: Any, label: str) -> list[Any]:
     if not isinstance(value, list):
         raise IntegrationError(f"{label} must be an array")
-    return value
-
-
-def _expect_string(value: Any, label: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise IntegrationError(f"{label} must be a non-empty string")
     return value
 
 
@@ -111,7 +83,7 @@ def _expect_keys(
         )
 
 
-def _safe_path(root: Path, relative: str, label: str) -> Path:
+def _retained_file(root: Path, relative: str, label: str) -> Path:
     candidate = Path(relative)
     if (
         candidate.is_absolute()
@@ -120,121 +92,86 @@ def _safe_path(root: Path, relative: str, label: str) -> Path:
     ):
         raise IntegrationError(f"{label} must be a canonical repository-relative path")
     resolved_root = root.resolve()
-    resolved = (resolved_root / candidate).resolve()
+    retained = resolved_root / candidate
+    try:
+        metadata = retained.lstat()
+    except OSError as error:
+        raise IntegrationError(f"{label} is not retained: {error}") from error
+    if retained.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+        raise IntegrationError(f"{label} must resolve to a regular non-symlink file")
+    resolved = retained.resolve()
     if resolved_root not in resolved.parents and resolved != resolved_root:
         raise IntegrationError(f"{label} escapes the repository")
-    if not resolved.is_file() or resolved.is_symlink():
-        raise IntegrationError(f"{label} must resolve to a regular non-symlink file")
-    return resolved
+    return retained
 
 
-def document_root(kind: str, value: Mapping[str, Any]) -> str:
-    if kind not in SCHEMAS:
-        raise IntegrationError(f"unsupported document kind: {kind}")
-    normalized = deepcopy(dict(value))
-    normalized[ROOT_FIELDS[kind]] = ""
-    framing = SCHEMAS[kind].encode("utf-8") + b"\0"
-    return "sha256:" + hashlib.sha256(framing + canonical_bytes(normalized)).hexdigest()
-
-
-def load_document(path: Path, kind: str) -> dict[str, Any]:
+def _load_toml(path: Path) -> dict[str, Any]:
     try:
         value = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
         raise IntegrationError(f"cannot read {path}: {error}") from error
-    root_field = ROOT_FIELDS[kind]
-    if value.get("schema") != SCHEMAS[kind]:
-        raise IntegrationError(f"{path}: unsupported {kind} schema")
-    root = value.get(root_field)
-    if not isinstance(root, str) or not ROOT_RE.fullmatch(root):
-        raise IntegrationError(f"{path}: {root_field} must be a full SHA-256 root")
-    expected = document_root(kind, value)
-    if root != expected:
-        raise IntegrationError(f"{path}: {root_field} drift: expected {expected}")
-    if value.get("authority_effect") != "none":
-        raise IntegrationError(f"{path}: authority_effect must be none")
-    _reject_authority_fields(value, path.name)
-    return value
+    return _expect_mapping(value, str(path))
 
 
-def _reject_authority_fields(value: Any, label: str) -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            if key in PROHIBITED_KEYS:
-                raise IntegrationError(f"{label}: integration document contains {key}")
-            _reject_authority_fields(child, label)
-    elif isinstance(value, list):
-        for child in value:
-            _reject_authority_fields(child, label)
+def _core_checker() -> Path:
+    configured = os.environ.get(CORE_CHECK_ENV)
+    if configured:
+        candidate = Path(configured).expanduser()
+        if not candidate.is_absolute():
+            discovered = shutil.which(configured)
+            if discovered is not None:
+                candidate = Path(discovered)
+        candidate = candidate.resolve()
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+        raise IntegrationError(
+            f"{CORE_CHECK_ENV} does not name an executable Vela binary: {configured}"
+        )
+    discovered = shutil.which("vela")
+    if discovered is None:
+        raise IntegrationError(
+            f"set {CORE_CHECK_ENV} to the exact reviewed Vela binary"
+        )
+    return Path(discovered).resolve()
 
 
-def _validate_profile(profile: dict[str, Any], path: Path) -> None:
-    required = {
-        "schema",
-        "profile_root",
-        "profile_id",
-        "version",
-        "owner",
-        "conformance",
-        "rights",
-        "limitations",
-        "nonclaims",
-        "authority_effect",
-    }
-    _expect_keys(profile, required=required, allowed=required, label=str(path))
-    if profile["version"] != "0.1":
-        raise IntegrationError(f"{path}: unsupported Profile version")
-    rights = _expect_mapping(profile["rights"], f"{path}.rights")
-    _expect_keys(
-        rights,
-        required={"license", "redistribution"},
-        allowed={"license", "redistribution"},
-        label=f"{path}.rights",
-    )
-    if not _expect_list(profile["conformance"], f"{path}.conformance"):
-        raise IntegrationError(f"{path}: conformance cannot be empty")
-    _require_nonclaims(profile, path)
-
-
-def _validate_method(method: dict[str, Any], path: Path, root: Path) -> None:
-    required = {
-        "schema",
-        "method_root",
-        "method_id",
-        "version",
-        "implementation",
-        "environment",
-        "inputs",
-        "outputs",
-        "limitations",
-        "nonclaims",
-        "authority_effect",
-    }
-    _expect_keys(method, required=required, allowed=required, label=str(path))
-    if method["version"] != "0.1":
-        raise IntegrationError(f"{path}: unsupported Method version")
-    implementation = _expect_mapping(method["implementation"], f"{path}.implementation")
-    _expect_keys(
-        implementation,
-        required={"path", "digest"},
-        allowed={"path", "digest"},
-        label=f"{path}.implementation",
-    )
-    implementation_path = _safe_path(
-        root, implementation["path"], f"{path}.implementation.path"
-    )
-    digest = sha256_digest(implementation_path.read_bytes())
-    if implementation["digest"] != digest:
-        raise IntegrationError(f"{path}: implementation digest drift")
-    environment = _expect_mapping(method["environment"], f"{path}.environment")
-    if environment.get("kind") not in {
-        "exact",
-        "bounded",
-        "best_effort",
-        "unavailable",
-    }:
-        raise IntegrationError(f"{path}: invalid environment kind")
-    _require_nonclaims(method, path)
+def _run_core_check(root: Path) -> dict[str, Any]:
+    checker = _core_checker()
+    try:
+        completed = subprocess.run(
+            [str(checker), "integration", "check", str(root), "--json"],
+            cwd=root,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise IntegrationError(
+            f"cannot run shared Vela integration check: {error}"
+        ) from error
+    try:
+        result = _expect_mapping(
+            json.loads(completed.stdout.decode("utf-8")), "Vela integration check"
+        )
+    except (UnicodeError, json.JSONDecodeError, IntegrationError) as error:
+        stderr = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise IntegrationError(
+            f"shared Vela integration check returned invalid JSON: {stderr or error}"
+        ) from error
+    if completed.returncode != 0:
+        message = result.get("error", {}).get("message", "shared contract refused")
+        raise IntegrationError(f"shared Vela integration check failed: {message}")
+    if (
+        result.get("schema") != CORE_CHECK_SCHEMA
+        or result.get("ok") is not True
+        or result.get("authority_effect") != "none"
+    ):
+        raise IntegrationError(
+            "shared Vela integration check returned an invalid success"
+        )
+    return result
 
 
 def _require_nonclaims(value: Mapping[str, Any], path: Path) -> None:
@@ -245,213 +182,69 @@ def _require_nonclaims(value: Mapping[str, Any], path: Path) -> None:
         )
 
 
-def _validate_reference(reference: dict[str, Any], root: Path, label: str) -> None:
-    required = {
-        "schema",
-        "native_identity",
-        "revision",
-        "content_fixity",
-        "locator",
-    }
+def _validate_source_profile(profile: dict[str, Any], path: Path) -> None:
+    source = _expect_mapping(profile.get("source"), f"{path}.source")
     _expect_keys(
-        reference,
-        required=required,
-        allowed=required | {"selector"},
-        label=label,
+        source,
+        required={"owner"},
+        allowed={"owner"},
+        label=f"{path}.source",
     )
-    if reference["schema"] != "vela.exact-reference.v0.1":
-        raise IntegrationError(f"{label}: unsupported Exact Reference version")
+    if source["owner"] != SOURCE_OWNER:
+        raise IntegrationError(f"{path}: source owner drift")
+    _require_nonclaims(profile, path)
 
-    identity = _expect_mapping(reference["native_identity"], f"{label}.native_identity")
-    _expect_keys(
-        identity,
-        required={"system", "object_kind", "identifier"},
-        allowed={"system", "object_kind", "identifier"},
-        label=f"{label}.native_identity",
-    )
-    revision = _expect_mapping(reference["revision"], f"{label}.revision")
-    _expect_keys(
-        revision,
-        required={"kind", "value"},
-        allowed={"kind", "value"},
-        label=f"{label}.revision",
-    )
-    if revision["kind"] != "git_commit" or not OID_RE.fullmatch(revision["value"]):
-        raise IntegrationError(f"{label}: revision must be a full Git commit")
 
-    fixity = _expect_mapping(reference["content_fixity"], f"{label}.content_fixity")
-    _expect_keys(
-        fixity,
-        required={"media_type", "digest", "size"},
-        allowed={"media_type", "digest", "size"},
-        label=f"{label}.content_fixity",
-    )
-    if not ROOT_RE.fullmatch(str(fixity["digest"])):
-        raise IntegrationError(f"{label}: content digest must be full SHA-256")
-    if (
-        not isinstance(fixity["size"], int)
-        or isinstance(fixity["size"], bool)
-        or fixity["size"] < 0
-    ):
-        raise IntegrationError(f"{label}: content size must be a non-negative integer")
-
-    locator = _expect_mapping(reference["locator"], f"{label}.locator")
-    _expect_keys(
-        locator,
-        required={"uri", "mutable", "authentication"},
-        allowed={"uri", "mutable", "authentication"},
-        label=f"{label}.locator",
-    )
-    if not isinstance(locator["mutable"], bool):
-        raise IntegrationError(f"{label}: locator mutability must be boolean")
-    if locator["mutable"] is not True:
-        raise IntegrationError(
-            f"{label}: repository-relative retained locator must be declared mutable"
-        )
-    _expect_string(locator["authentication"], f"{label}.locator.authentication")
-
-    selector_value: str | None = None
-    selector = reference.get("selector")
-    if selector is not None:
-        selector = _expect_mapping(selector, f"{label}.selector")
-        _expect_keys(
-            selector,
-            required={"kind", "value"},
-            allowed={"kind", "value"},
-            label=f"{label}.selector",
-        )
-        selector_value = _expect_string(selector["value"], f"{label}.selector.value")
-    if identity["system"] == "lean4" and identity["object_kind"] in {
+def _validate_retained_reference(
+    reference: dict[str, Any], root: Path, label: str
+) -> None:
+    identity = reference["native_identity"]
+    if identity["system"] != "lean4" or identity["object_kind"] not in {
         "lean_declaration",
         "lean_proof_artifact",
     }:
-        if selector is None or selector["kind"] != "lean_declaration":
-            raise IntegrationError(
-                f"{label}: Lean reference needs a declaration selector"
-            )
-        identifier_parts = identity["identifier"].rsplit("#", 1)
-        if len(identifier_parts) != 2 or identifier_parts[1] != selector_value:
-            raise IntegrationError(f"{label}: native identifier and selector drift")
-    artifact = _safe_path(root, locator["uri"], f"{label}.locator.uri")
-    raw = artifact.read_bytes()
-    if fixity["digest"] != sha256_digest(raw) or fixity["size"] != len(raw):
-        raise IntegrationError(f"{label}: content fixity drift")
-
-
-def _validate_binding(
-    binding: dict[str, Any],
-    path: Path,
-    root: Path,
-    profiles: Mapping[str, dict[str, Any]],
-    methods: Mapping[str, dict[str, Any]],
-) -> None:
-    required = {
-        "schema",
-        "binding_root",
-        "binding_id",
-        "profile",
-        "references",
-        "mappings",
-        "translations",
-        "methods",
-        "audit",
-        "outputs",
-        "rights",
-        "availability",
-        "limitations",
-        "nonclaims",
-        "provenance",
-        "authority_effect",
-    }
-    _expect_keys(binding, required=required, allowed=required, label=str(path))
-    profile_ref = _expect_mapping(binding["profile"], f"{path}.profile")
-    _expect_keys(
-        profile_ref,
-        required={"id", "version", "root"},
-        allowed={"id", "version", "root"},
-        label=f"{path}.profile",
-    )
-    if profile_ref["version"] != "0.1":
-        raise IntegrationError(f"{path}: unsupported Profile version")
-    profile = profiles.get(profile_ref["id"])
-    if profile is None or profile["profile_root"] != profile_ref["root"]:
-        raise IntegrationError(f"{path}: Profile identity or root is missing")
-    references = _expect_list(binding["references"], f"{path}.references")
-    if not references:
-        raise IntegrationError(f"{path}: references cannot be empty")
-    exact_references: set[bytes] = set()
-    for index, value in enumerate(references):
-        reference = _expect_mapping(value, f"{path}.references[{index}]")
-        _validate_reference(reference, root, f"{path}.references[{index}]")
-        encoded = canonical_bytes(reference)
-        if encoded in exact_references:
-            raise IntegrationError(f"{path}: duplicate Exact Reference")
-        exact_references.add(encoded)
-    mappings = _expect_list(binding["mappings"], f"{path}.mappings")
-    translations = _expect_list(binding["translations"], f"{path}.translations")
-    if not mappings or not translations:
+        raise IntegrationError(f"{label}: unsupported source object kind")
+    if reference["locator"]["mutable"] is not True:
         raise IntegrationError(
-            f"{path}: mapping and translation reports must both be present"
+            f"{label}: retained repository-relative locator must be declared mutable"
         )
-    for mapping in mappings:
-        mapping = _expect_mapping(mapping, f"{path}.mappings")
-        _expect_keys(
-            mapping,
-            required={"source", "target", "relation"},
-            allowed={"source", "target", "relation"},
-            label=f"{path}.mappings",
-        )
-        _expect_string(mapping["source"], f"{path}.mappings.source")
-        _expect_string(mapping["target"], f"{path}.mappings.target")
-        if mapping["relation"] not in MAPPING_RELATIONS:
-            raise IntegrationError(f"{path}: mapping relation is invalid or collapsed")
-    for translation in translations:
-        translation = _expect_mapping(translation, f"{path}.translations")
-        _expect_keys(
-            translation,
-            required={"source", "target", "disposition"},
-            allowed={"source", "target", "disposition"},
-            label=f"{path}.translations",
-        )
-        _expect_string(translation["source"], f"{path}.translations.source")
-        _expect_string(translation["target"], f"{path}.translations.target")
-        if translation["disposition"] not in TRANSLATION_DISPOSITIONS:
-            raise IntegrationError(
-                f"{path}: translation disposition is invalid or collapsed"
-            )
-    for method_ref in _expect_list(binding["methods"], f"{path}.methods"):
-        method_ref = _expect_mapping(method_ref, f"{path}.methods")
-        _expect_keys(
-            method_ref,
-            required={"id", "root"},
-            allowed={"id", "root"},
-            label=f"{path}.methods",
-        )
-        method = methods.get(method_ref["id"])
-        if method is None or method["method_root"] != method_ref["root"]:
-            raise IntegrationError(f"{path}: missing or drifted Method")
-    outputs = set(_expect_list(binding["outputs"], f"{path}.outputs"))
-    if not outputs or not outputs <= OUTPUTS:
-        raise IntegrationError(f"{path}: unsupported integration output")
-    rights = _expect_mapping(binding["rights"], f"{path}.rights")
+    artifact = _retained_file(root, reference["locator"]["uri"], f"{label}.locator")
+    raw = artifact.read_bytes()
+    fixity = reference["content_fixity"]
+    if fixity["digest"] != sha256_digest(raw) or fixity["size"] != len(raw):
+        raise IntegrationError(f"{label}: retained content fixity drift")
+
+
+def _validate_source_binding(binding: dict[str, Any], path: Path, root: Path) -> None:
+    source = _expect_mapping(binding.get("source"), f"{path}.source")
+    _expect_keys(
+        source,
+        required={"audit", "rights", "availability", "provenance"},
+        allowed={"audit", "rights", "availability", "provenance"},
+        label=f"{path}.source",
+    )
+    rights = _expect_mapping(source["rights"], f"{path}.source.rights")
     _expect_keys(
         rights,
         required={"license", "redistribution"},
         allowed={"license", "redistribution"},
-        label=f"{path}.rights",
+        label=f"{path}.source.rights",
     )
-    availability = _expect_mapping(binding["availability"], f"{path}.availability")
+    availability = _expect_mapping(
+        source["availability"], f"{path}.source.availability"
+    )
+    availability_keys = {"evidence", "class", "observed_at", "access", "retention"}
     _expect_keys(
         availability,
-        required={"evidence", "class", "observed_at", "access", "retention"},
-        allowed={"evidence", "class", "observed_at", "access", "retention"},
-        label=f"{path}.availability",
+        required=availability_keys,
+        allowed=availability_keys,
+        label=f"{path}.source.availability",
     )
     if availability["evidence"] not in {"available", "unavailable"}:
         raise IntegrationError(
             f"{path}: availability evidence must be available or unavailable"
         )
-    provenance = _expect_mapping(binding["provenance"], f"{path}.provenance")
+    provenance = _expect_mapping(source["provenance"], f"{path}.source.provenance")
     provenance_keys = {
         "agents",
         "activities",
@@ -464,13 +257,15 @@ def _validate_binding(
         provenance,
         required=provenance_keys,
         allowed=provenance_keys,
-        label=f"{path}.provenance",
+        label=f"{path}.source.provenance",
     )
     for field in ("agents", "activities", "entities", "roles"):
-        if not _expect_list(provenance[field], f"{path}.provenance.{field}"):
+        if not _expect_list(provenance[field], f"{path}.source.provenance.{field}"):
             raise IntegrationError(f"{path}: provenance {field} cannot be empty")
+    for index, reference in enumerate(binding["references"]):
+        _validate_retained_reference(reference, root, f"{path}.references[{index}]")
     _require_nonclaims(binding, path)
-    _validate_audit_binding(binding, path, root)
+    _validate_audit_binding(binding, source, path, root)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -482,29 +277,28 @@ def _load_json(path: Path) -> dict[str, Any]:
         raise IntegrationError(f"cannot validate {path}: {error}") from error
 
 
-def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> None:
-    audit = _expect_mapping(binding["audit"], f"{path}.audit")
+def _validate_audit_binding(
+    binding: dict[str, Any], source: dict[str, Any], path: Path, root: Path
+) -> None:
+    audit = _expect_mapping(source["audit"], f"{path}.source.audit")
+    audit_keys = {
+        "core_path",
+        "core_root",
+        "observation_path",
+        "observation_root",
+        "check_ids",
+    }
     _expect_keys(
         audit,
-        required={
-            "core_path",
-            "core_root",
-            "observation_path",
-            "observation_root",
-            "check_ids",
-        },
-        allowed={
-            "core_path",
-            "core_root",
-            "observation_path",
-            "observation_root",
-            "check_ids",
-        },
-        label=f"{path}.audit",
+        required=audit_keys,
+        allowed=audit_keys,
+        label=f"{path}.source.audit",
     )
-    core_path = _safe_path(root, audit["core_path"], f"{path}.audit.core_path")
-    observation_path = _safe_path(
-        root, audit["observation_path"], f"{path}.audit.observation_path"
+    core_path = _retained_file(
+        root, audit["core_path"], f"{path}.source.audit.core_path"
+    )
+    observation_path = _retained_file(
+        root, audit["observation_path"], f"{path}.source.audit.observation_path"
     )
     try:
         core = validate_core(_load_json(core_path))
@@ -523,11 +317,11 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
     check_ids = {check["id"] for check in core["checks"]}
     if set(audit["check_ids"]) != check_ids:
         raise IntegrationError(f"{path}: audit check inventory drift")
-    if binding["availability"]["evidence"] == "unavailable":
+    if source["availability"]["evidence"] == "unavailable":
         outcomes = {check["outcome"] for check in core["checks"]}
         if outcomes - {"unavailable"}:
             raise IntegrationError(
-                f"{path}: unavailable evidence cannot be converted to pass, fail, error, or zero"
+                f"{path}: unavailable evidence cannot become pass, fail, error, or zero"
             )
     head = core["repository"]["head"]["commit_oid"]
     changes = {item["path"]: item for item in core["repository"]["changes"]}
@@ -541,7 +335,6 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
         revision = reference["revision"]
         fixity = reference["content_fixity"]
         selector = reference.get("selector")
-        locator = reference["locator"]
         if identity["object_kind"] == "lean_declaration":
             native_path = identity["identifier"].split("#", 1)[0]
             change = changes.get(native_path)
@@ -553,8 +346,8 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
                 raise IntegrationError(f"{path}: declaration source root drift")
         elif identity["object_kind"] == "lean_proof_artifact":
             retained = retained_inputs.get(("git-blob", fixity["digest"]))
-            artifact = _safe_path(
-                root, locator["uri"], f"{path}: linked proof artifact"
+            artifact = _retained_file(
+                root, reference["locator"]["uri"], f"{path}: linked proof artifact"
             )
             declarations = set(
                 LEAN_DECLARATION_RE.findall(artifact.read_text(encoding="utf-8"))
@@ -603,25 +396,8 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
 
 def validate_repository(root: Path) -> dict[str, Any]:
     root = root.resolve()
-    manifest_path = _safe_path(root, "vela.toml", "manifest")
-    manifest = load_document(manifest_path, "manifest")
-    required = {
-        "schema",
-        "manifest_root",
-        "repository",
-        "profiles",
-        "bindings",
-        "methods",
-        "rights",
-        "availability",
-        "outputs",
-        "limitations",
-        "nonclaims",
-        "authority_effect",
-    }
-    _expect_keys(
-        manifest, required=required, allowed=required, label=str(manifest_path)
-    )
+    core_check = _run_core_check(root)
+    manifest = _load_toml(_retained_file(root, "vela.toml", "manifest"))
     repository = _expect_mapping(manifest["repository"], "manifest.repository")
     if repository != {
         "identity": SOURCE_REPOSITORY_IDENTITY,
@@ -631,51 +407,26 @@ def validate_repository(root: Path) -> dict[str, Any]:
         raise IntegrationError(
             "manifest repository identity or source packet revision drift"
         )
-    _expect_mapping(manifest["rights"], "manifest.rights")
-    _expect_mapping(manifest["availability"], "manifest.availability")
-    _require_nonclaims(manifest, manifest_path)
-    if not set(manifest["outputs"]) <= OUTPUTS:
-        raise IntegrationError("manifest has an unsupported output")
-
+    _require_nonclaims(manifest, root / "vela.toml")
     profiles: dict[str, dict[str, Any]] = {}
     for item in manifest["profiles"]:
-        path = _safe_path(root, item["path"], "manifest.profiles.path")
-        profile = load_document(path, "profile")
-        _validate_profile(profile, path)
-        if item != {
-            "id": profile["profile_id"],
-            "version": profile["version"],
-            "path": item["path"],
-            "root": profile["profile_root"],
-        }:
-            raise IntegrationError("manifest Profile inventory drift")
+        path = _retained_file(root, item["path"], "manifest.profiles.path")
+        profile = _load_toml(path)
+        _validate_source_profile(profile, path)
         profiles[profile["profile_id"]] = profile
-
     methods: dict[str, dict[str, Any]] = {}
     for item in manifest["methods"]:
-        path = _safe_path(root, item["path"], "manifest.methods.path")
-        method = load_document(path, "method")
-        _validate_method(method, path, root)
-        if item != {
-            "id": method["method_id"],
-            "path": item["path"],
-            "root": method["method_root"],
-        }:
-            raise IntegrationError("manifest Method inventory drift")
+        path = _retained_file(root, item["path"], "manifest.methods.path")
+        method = _load_toml(path)
         methods[method["method_id"]] = method
-
     bindings: dict[str, dict[str, Any]] = {}
     for item in manifest["bindings"]:
-        path = _safe_path(root, item["path"], "manifest.bindings.path")
-        binding = load_document(path, "binding")
-        _validate_binding(binding, path, root, profiles, methods)
-        if item != {
-            "id": binding["binding_id"],
-            "path": item["path"],
-            "root": binding["binding_root"],
-        }:
-            raise IntegrationError("manifest Binding inventory drift")
+        path = _retained_file(root, item["path"], "manifest.bindings.path")
+        binding = _load_toml(path)
+        _validate_source_binding(binding, path, root)
         bindings[binding["binding_id"]] = binding
+    if core_check["manifest_root"] != manifest["manifest_root"]:
+        raise IntegrationError("shared Vela check returned a different Manifest root")
     return {
         "manifest": manifest,
         "profiles": profiles,
@@ -698,7 +449,7 @@ def _typed_result_for_check(
         )
     descriptors = {item["id"]: item for item in core["inputs"]["artifacts"]}
     descriptor = descriptors[typed_ids[0]]
-    artifact_path = _safe_path(
+    artifact_path = _retained_file(
         core_path.parent, descriptor["path"], f"typed result {typed_ids[0]}"
     )
     raw = artifact_path.read_bytes()
@@ -712,9 +463,10 @@ def build_selected_export(root: Path) -> dict[str, Any]:
     binding = packet["bindings"].get("erdos-887-selected-declaration")
     if binding is None:
         raise IntegrationError("selected declaration Binding is missing")
-    audit = binding["audit"]
-    core_path = _safe_path(root, audit["core_path"], "selected core")
-    observation_path = _safe_path(
+    source = binding["source"]
+    audit = source["audit"]
+    core_path = _retained_file(root, audit["core_path"], "selected core")
+    observation_path = _retained_file(
         root, audit["observation_path"], "selected observation"
     )
     core = validate_core(_load_json(core_path))
@@ -769,8 +521,8 @@ def build_selected_export(root: Path) -> dict[str, Any]:
         },
         "mappings": binding["mappings"],
         "translations": binding["translations"],
-        "rights": binding["rights"],
-        "availability": binding["availability"],
+        "rights": source["rights"],
+        "availability": source["availability"],
         "limitations": binding["limitations"],
         "nonclaims": binding["nonclaims"],
     }
@@ -782,10 +534,8 @@ def build_selected_export(root: Path) -> dict[str, Any]:
 
 
 __all__ = [
+    "CORE_CHECK_ENV",
     "IntegrationError",
-    "SCHEMAS",
     "build_selected_export",
-    "document_root",
-    "load_document",
     "validate_repository",
 ]

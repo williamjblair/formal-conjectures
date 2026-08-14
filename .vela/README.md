@@ -16,9 +16,19 @@ the interface without claiming adoption by `google-deepmind/formal-conjectures`.
 Validate and reproduce the committed portable example offline:
 
 ```sh
+export VELA_INTEGRATION_CHECK_BIN=/path/to/exact/reviewed/vela
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/validate_formal_conjectures_integration.py
 PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/build_formal_conjectures_integration_example.py --check
 ```
+
+The source validator first invokes that binary as `vela integration check`.
+Core owns the four document root domains and inventories, the shared envelopes,
+Exact Reference shape, generic mapping and translation vocabularies, Method
+implementation fixity, and structural authority, result, selector, and path
+refusal. This repository then checks only Formal Conjectures ownership and the
+retained PR-audit, review, condition, rights, availability, provenance, and
+source-byte relations. If the environment variable is absent, an exact `vela`
+on `PATH` is used; a cold or evidentiary run should always set it explicitly.
 
 The selected cold-consumer example is `Erdos887.erdos_887`. Its retained
 mechanical build passed while the separately attributed semantic review found
@@ -41,6 +51,11 @@ Every `vela.exact-reference.v0.1` value uses the common nested value shape:
 the integration does not define a second flattened Exact Reference shape. The
 repository-relative retained locators are declared mutable; exact Git revisions
 and content fixity make the references stable independently of those locators.
+
+Source-specific Profile ownership and Binding audit, rights, availability, and
+provenance live under one closed optional top-level `source` table. Core treats
+that table as opaque except for recursive authority/result refusal; this
+repository owns and closes its contents.
 
 Architecture custody for this packet:
 

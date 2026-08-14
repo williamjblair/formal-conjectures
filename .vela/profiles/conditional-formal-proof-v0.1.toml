@@ -1,8 +1,7 @@
 schema = "vela.integration-profile.v0.1"
-profile_root = "sha256:d3d99125438ff6e8e27953d7fcb8031720e2ca9c4abbbbf149f54efed19b0212"
+profile_root = "sha256:6207334bb4e00a033b21012bbac1f9a4413d845960c5a48787e42dceff703a45"
 profile_id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/conditional-formal-proof/v0.1"
 version = "0.1"
-owner = "williamjblair/formal-conjectures contributor fork"
 conformance = [
   "The Formal Conjectures declaration and linked proof both resolve to retained exact bytes.",
   "Proof conditions and assumptions retain declaration identity and are never collapsed into an unconditional proof claim.",
@@ -19,6 +18,9 @@ nonclaims = [
   "not_a_claim_of_proof_correctness",
 ]
 authority_effect = "none"
+
+[source]
+owner = "williamjblair/formal-conjectures contributor fork"
 
 [rights]
 license = "NOASSERTION"

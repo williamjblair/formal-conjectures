@@ -1,5 +1,5 @@
 schema = "vela.integration-binding.v0.1"
-binding_root = "sha256:cb234c49c67565961a61e856099ba6a079fa170c50771aa8fa2b73beda43aca7"
+binding_root = "sha256:a90be2426350a8c334cc64948c7c21d860940f61a3adc351d9d86b871a8235fd"
 binding_id = "erdos-427-conditional-proof"
 outputs = ["exact_reference", "verification_input"]
 limitations = [
@@ -17,7 +17,7 @@ authority_effect = "none"
 [profile]
 id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/conditional-formal-proof/v0.1"
 version = "0.1"
-root = "sha256:d3d99125438ff6e8e27953d7fcb8031720e2ca9c4abbbbf149f54efed19b0212"
+root = "sha256:6207334bb4e00a033b21012bbac1f9a4413d845960c5a48787e42dceff703a45"
 
 [[references]]
 schema = "vela.exact-reference.v0.1"
@@ -130,25 +130,25 @@ root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
 id = "formal-proof-condition-review"
 root = "sha256:0a5c29f9ce0d53ce029e963aaf1fa782c7c88d00c3d46074061e55405d0ee944"
 
-[audit]
+[source.audit]
 core_path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/expected-core.json"
 core_root = "sha256:e112acd89b801c121d8aebebd4756a481a9db7c2e9790a3a1fd19802b39ab37e"
 observation_path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/expected-observation.json"
 observation_root = "sha256:8570f2d6ac166e348d59bf550c365f35c587392ebe95e47314e36d1a8e5ba4e4"
 check_ids = ["conditional-proof-metadata"]
 
-[rights]
+[source.rights]
 license = "NOASSERTION"
 redistribution = "Retained repository and linked-proof bytes remain subject to their source notices and terms."
 
-[availability]
+[source.availability]
 evidence = "available"
 class = "public_retained_bytes"
 observed_at = "2026-08-12T20:25:19Z"
 access = "anonymous Git clone of the contributor fork"
 retention = "frozen in source packet commit 96eeecf40bc06ddc8bae6d106f461d4fd774858a and descendants"
 
-[provenance]
+[source.provenance]
 agents = ["codex_ai_packet_preparer"]
 activities = ["retained formal-proof metadata review"]
 entities = ["metadata review procedure sha256:98e2e25f10eb82bfcd1e675c91896e6bc79ed3dbdae85b514f6e31d3d2e9ec62", "retained declaration and proof bytes", "typed result"]

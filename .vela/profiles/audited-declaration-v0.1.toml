@@ -1,8 +1,7 @@
 schema = "vela.integration-profile.v0.1"
-profile_root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
+profile_root = "sha256:3c1a50de5f98899c5f85897449ca69484086489cf8dc657f5c2fcf7cee4b8eab"
 profile_id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/audited-declaration/v0.1"
 version = "0.1"
-owner = "williamjblair/formal-conjectures contributor fork"
 conformance = [
   "One Lean declaration resolves to retained source bytes at a full Git commit and exact selector.",
   "Every exposed PR-audit core and observation validates under the source-owned v1 validators.",
@@ -20,6 +19,9 @@ nonclaims = [
   "not_a_claim_of_mathematical_truth",
 ]
 authority_effect = "none"
+
+[source]
+owner = "williamjblair/formal-conjectures contributor fork"
 
 [rights]
 license = "NOASSERTION"

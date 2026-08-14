@@ -16,6 +16,10 @@ structure conventions* in CONTRIBUTING gives the skeleton, and a neighbouring fi
 rest: a definition with its docstring, a statement with its source, and a variant. A template
 can become incorrect. A file in the repository cannot, because the build compiles it.
 
+Three skills in [`.agents/skills/`](.agents/skills/) cover the loop this file describes:
+`pick-issue` for choosing work, `formalize` for writing a statement, and `review` for checking
+one. Each is longer and more specific than this file, which stays the short reference.
+
 ## Commands
 
 Build only the modules that you changed. Do not build the project.

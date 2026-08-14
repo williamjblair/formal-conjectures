@@ -61,6 +61,11 @@ lake --wfail build 'FormalConjectures.<Dir>.«N»'   # each module in scope
 python3 scripts/check_erdos_status.py              # ErdosProblems/ only; skip it elsewhere
 ```
 
+The status script belongs to the repository, not to this skill, so it is absent from older
+commits and from any checkout that is not this repository. If it is missing, say so and read
+the `teorth/erdosproblems` status data directly; a check you could not run is not a check that
+passed. This skill's own tools are under `scripts/` beside this file and travel with it.
+
 Run `lake` from the repository root and pass absolute paths. Never `cd` elsewhere, including
 inside a compound command: the working directory persists into the next call, and `lake` then
 reports a missing default toolchain, which reads as a broken install rather than a wrong
@@ -185,6 +190,37 @@ finding an earlier run had made.
 Two things are sanctioned and are not defects. Do not report either. `answer(sorry) ↔ ∀ᵉ ...`,
 with the answer slot outside the binders, is the shape the `AnswerLinter` recommends. And a
 `sorry` under `research solved` records a result known in the literature.
+
+Before you change a `@[category]` in a suggested fix, check whether anything counts it:
+
+```bash
+grep -rn "<Namespace>.<declaration>" FormalConjectures/Subsets/
+```
+
+The subset files assert how many of their members carry each category, so moving a member
+between `research open` and `research solved` makes those counts stale and the build fails on
+a file you did not touch. Nothing in the file being edited says so.
+
+## Step 4b: two tools ship with this skill
+
+Both are under `scripts/` beside this file and need no repository checkout.
+
+```bash
+python3 <skill>/scripts/verify_formal_proof.py --link URL [--theorem NAME] [--static-only]
+python3 <skill>/scripts/lean_to_latex.py FILE.lean -o out.tex
+```
+
+`verify_formal_proof.py` is class 5 done properly on a link too large to read: it fetches the
+code at its pin, counts `sorry`, `axiom` and `native_decide` in the sources, builds it, and runs
+`#print axioms` on the named declarations, reporting whether each is sorry-free and what it
+depends on beyond `propext`, `Quot.sound` and `Classical.choice`. `--static-only` skips the
+build and needs no toolchain. When it runs a bare file under this repository's toolchain rather
+than the project's own, it says so, and so should you.
+
+`lean_to_latex.py` renders a file's docstrings, statements and proof skeletons for a reader,
+with the Lean verbatim beside each rendering. Use it to find the shape of a long proof. The
+rendering is an aid; the Lean is the authority, and a compile failure in the output is usually
+a defect in the file's own docstring LaTeX rather than in the tool.
 
 ## Step 5: report
 

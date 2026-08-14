@@ -125,7 +125,7 @@
         "The report quotes or paraphrases the passage announcing that the even case is settled",
         "The report says that the module docstring is wrong as well as the category",
         "The verdict is NEEDS REVISION",
-        "The report runs the source's own construction against the Lean predicate as a positive control, rather than reporting only what the source claims",
+        "The report runs the source's own even-case construction against the Lean predicate as a positive control, at a concrete even m in the statement's range, rather than reporting only what the source claims",
         "The report resolves the formal_proof link to a named file and declaration, and does not accept a bare repository root"
       ],
       "iteration_1": {
@@ -164,8 +164,11 @@
         ],
         "skill_mean": 1.0,
         "gap_vs_control_mean": 0.125,
-        "note": "Control climbed monotonically to ceiling, range 0.250, larger than any gap this case produced. The rep 3 control ran Knuth's own C rule against the predicate, which is what the positive-control assertion asks for. This case is close to dead."
-      }
+        "note": "Control climbed monotonically to ceiling, range 0.250, larger than any gap this case produced. The rep 3 control ran Knuth's own C rule against the predicate, which is what the positive-control assertion asks for. This case is close to dead. Hardened after the rep 3 control passed the old assertion by running Knuth's C rule, which is the odd-case construction, while the finding is about the even case. The assertion now names the even case. This was written after reading that report, so it must not be graded against any existing report: both arms need re-running before this case's gap is quoted again."
+      },
+      "assertions_hardened_iteration_11": [
+        "The report runs the source's own even-case construction against the Lean predicate as a positive control, at a concrete even m in the statement's range, rather than reporting only what the source claims"
+      ]
     },
     {
       "id": 4,

@@ -22,9 +22,12 @@ wrong problem. The build itself is the comparator's job, not these tests'.
 import unittest
 
 from make_comparator_workspace import (
+    declares,
     drop_problem_attributes,
     hoist_answers,
+    peel_loose,
     replace_proof_with_sorry,
+    slug,
     split_blocks,
     strip_decorations,
 )
@@ -112,16 +115,76 @@ class SplitTest(unittest.TestCase):
         blocks = split_blocks("def a := 1\n\ndef b := 2\n")
         self.assertEqual([b.name for b in blocks], ["a", "b"])
 
-    def test_kind_line_is_the_matching_line_not_the_first(self):
-        # A `/-!` section docstring can sit above `namespace` in one block.
-        # Reading the namespace name off lines[0] crashed on 22 real files.
+    def test_section_docstring_does_not_hide_the_namespace(self):
+        # A `/-!` section docstring can sit above `namespace` with no blank
+        # line. Reading the namespace name off lines[0] crashed on 22 real
+        # files; the directive is now its own block.
         blocks = split_blocks("/-! ## A section -/\nnamespace Erdos196\n")
-        self.assertEqual(blocks[0].kind, "namespace")
-        self.assertEqual(blocks[0].kind_line.split(None, 1)[1].strip(), "Erdos196")
+        ns = [b for b in blocks if b.kind == "namespace"]
+        self.assertEqual(len(ns), 1)
+        self.assertEqual(ns[0].kind_line.split(None, 1)[1].strip(), "Erdos196")
+
+    def test_directive_between_docstring_and_declaration_splits_all_three(self):
+        blocks = split_blocks("/-! ## A -/\nnamespace E\ndef y := 1\n")
+        self.assertEqual([b.kind for b in blocks], [None, "namespace", "def"])
+
+    def test_a_docstring_line_starting_with_a_keyword_does_not_split(self):
+        blocks = split_blocks("/--\nend of the story\n-/\ndef f := 1\n")
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].name, "f")
 
     def test_category_is_read_off_the_block(self):
         blocks = split_blocks("@[category research open, AMS 5]\ntheorem t : True := trivial\n")
         self.assertEqual(blocks[0].category, "research open")
+
+    def test_namespace_does_not_swallow_the_declaration_below_it(self):
+        # Erdos 269 writes `namespace Erdos269` directly above its first
+        # definition. Keeping one kind per block dropped `HasPrimeFactorsIn`,
+        # and the workspace only failed once Lean elaborated it.
+        blocks = split_blocks("namespace Erdos269\ndef HasPrimeFactorsIn : Prop := True\n")
+        self.assertEqual([b.kind for b in blocks], ["namespace", "def"])
+        self.assertEqual(blocks[1].name, "HasPrimeFactorsIn")
+
+    def test_namespace_does_not_swallow_a_variable(self):
+        # The same shape cost Erdos 41 its `variable {α : Type}`.
+        blocks = split_blocks("namespace Erdos41\nvariable {a : Type}\n")
+        self.assertEqual([b.kind for b in blocks], ["namespace", "variable"])
+
+    def test_section_and_its_end_are_separate_readable_blocks(self):
+        # Carried `section` lines need their `end` carried too. Reading the
+        # closed name off the block is what lets the namespace's own `end` be
+        # dropped while a section's is kept.
+        blocks = split_blocks("section N4_D2\ndef a := 1\nend N4_D2\n")
+        self.assertEqual([b.kind for b in blocks], ["section", "def", "end"])
+        self.assertEqual(blocks[2].kind_line.split(None, 1)[1].strip(), "N4_D2")
+
+    def test_open_in_stays_with_its_declaration(self):
+        # `open X in` modifies the declaration below, so peeling it would
+        # detach the modifier from what it modifies.
+        self.assertEqual(peel_loose(["open Classical in", "theorem t : True := trivial"]),
+                         [["open Classical in", "theorem t : True := trivial"]])
+
+
+class NameTest(unittest.TestCase):
+    """A request may name a declaration in full or drop a leading prefix."""
+
+    def test_qualified_name_matches_itself(self):
+        self.assertTrue(declares("erdos_940.variants.large_integers",
+                                 "erdos_940.variants.large_integers"))
+
+    def test_any_whole_suffix_matches(self):
+        self.assertTrue(declares("erdos_940.variants.large_integers", "variants.large_integers"))
+        self.assertTrue(declares("erdos_940.variants.large_integers", "large_integers"))
+
+    def test_a_partial_component_does_not_match(self):
+        self.assertFalse(declares("erdos_940.variants.large_integers", "integers"))
+        self.assertFalse(declares("erdos_940.variants.large_integers", "erdos_940.variants"))
+
+    def test_slug_makes_a_lake_package_name(self):
+        # Lake package names are identifiers, so the dots cannot survive.
+        self.assertEqual(slug("erdos_940.variants.large_integers"),
+                         "erdos_940_variants_large_integers")
+        self.assertEqual(slug("dean_conjecture"), "dean_conjecture")
 
 
 if __name__ == "__main__":

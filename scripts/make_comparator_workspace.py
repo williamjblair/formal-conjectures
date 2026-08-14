@@ -62,10 +62,19 @@ limitations under the License.
 PERMITTED_AXIOMS = ["propext", "Quot.sound", "Classical.choice"]
 
 DECL_START = re.compile(
-    r"^(?:noncomputable\s+)?(?:private\s+)?"
+    # `local notation` and `scoped notation` carry the modifier before the
+    # keyword. Without them here, Erdos 125's `local notation "A" => ...` typed
+    # as nothing and was dropped, and its statements lost the sets they name.
+    r"^(?:noncomputable\s+|private\s+|protected\s+|local\s+|scoped\s+)*"
     r"(theorem|lemma|def|abbrev|structure|inductive|instance|notation)\s",
 )
-KEEP_LOOSE = re.compile(r"^(open|variable|universe|section|namespace|end|attribute)\b")
+KEEP_LOOSE = re.compile(
+    r"^(open|variable|universe|section|namespace|end|attribute|set_option)\b")
+
+# Lean scopes these to the file, so ChallengeDeps holding them does not give
+# them to Challenge, which is a separate module importing it. Both files need
+# them. Erdos 940 lost `atTop` this way, and Erdos 125 lost `A` and `B`.
+FILE_SCOPED = ("open", "variable", "set_option", "notation")
 
 
 class Block:
@@ -80,23 +89,71 @@ class Block:
         # section docstring can sit above a `namespace` inside one block, and
         # reading the name off `lines[0]` then crashes.
         self.kind_line = None
+        # Prose inside a doc comment is not Lean. A docstring whose line begins
+        # `end ...` or `open ...` at column zero would otherwise type the whole
+        # block as that directive, and a block typed `end` used to be dropped
+        # with the declaration it documented.
+        depth = 0
         for line in lines:
-            if KEEP_LOOSE.match(line):
-                self.kind = line.split()[0]
-                self.kind_line = line
-                break
-            m = DECL_START.match(line)
-            if m:
-                self.kind = m.group(1)
-                after = line[m.end():].strip()
-                nm = re.match(r"([\w.«»]+)", after)
-                self.name = nm.group(1) if nm else None
-                break
+            if depth == 0:
+                if KEEP_LOOSE.match(line):
+                    self.kind = line.split()[0]
+                    self.kind_line = line
+                    break
+                m = DECL_START.match(line)
+                if m:
+                    self.kind = m.group(1)
+                    after = line[m.end():].strip()
+                    nm = re.match(r"([\w.«»]+)", after)
+                    self.name = nm.group(1) if nm else None
+                    break
+            depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
+            depth = max(depth, 0)
 
     @property
     def category(self):
         m = re.search(r"@\[category\s+([\w ]+?)[,\]]", self.text)
         return m.group(1).strip() if m else None
+
+
+def peel_loose(lines):
+    """Split leading single-line directives off a block.
+
+    This repository writes `namespace Erdos269` directly above the first
+    declaration, with no blank line between them, so grouping on blank lines
+    puts both into one block. Reading one kind per block then kept the
+    namespace and dropped the declaration, and dropped it silently: Erdos 41
+    lost `variable {α : Type}` and Erdos 269 lost `HasPrimeFactorsIn`. Both
+    workspaces generated, and both failed only when Lean elaborated them.
+
+    A trailing `end X` is peeled for the same reason. Swallowed into the
+    declaration above it, it would be carried into ChallengeDeps verbatim, and
+    an `end` closing the wrapped namespace would then be emitted twice.
+    `KEEP_LOOSE` anchors at column zero, so an indented line inside a proof
+    body cannot be peeled by mistake.
+
+    `open X in` is a modifier on the declaration below it, so it is not peeled.
+    """
+    out, current, depth = [], [], 0
+    for line in lines:
+        loose = (depth == 0 and KEEP_LOOSE.match(line)
+                 and not line.rstrip().endswith(" in"))
+        if loose:
+            if current:
+                out.append(current)
+                current = []
+            out.append([line])
+        else:
+            current.append(line)
+        # Depth is counted after the decision, so a line *inside* a doc comment
+        # is never taken for a directive. `end of the story` on its own line in
+        # a docstring would otherwise split the declaration away from its
+        # documentation.
+        depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
+        depth = max(depth, 0)
+    if current:
+        out.append(current)
+    return out
 
 
 def split_blocks(body):
@@ -110,7 +167,7 @@ def split_blocks(body):
     blocks, current, depth = [], [], 0
     for line in body.split("\n"):
         if line.strip() == "" and current and depth == 0:
-            blocks.append(Block(current))
+            blocks.extend(Block(g) for g in peel_loose(current))
             current = []
             continue
         if line.strip() != "" or current:
@@ -118,8 +175,30 @@ def split_blocks(body):
         depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
         depth = max(depth, 0)
     if current:
-        blocks.append(Block(current))
+        blocks.extend(Block(g) for g in peel_loose(current))
     return blocks
+
+
+def declares(declared, requested):
+    """Whether a block declaring `declared` answers a request for `requested`.
+
+    Most research statements in this repository carry a qualified name:
+    `erdos_940.variants.large_integers`, `erdos_1038.parts.i`. A request may
+    give that name in full, or drop any whole prefix of it, so the variant
+    above is reachable as itself, as `variants.large_integers`, or as
+    `large_integers`. Matching on the last component alone, which is what this
+    did first, made every qualified name unreachable: all 413 of them.
+    """
+    return declared == requested or declared.endswith("." + requested)
+
+
+def slug(name):
+    """A Lake package name and directory name for a declaration.
+
+    A Lake package name is an identifier, so the dots in a qualified
+    declaration cannot go into one verbatim.
+    """
+    return re.sub(r"[^0-9A-Za-z_]", "_", name)
 
 
 def find_declaration(basename):
@@ -276,9 +355,11 @@ def generate(basename, out_dir, answer_type):
     blocks = split_blocks(body)
 
     target = None
+    matches = []
     deps, namespaces, opens = [], [], []
     for b in blocks:
-        if b.name and b.name.rsplit(".", 1)[-1] == basename:
+        if b.name and declares(b.name, basename):
+            matches.append(b)
             target = b
             continue
         if b.kind == "namespace":
@@ -287,8 +368,19 @@ def generate(basename, out_dir, answer_type):
                 namespaces.append(parts_[1].strip())
             continue
         if b.kind == "end":
+            # `section` blocks are carried, so their `end` lines have to be
+            # carried with them. Paper/MonochromaticQuantumGraph opens three
+            # sections; dropping every `end` left all three unclosed, and the
+            # error surfaced 200 lines later against the namespace's own
+            # closer. Only that closer is dropped here, since the generator
+            # emits its own.
+            closing = (b.kind_line or "").split(None, 1)
+            name = closing[1].strip() if len(closing) > 1 else ""
+            if name and name in namespaces:
+                continue
+            deps.append(b.text)
             continue
-        if b.kind == "open":
+        if b.kind in FILE_SCOPED:
             opens.append(b.text)
             continue
         if b.kind in ("theorem", "lemma"):
@@ -301,15 +393,41 @@ def generate(basename, out_dir, answer_type):
             deps.append(drop_problem_attributes(b.text))
             continue
         if b.kind in ("def", "abbrev", "structure", "inductive", "instance",
-                      "notation", "variable", "universe", "attribute", "section"):
+                      "universe", "attribute", "section"):
             deps.append(drop_problem_attributes(b.text))
 
     if target is None:
         raise SystemExit(f"{basename!r} not found as a block in {path}")
+    if len(matches) > 1:
+        # Taking the last silently would generate a workspace for a statement
+        # the caller did not name, and nothing downstream would notice.
+        raise SystemExit(
+            f"{basename!r} matches more than one declaration in {path}: "
+            + ", ".join(b.name for b in matches)
+            + "; name one of them in full")
+
+    declared = target.name
+
+    # ChallengeDeps is imported *by* Challenge, so a carried lemma that mentions
+    # the target cannot sit in it. Millenium/RiemannHypothesis states such a
+    # lemma with `type_of%`, and the workspace built ChallengeDeps against a
+    # name that had moved to Challenge.lean.
+    target_ref = re.compile(rf"(?<![\w.]){re.escape(declared)}(?![\w])")
+    deps = [d for d in deps if not target_ref.search(d)]
+
+    # One namespace is wrapped back around the carried definitions. A file that
+    # opens several in sequence needs them matched to their own `end` lines, and
+    # a flat list closes them in an order Lean rejects. 23 files are like this.
+    if len(dict.fromkeys(namespaces)) > 1:
+        raise SystemExit(
+            f"{path} declares more than one namespace ("
+            + ", ".join(dict.fromkeys(namespaces))
+            + "); this generator wraps a single namespace and would emit "
+              "mismatched `end` lines")
 
     statement = strip_decorations(target.text)
     statement = replace_proof_with_sorry(statement)
-    statement, holes = hoist_answers(statement, basename, answer_type)
+    statement, holes = hoist_answers(statement, declared, answer_type)
 
     ns_open = f"open {' '.join(dict.fromkeys(namespaces))}\n" if namespaces else ""
     ns_wrap_open = "".join(f"namespace {n}\n" for n in dict.fromkeys(namespaces))
@@ -330,15 +448,21 @@ def generate(basename, out_dir, answer_type):
         LICENSE_HEADER + "\n"
         + "\n".join(f"import {i}" for i in dep_imports) + "\n\n"
         + (module_doc + "\n\n" if module_doc else "")
-        + "\n".join(opens) + ("\n\n" if opens else "")
         + ns_wrap_open
+        + "\n".join(opens) + ("\n\n" if opens else "")
         + (deps_body + "\n" if deps_body else "")
         + ns_wrap_close
     )
 
+    # `open` is file-scoped in Lean 4, so putting the problem file's opens into
+    # ChallengeDeps alone leaves the statement without them. Erdos 940 opens
+    # `Filter` and its statement says `atTop`, which does not resolve here
+    # without this line.
     challenge = (
         "import ChallengeDeps\n\n"
-        + (ns_open + "\n" if ns_open else "")
+        + (ns_open if ns_open else "")
+        + ("\n".join(opens) + "\n" if opens else "")
+        + ("\n" if opens or ns_open else "")
         + "\n\n".join(holes) + ("\n\n" if holes else "")
         + statement + "\n"
     )
@@ -351,13 +475,13 @@ def generate(basename, out_dir, answer_type):
     )
 
     mathlib_rev, fc_rev = pins(path.relative_to(ROOT))
-    full_names = [f"{'.'.join(dict.fromkeys(namespaces))}.{basename}"
-                  if namespaces else basename]
+    full_names = [f"{'.'.join(dict.fromkeys(namespaces))}.{declared}"
+                  if namespaces else declared]
     hole_names = [h.split()[2] for h in holes]
 
-    ws = pathlib.Path(out_dir) / basename
+    ws = pathlib.Path(out_dir) / slug(declared)
     ws.mkdir(parents=True, exist_ok=True)
-    (ws / "lakefile.toml").write_text(lakefile(basename, mathlib_rev, fc_rev))
+    (ws / "lakefile.toml").write_text(lakefile(slug(declared), mathlib_rev, fc_rev))
     # Without a toolchain file, lake in the workspace falls back to elan's
     # default, which need not exist and need not match the pinned Mathlib.
     (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
@@ -367,7 +491,7 @@ def generate(basename, out_dir, answer_type):
     (ws / "config.json").write_text(json.dumps({
         "challenge_module": "Challenge",
         "solution_module": "Solution",
-        "theorem_names": [basename],
+        "theorem_names": [declared],
         "permitted_axioms": PERMITTED_AXIOMS,
         "enable_nanoda": False,
         "definition_names": hole_names,
@@ -382,7 +506,7 @@ def generate(basename, out_dir, answer_type):
                 [f"{'.'.join(dict.fromkeys(namespaces))}.{hn}" if namespaces else hn
                  for hn in hole_names], holes)
         ] + [
-            {"name": full_names[0], "basename": basename, "kind": "theorem",
+            {"name": full_names[0], "basename": declared, "kind": "theorem",
              "body": target.text}
         ],
     }, indent=2, ensure_ascii=False) + "\n")

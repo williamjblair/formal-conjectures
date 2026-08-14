@@ -35,6 +35,13 @@ JSON, replace the document root field with the empty string, prefix the UTF-8
 schema tag and NUL byte, then hash with SHA-256. Generated JSON adds one LF for
 file framing; its sidecar hashes those stored bytes.
 
+Every `vela.exact-reference.v0.1` value uses the common nested value shape:
+`native_identity`, `revision`, `content_fixity`, optional `selector`, and
+`locator`. Source-local labels and PR-audit metadata remain outside that value;
+the integration does not define a second flattened Exact Reference shape. The
+repository-relative retained locators are declared mutable; exact Git revisions
+and content fixity make the references stable independently of those locators.
+
 Architecture custody for this packet:
 
 - canonical memo SHA-256: `3ac5740763db46c2c64a0d2154c6ab464def2cd8371e265d16a9be083f374ead`;

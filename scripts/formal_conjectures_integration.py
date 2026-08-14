@@ -248,48 +248,94 @@ def _require_nonclaims(value: Mapping[str, Any], path: Path) -> None:
 def _validate_reference(reference: dict[str, Any], root: Path, label: str) -> None:
     required = {
         "schema",
-        "id",
-        "native_system",
-        "object_kind",
-        "native_identifier",
-        "revision_kind",
-        "revision_value",
-        "media_type",
-        "digest",
-        "byte_size",
-        "selector_kind",
-        "selector_value",
-        "locator_uri",
-        "locator_mutability",
-        "authentication",
+        "native_identity",
+        "revision",
+        "content_fixity",
+        "locator",
     }
-    _expect_keys(reference, required=required, allowed=required, label=label)
+    _expect_keys(
+        reference,
+        required=required,
+        allowed=required | {"selector"},
+        label=label,
+    )
     if reference["schema"] != "vela.exact-reference.v0.1":
         raise IntegrationError(f"{label}: unsupported Exact Reference version")
-    if reference["revision_kind"] != "git_commit" or not OID_RE.fullmatch(
-        reference["revision_value"]
-    ):
+
+    identity = _expect_mapping(reference["native_identity"], f"{label}.native_identity")
+    _expect_keys(
+        identity,
+        required={"system", "object_kind", "identifier"},
+        allowed={"system", "object_kind", "identifier"},
+        label=f"{label}.native_identity",
+    )
+    revision = _expect_mapping(reference["revision"], f"{label}.revision")
+    _expect_keys(
+        revision,
+        required={"kind", "value"},
+        allowed={"kind", "value"},
+        label=f"{label}.revision",
+    )
+    if revision["kind"] != "git_commit" or not OID_RE.fullmatch(revision["value"]):
         raise IntegrationError(f"{label}: revision must be a full Git commit")
-    if reference["locator_mutability"] != "retained_immutable_bytes":
+
+    fixity = _expect_mapping(reference["content_fixity"], f"{label}.content_fixity")
+    _expect_keys(
+        fixity,
+        required={"media_type", "digest", "size"},
+        allowed={"media_type", "digest", "size"},
+        label=f"{label}.content_fixity",
+    )
+    if not ROOT_RE.fullmatch(str(fixity["digest"])):
+        raise IntegrationError(f"{label}: content digest must be full SHA-256")
+    if (
+        not isinstance(fixity["size"], int)
+        or isinstance(fixity["size"], bool)
+        or fixity["size"] < 0
+    ):
+        raise IntegrationError(f"{label}: content size must be a non-negative integer")
+
+    locator = _expect_mapping(reference["locator"], f"{label}.locator")
+    _expect_keys(
+        locator,
+        required={"uri", "mutable", "authentication"},
+        allowed={"uri", "mutable", "authentication"},
+        label=f"{label}.locator",
+    )
+    if not isinstance(locator["mutable"], bool):
+        raise IntegrationError(f"{label}: locator mutability must be boolean")
+    if locator["mutable"] is not True:
         raise IntegrationError(
-            f"{label}: mutable identity cannot be presented as immutable"
+            f"{label}: repository-relative retained locator must be declared mutable"
         )
-    if reference["native_system"] == "lean4" and reference["object_kind"] in {
+    _expect_string(locator["authentication"], f"{label}.locator.authentication")
+
+    selector_value: str | None = None
+    selector = reference.get("selector")
+    if selector is not None:
+        selector = _expect_mapping(selector, f"{label}.selector")
+        _expect_keys(
+            selector,
+            required={"kind", "value"},
+            allowed={"kind", "value"},
+            label=f"{label}.selector",
+        )
+        selector_value = _expect_string(selector["value"], f"{label}.selector.value")
+    if identity["system"] == "lean4" and identity["object_kind"] in {
         "lean_declaration",
         "lean_proof_artifact",
     }:
-        identifier_parts = reference["native_identifier"].rsplit("#", 1)
-        if (
-            len(identifier_parts) != 2
-            or identifier_parts[1] != reference["selector_value"]
-        ):
+        if selector is None or selector["kind"] != "lean_declaration":
+            raise IntegrationError(
+                f"{label}: Lean reference needs a declaration selector"
+            )
+        identifier_parts = identity["identifier"].rsplit("#", 1)
+        if len(identifier_parts) != 2 or identifier_parts[1] != selector_value:
             raise IntegrationError(f"{label}: native identifier and selector drift")
-    artifact = _safe_path(root, reference["locator_uri"], f"{label}.locator_uri")
+    artifact = _safe_path(root, locator["uri"], f"{label}.locator.uri")
     raw = artifact.read_bytes()
-    if reference["digest"] != sha256_digest(raw) or reference["byte_size"] != len(raw):
+    if fixity["digest"] != sha256_digest(raw) or fixity["size"] != len(raw):
         raise IntegrationError(f"{label}: content fixity drift")
-    if not reference["selector_value"]:
-        raise IntegrationError(f"{label}: selector must be explicit")
 
 
 def _validate_binding(
@@ -333,16 +379,14 @@ def _validate_binding(
     references = _expect_list(binding["references"], f"{path}.references")
     if not references:
         raise IntegrationError(f"{path}: references cannot be empty")
-    reference_ids: set[str] = set()
+    exact_references: set[bytes] = set()
     for index, value in enumerate(references):
         reference = _expect_mapping(value, f"{path}.references[{index}]")
         _validate_reference(reference, root, f"{path}.references[{index}]")
-        reference_id = reference["id"]
-        if reference_id in reference_ids:
-            raise IntegrationError(
-                f"{path}: duplicate Exact Reference id {reference_id}"
-            )
-        reference_ids.add(reference_id)
+        encoded = canonical_bytes(reference)
+        if encoded in exact_references:
+            raise IntegrationError(f"{path}: duplicate Exact Reference")
+        exact_references.add(encoded)
     mappings = _expect_list(binding["mappings"], f"{path}.mappings")
     translations = _expect_list(binding["translations"], f"{path}.translations")
     if not mappings or not translations:
@@ -493,19 +537,24 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
         for item in check["inputs"]
     }
     for reference in binding["references"]:
-        if reference["object_kind"] == "lean_declaration":
-            native_path = reference["native_identifier"].split("#", 1)[0]
+        identity = reference["native_identity"]
+        revision = reference["revision"]
+        fixity = reference["content_fixity"]
+        selector = reference.get("selector")
+        locator = reference["locator"]
+        if identity["object_kind"] == "lean_declaration":
+            native_path = identity["identifier"].split("#", 1)[0]
             change = changes.get(native_path)
-            if change is None or reference["revision_value"] != head:
+            if change is None or revision["value"] != head:
                 raise IntegrationError(
                     f"{path}: reference revision or native path drift"
                 )
-            if reference["digest"] != change["head_blob_sha256"]:
+            if fixity["digest"] != change["head_blob_sha256"]:
                 raise IntegrationError(f"{path}: declaration source root drift")
-        elif reference["object_kind"] == "lean_proof_artifact":
-            retained = retained_inputs.get(("git-blob", reference["digest"]))
+        elif identity["object_kind"] == "lean_proof_artifact":
+            retained = retained_inputs.get(("git-blob", fixity["digest"]))
             artifact = _safe_path(
-                root, reference["locator_uri"], f"{path}: linked proof artifact"
+                root, locator["uri"], f"{path}: linked proof artifact"
             )
             declarations = set(
                 LEAN_DECLARATION_RE.findall(artifact.read_text(encoding="utf-8"))
@@ -517,17 +566,17 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
                 (
                     mapping
                     for mapping in binding["mappings"]
-                    if mapping["source"] == reference["native_identifier"]
+                    if mapping["source"] == identity["identifier"]
                 ),
                 None,
             )
             if (
                 retained is None
-                or reference["revision_value"] not in retained["locator"]
-                or reference["selector_value"] not in declarations
+                or revision["value"] not in retained["locator"]
+                or selector is None
+                or selector["value"] not in declarations
                 or not any(
-                    reference["revision_value"] in proof["locator"]
-                    for proof in proof_records
+                    revision["value"] in proof["locator"] for proof in proof_records
                 )
                 or proof_mapping is None
                 or proof_mapping["relation"] != "related"
@@ -538,9 +587,10 @@ def _validate_audit_binding(binding: dict[str, Any], path: Path, root: Path) -> 
         else:
             raise IntegrationError(f"{path}: unsupported source object kind")
     declared_selectors = {
-        reference["selector_value"]
+        reference["selector"]["value"]
         for reference in binding["references"]
-        if reference["object_kind"] != "lean_proof_artifact"
+        if reference["native_identity"]["object_kind"] != "lean_proof_artifact"
+        and "selector" in reference
     }
     scoped = {
         declaration

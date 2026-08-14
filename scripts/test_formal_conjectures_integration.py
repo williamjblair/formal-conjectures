@@ -94,19 +94,43 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
     def test_valid_packet_and_root_domains(self) -> None:
         packet = validate_repository(self.root)
         conditional_references = {
-            reference["id"]: reference
+            reference["selector"]["value"]: reference
             for reference in packet["bindings"]["erdos-427-conditional-proof"][
                 "references"
             ]
         }
         self.assertEqual(
-            conditional_references["erdos-427-linked-proof"]["selector_value"],
+            conditional_references["erdos427"]["native_identity"]["object_kind"],
+            "lean_proof_artifact",
+        )
+        self.assertEqual(
+            conditional_references["erdos427"]["selector"]["value"],
             "erdos427",
         )
         self.assertEqual(
-            conditional_references["erdos-427-proof-condition"]["selector_value"],
+            conditional_references["Erdos427.erdos_427.variants.shiu"]["selector"][
+                "value"
+            ],
             "Erdos427.erdos_427.variants.shiu",
         )
+        all_references = [
+            reference
+            for binding in packet["bindings"].values()
+            for reference in binding["references"]
+        ]
+        self.assertEqual(len(all_references), 5)
+        for reference in all_references:
+            self.assertEqual(
+                set(reference),
+                {
+                    "schema",
+                    "native_identity",
+                    "revision",
+                    "content_fixity",
+                    "selector",
+                    "locator",
+                },
+            )
         documents = [("manifest", packet["manifest"])]
         documents.extend(("profile", value) for value in packet["profiles"].values())
         documents.extend(("binding", value) for value in packet["bindings"].values())
@@ -155,7 +179,7 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
     def test_short_root_and_wrong_root_domain_are_refused(self) -> None:
         _replace(
             self.root / "vela.toml",
-            "sha256:6f82ca986a10a403d5eb3c7f7c8fbfa50a6ca7ee6bd15220bc7eab36e96a7013",
+            "sha256:9f839593ee5a72c2fba51d0064b2b5c63c32d0a8e1cf9d44d2e62d979ecae3ec",
             "sha256:1234",
         )
         self.assert_refused("full SHA-256 root")
@@ -164,7 +188,7 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         _copy_packet(self.root)
         _replace(
             self.root / ".vela/bindings/erdos-887.toml",
-            "sha256:e8138776d71e25913e6d42b4fa5082fde3cedffdb0b12ed265c708f572da16be",
+            "sha256:8698957b371fb8fbbc7de04c6d5d4e0f0982f39a92798b43fa8a3cbb5f2216d6",
             "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c",
         )
         self.assert_refused("binding_root drift")
@@ -206,8 +230,8 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         _copy_packet(self.root)
         _replace(
             self.root / binding,
-            'selector_value = "Erdos887.erdos_887"',
-            'selector_value = "Erdos887.not_the_declaration"',
+            'value = "Erdos887.erdos_887"',
+            'value = "Erdos887.not_the_declaration"',
         )
         _reroot_binding(self.root, binding)
         self.assert_refused("selector drift")
@@ -237,8 +261,8 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         binding = ".vela/bindings/erdos-427-conditional-proof.toml"
         _replace(
             self.root / binding,
-            'selector_value = "Erdos427.erdos_427.variants.shiu"',
-            'selector_value = "Erdos427.erdos_427"',
+            'value = "Erdos427.erdos_427.variants.shiu"',
+            'value = "Erdos427.erdos_427"',
         )
         _reroot_binding(self.root, binding)
         self.assert_refused("native identifier and selector drift")
@@ -247,8 +271,8 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         _copy_packet(self.root)
         _replace(
             self.root / binding,
-            'selector_value = "erdos427"',
-            'selector_value = "Erdos427.erdos_427"',
+            'value = "erdos427"',
+            'value = "Erdos427.erdos_427"',
         )
         _reroot_binding(self.root, binding)
         self.assert_refused("native identifier and selector drift")
@@ -257,8 +281,8 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         binding = ".vela/bindings/erdos-887.toml"
         _replace(
             self.root / binding,
-            'locator_uri = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/head-source.lean"',
-            'locator_uri = "../head-source.lean"',
+            'uri = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/head-source.lean"',
+            'uri = "../head-source.lean"',
         )
         _reroot_binding(self.root, binding)
         self.assert_refused("canonical repository-relative path")
@@ -267,11 +291,11 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         _copy_packet(self.root)
         _replace(
             self.root / binding,
-            'locator_mutability = "retained_immutable_bytes"',
-            'locator_mutability = "mutable_branch"',
+            "mutable = true",
+            "mutable = false",
         )
         _reroot_binding(self.root, binding)
-        self.assert_refused("mutable identity")
+        self.assert_refused("retained locator must be declared mutable")
         shutil.rmtree(self.root)
         self.root.mkdir()
         _copy_packet(self.root)
@@ -280,6 +304,16 @@ class FormalConjecturesIntegrationTest(unittest.TestCase):
         )
         _reroot_binding(self.root, binding)
         self.assert_refused("missing or drifted Method")
+
+    def test_flattened_exact_reference_fields_are_refused(self) -> None:
+        binding = ".vela/bindings/erdos-887.toml"
+        _replace(
+            self.root / binding,
+            '[[references]]\nschema = "vela.exact-reference.v0.1"',
+            '[[references]]\nschema = "vela.exact-reference.v0.1"\nnative_system = "lean4"',
+        )
+        _reroot_binding(self.root, binding)
+        self.assert_refused("unsupported fields: native_system")
 
     def test_rights_availability_mapping_and_authority_fail_closed(self) -> None:
         binding = ".vela/bindings/erdos-887.toml"

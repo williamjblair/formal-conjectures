@@ -1,5 +1,5 @@
 schema = "vela.integration-binding.v0.1"
-binding_root = "sha256:e8138776d71e25913e6d42b4fa5082fde3cedffdb0b12ed265c708f572da16be"
+binding_root = "sha256:8698957b371fb8fbbc7de04c6d5d4e0f0982f39a92798b43fa8a3cbb5f2216d6"
 binding_id = "erdos-887-selected-declaration"
 outputs = ["exact_reference", "verification_input"]
 limitations = [
@@ -24,19 +24,28 @@ root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
 
 [[references]]
 schema = "vela.exact-reference.v0.1"
-id = "erdos-887-declaration"
-native_system = "lean4"
+
+[references.native_identity]
+system = "lean4"
 object_kind = "lean_declaration"
-native_identifier = "FormalConjectures/ErdosProblems/887.lean#Erdos887.erdos_887"
-revision_kind = "git_commit"
-revision_value = "288608562e684a2f3c97ba0ce960a2649a71370b"
+identifier = "FormalConjectures/ErdosProblems/887.lean#Erdos887.erdos_887"
+
+[references.revision]
+kind = "git_commit"
+value = "288608562e684a2f3c97ba0ce960a2649a71370b"
+
+[references.content_fixity]
 media_type = "text/x-lean"
 digest = "sha256:3e4c9376ebfa464985a2da4ac3b8401b1b54d64be1075368032eced0700706c5"
-byte_size = 2307
-selector_kind = "lean_declaration"
-selector_value = "Erdos887.erdos_887"
-locator_uri = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/head-source.lean"
-locator_mutability = "retained_immutable_bytes"
+size = 2307
+
+[references.selector]
+kind = "lean_declaration"
+value = "Erdos887.erdos_887"
+
+[references.locator]
+uri = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/head-source.lean"
+mutable = true
 authentication = "none"
 
 [[mappings]]

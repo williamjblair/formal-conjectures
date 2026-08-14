@@ -193,11 +193,28 @@ def hoist_answers(statement, basename, answer_type):
     return statement, holes
 
 
-def pins():
+def pins(source_path=None):
+    """Revisions the workspace's own build can actually fetch.
+
+    The FC pin must be reachable from the upstream repository the lakefile
+    names, so it is the merge-base with `origin/main`, not HEAD: a local
+    branch commit would generate a workspace whose build fails at fetch time.
+    When the source file differs from that merge-base, the workspace would
+    restate a statement upstream does not carry, and the generator warns.
+    """
     manifest = json.loads((ROOT / "lake-manifest.json").read_text())
     mathlib_rev = next(p["rev"] for p in manifest["packages"] if p["name"] == "mathlib")
-    fc_rev = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
-                            capture_output=True, text=True).stdout.strip()
+    fc_rev = subprocess.run(
+        ["git", "-C", str(ROOT), "merge-base", "HEAD", "origin/main"],
+        capture_output=True, text=True).stdout.strip()
+    if source_path is not None:
+        differs = subprocess.run(
+            ["git", "-C", str(ROOT), "diff", "--quiet", fc_rev, "--",
+             str(source_path)]).returncode != 0
+        if differs:
+            print(f"WARNING: {source_path} differs from the pinned FC revision "
+                  f"{fc_rev[:12]}; the workspace restates a version upstream "
+                  f"does not carry", file=sys.stderr)
     return mathlib_rev, fc_rev
 
 
@@ -310,7 +327,7 @@ def generate(basename, out_dir, answer_type):
         "does not pass. -/\n"
     )
 
-    mathlib_rev, fc_rev = pins()
+    mathlib_rev, fc_rev = pins(path.relative_to(ROOT))
     full_names = [f"{'.'.join(dict.fromkeys(namespaces))}.{basename}"
                   if namespaces else basename]
     hole_names = [h.split()[2] for h in holes]

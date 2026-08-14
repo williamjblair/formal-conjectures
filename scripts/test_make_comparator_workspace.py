@@ -27,6 +27,7 @@ import make_comparator_workspace as mcw
 from make_comparator_workspace import (
     declares,
     load_manifest,
+    resolve,
     hoist_answers,
     module_name,
     peel_loose,
@@ -130,6 +131,16 @@ class SplitTest(unittest.TestCase):
         blocks = split_blocks("/-! ## A -/\nnamespace E\ndef y := 1\n")
         self.assertEqual([b.kind for b in blocks], [None, "namespace", "def"])
 
+    def test_open_in_above_a_docstring_stays_with_its_declaration(self):
+        # Erdos 184 writes `open scoped Classical in` above the docstring.
+        # Splitting at the docstring dropped the modifier, and the statement
+        # then failed to synthesize a `Decidable` instance.
+        blocks = split_blocks(
+            "open scoped Classical in\n/-- doc -/\ntheorem t : True := trivial\n")
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].name, "t")
+        self.assertIn("open scoped Classical in", blocks[0].text)
+
     def test_a_docstring_line_starting_with_a_keyword_does_not_split(self):
         blocks = split_blocks("/--\nend of the story\n-/\ndef f := 1\n")
         self.assertEqual(len(blocks), 1)
@@ -194,6 +205,20 @@ class NameTest(unittest.TestCase):
                          "FormalConjectures.Wikipedia.Hadamard")
         self.assertEqual(module_name("FormalConjectures/Arxiv/1609.08688/S.lean"),
                          "FormalConjectures.Arxiv.«1609.08688».S")
+
+    def test_exact_name_wins_over_a_suffix_match(self):
+        # One file declares both `foo` and `CH.foo`, so the first is a suffix
+        # of the second and asking for it matched both.
+        blocks = split_blocks("theorem foo : True := trivial\n\n"
+                              "theorem CH.foo : True := trivial\n")
+        both = [b for b in blocks if b.name and declares(b.name, "foo")]
+        self.assertEqual(len(both), 2)
+        self.assertEqual([b.name for b in resolve(both, "foo")], ["foo"])
+
+    def test_a_suffix_request_still_matches_when_there_is_no_exact_name(self):
+        blocks = split_blocks("theorem a.b.c : True := trivial\n")
+        hits = [b for b in blocks if b.name and declares(b.name, "b.c")]
+        self.assertEqual([b.name for b in resolve(hits, "b.c")], ["a.b.c"])
 
     def test_slug_makes_a_lake_package_name(self):
         # Lake package names are identifiers, so the dots cannot survive.

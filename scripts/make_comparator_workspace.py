@@ -82,6 +82,9 @@ DECL_START = re.compile(
 )
 KEEP_LOOSE = re.compile(
     r"^(open|variable|universe|section|namespace|end|attribute|set_option)\b")
+# A doc comment at column zero documents whatever follows it, so it always
+# starts a declaration. A declaration body is indented and cannot begin one.
+DOC_START = re.compile(r"^/-[-!]")
 
 # Lean scopes these to the file that writes them, so importing the problem's
 # module does not bring them along and Challenge.lean has to restate them.
@@ -148,16 +151,29 @@ def peel_loose(lines):
     would leave the stack too deep. `KEEP_LOOSE` anchors at column zero, so an
     indented line inside a proof body cannot be peeled by mistake.
 
+    A doc comment at column zero also starts a block. Several files write one
+    declaration directly below another with no blank line between them, and
+    blank lines are all `split_blocks` has to go on: Erdos 1108's `parts.i`
+    was swallowed by the `def IsPowerful` above it and lost its name, as were
+    Erdos 1072's `variants.littleo` and Artin's `parts.i`.
+
     `open X in` is a modifier on the declaration below it, so it is not peeled.
     """
     out, current, depth = [], [], 0
     for line in lines:
         loose = (depth == 0 and KEEP_LOOSE.match(line)
                  and not line.rstrip().endswith(" in"))
+        doc = depth == 0 and DOC_START.match(line)
+        # `open X in` is written *above* the docstring it precedes, so a block
+        # holding only modifiers must not be split off from the declaration
+        # they modify. Erdos 184 lost its `open scoped Classical in` this way,
+        # and the statement then could not synthesize a `Decidable` instance.
+        modifier_only = bool(current) and all(
+            line_.rstrip().endswith(" in") for line_ in current if line_.strip())
+        if (loose or (doc and not modifier_only)) and current:
+            out.append(current)
+            current = []
         if loose:
-            if current:
-                out.append(current)
-                current = []
             out.append([line])
         else:
             current.append(line)
@@ -206,6 +222,19 @@ def declares(declared, requested):
     did first, made every qualified name unreachable: all 413 of them.
     """
     return declared == requested or declared.endswith("." + requested)
+
+
+def resolve(matches, declaration):
+    """Narrow to the block named exactly, when there is one.
+
+    Paper/WeaklyFirstCountable declares both
+    `existsWeaklyFirstCountableCompactNotFirstCountable` and
+    `CH.existsWeaklyFirstCountableCompactNotFirstCountable` in one file, so
+    the first name is a suffix of the second and asking for it matched both.
+    Naming a declaration in full is unambiguous, so an exact match wins.
+    """
+    exact = [b for b in matches if b.name == declaration]
+    return exact if len(exact) == 1 else matches
 
 
 def slug(name):
@@ -483,6 +512,8 @@ def generate(basename, out_dir, answer_type=None):
 
     if target is None:
         raise SystemExit(f"{declaration!r} not found as a block in {path}")
+    matches = resolve(matches, declaration)
+    target = matches[0] if len(matches) == 1 else target
     if len(matches) > 1:
         # Taking the last silently would pose a problem the caller did not ask
         # for, and nothing downstream would notice.
@@ -565,8 +596,9 @@ def validate():
             manifest = load_manifest(problem_id)
             declaration = manifest["declaration"]
             path, _i, _d, body = find_declaration(declaration, manifest.get("module"))
-            matches = [b for b in split_blocks(body)
-                       if b.name and declares(b.name, declaration)]
+            matches = resolve([b for b in split_blocks(body)
+                               if b.name and declares(b.name, declaration)],
+                              declaration)
             if len(matches) != 1:
                 raise SystemExit(
                     f"{declaration!r} matches {len(matches)} declarations in "

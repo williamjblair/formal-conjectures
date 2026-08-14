@@ -1,0 +1,106 @@
+# End-to-end proof that a generated workspace passes comparator.
+#
+# Lives on a fork branch only: landrun needs Linux, so this cannot run on the
+# development machine, and it stays out of the upstream pull request so the
+# PR does not grow a workflow. Pins follow lean-eval's tested set, and the
+# comparator invocation is the systemd-run form Paul-Lez debugged for
+# hadamard-668-comparator.
+name: Comparator end-to-end
+
+on:
+  push:
+    branches: [comparator-e2e]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The generator pins formal_conjectures to the merge-base with
+      # origin/main, and the lakefile points at the upstream repository, so
+      # origin/main here must be upstream's, not the fork's.
+      - name: Point origin/main at upstream main
+        run: git fetch https://github.com/google-deepmind/formal-conjectures.git main:refs/remotes/origin/main --force
+
+      - uses: actions/checkout@v4
+        with:
+          repository: leanprover/comparator
+          ref: 71b52ec29e06d4b7d882726553b1ceb99a2499e0
+          path: .ci/comparator
+
+      - uses: actions/checkout@v4
+        with:
+          repository: leanprover/lean4export
+          ref: v4.27.0
+          path: .ci/lean4export
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Zouuup/landrun
+          ref: 5ed4a3db3a4ad930d577215c6b9abaa19df7f99f
+          path: .ci/landrun
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build landrun
+        working-directory: .ci/landrun
+        run: go build -o landrun cmd/landrun/main.go
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Generate the workspace
+        run: |
+          python3 scripts/make_comparator_workspace.py exists_hadamard_zero --out .comparator
+          cat .comparator/exists_hadamard_zero/Challenge.lean
+
+      - name: Write the solution into Submission.lean
+        working-directory: .comparator/exists_hadamard_zero
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path("Submission.lean")
+          t = p.read_text()
+          assert ":= by\n  sorry" in t
+          p.write_text(t.replace(":= by\n  sorry", ":= by\n  use 0\n  simp [IsHadamard]"))
+          PY
+          cat Submission.lean
+
+      - name: Build lean4export
+        working-directory: .ci/lean4export
+        run: lake build lean4export
+
+      - name: Build comparator
+        working-directory: .ci/comparator
+        run: lake build comparator
+
+      - name: Build the workspace
+        working-directory: .comparator/exists_hadamard_zero
+        run: |
+          lake exe cache get
+          lake build
+
+      - name: Run comparator
+        working-directory: .comparator/exists_hadamard_zero
+        env:
+          COMPARATOR_LANDRUN: ${{ github.workspace }}/.ci/landrun/landrun
+          COMPARATOR_LEAN4EXPORT: ${{ github.workspace }}/.ci/lean4export/.lake/build/bin/lean4export
+        run: >-
+          systemd-run --property=RestrictAddressFamilies=~AF_UNIX --user --pty --pipe
+          -E PATH="$PATH"
+          -E COMPARATOR_LANDRUN="$COMPARATOR_LANDRUN"
+          -E COMPARATOR_LEAN4EXPORT="$COMPARATOR_LEAN4EXPORT"
+          --working-directory "$PWD" --
+          bash -c 'lake env ${{ github.workspace }}/.ci/comparator/.lake/build/bin/comparator config.json'

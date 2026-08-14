@@ -58,7 +58,8 @@ import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE_DIRS = [ROOT / "FormalConjectures"]
-MANIFEST_DIR = ROOT / "comparator" / "problems"
+COMPARATOR_DIR = ROOT / "comparator"
+MANIFEST_DIR = COMPARATOR_DIR / "problems"
 
 
 PERMITTED_AXIOMS = ["propext", "Quot.sound", "Classical.choice"]
@@ -534,28 +535,6 @@ root = "WorkspaceTest"
 """
 
 
-WORKSPACE_TEST = """import Lean
-
-open Lean
-
-/-- Run comparator on this workspace's `config.json`, so that `lake test`
-is the check. Adapted from `leanprover/lean-eval`'s workspace test template.
-The binary comes from `PATH`, or from `COMPARATOR_BIN`. -/
-def main : IO UInt32 := do
-  let comparatorBin := (← IO.getEnv "COMPARATOR_BIN").getD "comparator"
-  try
-    let child ← IO.Process.spawn {
-      cmd := "lake"
-      args := #["env", comparatorBin, "config.json"]
-    }
-    child.wait
-  catch err =>
-    IO.eprintln s!"Failed to run comparator via `{comparatorBin}`."
-    IO.eprintln "Install comparator, with landrun and lean4export, and put it \
-on PATH, or set COMPARATOR_BIN. See leanprover/comparator's README."
-    IO.eprintln s!"Original error: {err}"
-    pure 1
-"""
 
 
 def locate(blocks, declaration, path=""):
@@ -728,7 +707,11 @@ def generate(basename, out_dir, answer_type=None, module=None):
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)
     (ws / "Submission.lean").write_text(submission)
-    (ws / "WorkspaceTest.lean").write_text(WORKSPACE_TEST)
+    # The template is a real Lean file, not a string in this script, so it
+    # can be read and edited as Lean. lean-eval keeps its workspace test the
+    # same way, under `templates/`.
+    (ws / "WorkspaceTest.lean").write_text(
+        (COMPARATOR_DIR / "templates" / "WorkspaceTest.lean").read_text())
     config = {
         "challenge_module": "Challenge",
         "solution_module": "Solution",

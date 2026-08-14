@@ -293,6 +293,16 @@ class NameTest(unittest.TestCase):
         self.assertEqual(slug("dean_conjecture"), "dean_conjecture")
 
 
+class TemplateTest(unittest.TestCase):
+
+    def test_workspace_test_template_exists_and_is_the_runner(self):
+        # The generator copies this file into every workspace; a missing or
+        # gutted template would only surface at `lake test` time, elsewhere.
+        text = (mcw.COMPARATOR_DIR / "templates" / "WorkspaceTest.lean").read_text()
+        self.assertIn("def main", text)
+        self.assertIn("COMPARATOR_BIN", text)
+
+
 class ManifestTest(unittest.TestCase):
     """A manifest supplies what the Lean source cannot."""
 

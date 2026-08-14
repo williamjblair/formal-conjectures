@@ -31,6 +31,12 @@ The script's docstring covers the layout it produces and the cases where it
 refuses rather than guesses. `--all` generates every reachable workspace and
 an `index.json` cataloguing them.
 
+An open problem accepts a proof or a disproof. A statement whose
+`answer(sorry)` flanks an `↔` carries that choice in its hole. For a plain
+statement, `--disprove` poses the negation instead, as its own workspace:
+`(∀ <binders>, <statement>) → False`. Passing `--disprove` on a holed
+statement is refused, since the hole already asks the question.
+
 ## Manifests
 
 A manifest supplies what the Lean source cannot. Most statements need none.

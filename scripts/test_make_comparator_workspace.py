@@ -26,6 +26,7 @@ import unittest
 import make_comparator_workspace as mcw
 from make_comparator_workspace import (
     declares,
+    disprove_statement,
     explicit_binder_names,
     load_manifest,
     resolve,
@@ -211,6 +212,26 @@ class BinderTest(unittest.TestCase):
     def test_colon_inside_a_group_does_not_end_the_signature(self):
         sig = "theorem k {I : Ideal R} (hI : IsNil I) :\n  (I : Set R) ⊆ K"
         self.assertEqual(explicit_binder_names(sig), ["hI"])
+
+
+class DisproveTest(unittest.TestCase):
+    """A plain statement's disprove challenge is its explicit negation."""
+
+    def test_no_binders(self):
+        out = disprove_statement("theorem t :\n    P ∧ Q", "t")
+        self.assertIn("theorem t_disproof :", out)
+        self.assertIn("(P ∧ Q) → False", out)
+
+    def test_binders_move_under_a_forall(self):
+        # Negating under the binders would claim every instance fails, which
+        # is stronger than the negation of the statement.
+        out = disprove_statement("theorem t (n : Nat) (h : 0 < n) : P n", "t")
+        self.assertIn("(∀ (n : Nat) (h : 0 < n), P n) → False", out)
+
+    def test_open_in_prefix_survives(self):
+        out = disprove_statement(
+            "open scoped Classical in\ntheorem t : P", "t")
+        self.assertTrue(out.startswith("open scoped Classical in\n"))
 
 
 class LocateTest(unittest.TestCase):

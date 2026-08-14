@@ -147,5 +147,60 @@ class ParseAxiomsTest(unittest.TestCase):
         self.assertIn("error", out["Erdos42.ghost"])
 
 
+class ConditionalProofTest(unittest.TestCase):
+    """A conditionally-proved link, from a real citation.
+
+    `ErdosProblems/1141.lean` cites `yuta0x89/ErdosProblems` at a pinned commit
+    with `conditional formal_proof ... assuming erdos_1141.variants.pollack_1_3
+    erdos_1141.variants.mertens_third`. The linked file axiomatises exactly
+    those two published results, and prints its own axioms as a comment:
+
+        'erdos_1141' depends on axioms: [propext, Classical.choice,
+         Erdos1141.mertens_third_theorem, Pollack17.theorem_1_3, Quot.sound]
+
+    That is the shape this tool has to report correctly: sorry-free, and
+    conditional on two named assumptions rather than unconditionally proved.
+    Reporting it as clean would erase the `conditional` marking that FC's own
+    attribute carries, and reporting it as broken would be wrong too.
+    """
+
+    OUTPUT = ("'erdos_1141' depends on axioms: [propext, Classical.choice, "
+              "Erdos1141.mertens_third_theorem, Pollack17.theorem_1_3, Quot.sound]")
+
+    def test_it_is_sorry_free(self):
+        out = parse_axioms(self.OUTPUT, ["erdos_1141"])["erdos_1141"]
+        self.assertTrue(out["sorry_free"])
+
+    def test_both_assumptions_are_reported_as_extra(self):
+        out = parse_axioms(self.OUTPUT, ["erdos_1141"])["erdos_1141"]
+        self.assertEqual(
+            out["extra"],
+            ["Erdos1141.mertens_third_theorem", "Pollack17.theorem_1_3"])
+
+    def test_sorry_free_alone_does_not_mean_unconditional(self):
+        # The distinction the `conditional` attribute exists to record: a
+        # proof can be sorry-free and still rest on assumptions its author
+        # did not prove. A caller must read `extra`, not just `sorry_free`.
+        out = parse_axioms(self.OUTPUT, ["erdos_1141"])["erdos_1141"]
+        self.assertTrue(out["sorry_free"] and out["extra"])
+
+    def test_the_static_pass_sees_the_axiom_declarations(self):
+        # The same file, read without a toolchain: two `axiom` declarations,
+        # which is how `--static-only` surfaces a conditional proof.
+        source = (
+            "/-- Pollack, Theorem 1.3. -/\n"
+            "axiom theorem_1_3\n"
+            "    (ε A : ℝ) (hε : 0 < ε) (hA : 0 < A) :\n"
+            "    ∃ m0 : ℕ, True\n\n"
+            "/-- **Mertens' third theorem**. -/\n"
+            "axiom mertens_third_theorem (n : ℕ) (hn : 3 ≤ n) :\n"
+            "    1 / (3 * Real.log n) ≤ 2\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            (pathlib.Path(tmp) / "Erdos1141.lean").write_text(source)
+            report = static_audit(tmp)
+        self.assertEqual(report["axiom"], {"Erdos1141.lean": 2})
+        self.assertEqual(report["sorry"], {})
+
+
 if __name__ == "__main__":
     unittest.main()

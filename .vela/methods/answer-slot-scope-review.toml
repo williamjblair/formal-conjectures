@@ -1,0 +1,26 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:e7f0f3152f5409e5e6e8eedf94d2c18141c860e981c418486cf74d1e668b264d"
+method_id = "answer-slot-scope-review"
+version = "0.1"
+inputs = ["exact Erdős 887 source bytes", "exact mathematical review guide", "retained typed semantic result"]
+outputs = ["separately attributed answer-slot-scope-fidelity result"]
+limitations = [
+  "The retained review was prepared by an AI review preparer and is advisory.",
+  "The witness identifies a binder-scope defect; it does not provide a replacement theorem or establish mathematical truth.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_an_independent_human_review",
+]
+authority_effect = "none"
+
+[implementation]
+path = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/review-guide.md"
+digest = "sha256:bc10a92b25047a46225221c7ecb090a5b3e9ac174fd44f6d1f6042d7c6971700"
+
+[environment]
+kind = "bounded"
+revision = "70e8ddfdb5095873e0fbb45447d3649d5412ff3a"
+performer = "codex_ai_packet_preparer"
+model_entity = "unavailable in source audit v1; not inferred"

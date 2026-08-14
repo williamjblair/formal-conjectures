@@ -1,0 +1,25 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:b04be736f7a37d43e5d863ee33ba942658d8659a13834d99e3e9adc9da41e311"
+method_id = "source-statement-fidelity-review"
+version = "0.1"
+inputs = ["exact MinModulus source revisions", "retained source-author review", "retained exact-head maintainer approval"]
+outputs = ["independently attributed source-statement-fidelity result"]
+limitations = [
+  "Covers MinModulus.min_modulus only, not every declaration or mathematical truth.",
+  "Public GitHub review observations are retained bytes, not cryptographic reviewer signatures.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_proof_correctness",
+]
+authority_effect = "none"
+
+[implementation]
+path = "audit/pr-audit-v1/fixtures/clean-source-faithful-min-modulus-4829/inputs/human-source-fidelity-method.json"
+digest = "sha256:5160a68f4c1bf6cf20c1c0baf0b36040601a4b624ea62f3878d1f4e579416794"
+
+[environment]
+kind = "bounded"
+revision = "0f8d60f1a5811eb00ad9f12cf8031ee5c1cc215c"
+performer = "jarfo"

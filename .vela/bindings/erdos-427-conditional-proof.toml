@@ -1,0 +1,130 @@
+schema = "vela.integration-binding.v0.1"
+binding_root = "sha256:3e6dab1044d87d5fabe06c53e011ef2f033e97b4eab2612411af0441a9b57c95"
+binding_id = "erdos-427-conditional-proof"
+outputs = ["exact_reference", "verification_input"]
+limitations = [
+  "The retained review checks exact proof-link and condition metadata only.",
+  "No proof execution, statement comparison, source-fidelity review, or acceptance follows.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_upstream_adoption",
+  "not_a_claim_of_proof_correctness",
+]
+authority_effect = "none"
+
+[profile]
+id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/conditional-formal-proof/v0.1"
+version = "0.1"
+root = "sha256:d3d99125438ff6e8e27953d7fcb8031720e2ca9c4abbbbf149f54efed19b0212"
+
+[[references]]
+schema = "vela.exact-reference.v0.1"
+id = "erdos-427-declaration"
+native_system = "lean4"
+object_kind = "lean_declaration"
+native_identifier = "FormalConjectures/ErdosProblems/427.lean#Erdos427.erdos_427"
+revision_kind = "git_commit"
+revision_value = "601aff40d6fa6c3150242144fadba5dbcc24c89c"
+media_type = "text/x-lean"
+digest = "sha256:be54dc1ed87c382e3ec3895f2568278e5c4fec186671b363ec8edd917ac60d71"
+byte_size = 3144
+selector_kind = "lean_declaration"
+selector_value = "Erdos427.erdos_427"
+locator_uri = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/inputs/head-source.lean"
+locator_mutability = "retained_immutable_bytes"
+authentication = "none"
+
+[[references]]
+schema = "vela.exact-reference.v0.1"
+id = "erdos-427-linked-proof"
+native_system = "lean4"
+object_kind = "lean_proof_artifact"
+native_identifier = "gist:e2c6ef0daab55857b7cc9d340de7af84/Erdos427.lean#erdos427"
+revision_kind = "git_commit"
+revision_value = "8ff97800e38582c71246a238e7541a9d69488cbd"
+media_type = "text/x-lean"
+digest = "sha256:792a4b5fab29e5855fbcb1115d54e28a054d8fcf7ee2bd5589834a73b387c052"
+byte_size = 4117
+selector_kind = "lean_declaration"
+selector_value = "erdos427"
+locator_uri = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/inputs/linked-proof.lean"
+locator_mutability = "retained_immutable_bytes"
+authentication = "none"
+
+[[references]]
+schema = "vela.exact-reference.v0.1"
+id = "erdos-427-proof-condition"
+native_system = "lean4"
+object_kind = "lean_declaration"
+native_identifier = "FormalConjectures/ErdosProblems/427.lean#Erdos427.erdos_427.variants.shiu"
+revision_kind = "git_commit"
+revision_value = "601aff40d6fa6c3150242144fadba5dbcc24c89c"
+media_type = "text/x-lean"
+digest = "sha256:be54dc1ed87c382e3ec3895f2568278e5c4fec186671b363ec8edd917ac60d71"
+byte_size = 3144
+selector_kind = "lean_declaration"
+selector_value = "Erdos427.erdos_427.variants.shiu"
+locator_uri = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/inputs/head-source.lean"
+locator_mutability = "retained_immutable_bytes"
+authentication = "none"
+
+[[mappings]]
+source = "Erdos427.erdos_427"
+target = "formal-conjectures:problem:ErdosProblems/427"
+relation = "exact"
+
+[[mappings]]
+source = "gist:e2c6ef0daab55857b7cc9d340de7af84/Erdos427.lean#erdos427"
+target = "Erdos427.erdos_427"
+relation = "related"
+
+[[mappings]]
+source = "Erdos427.erdos_427.variants.shiu"
+target = "formal-conjectures:proof-condition:ErdosProblems/427/shiu"
+relation = "exact"
+
+[[translations]]
+source = "formal_proof locator and proof_condition attribute"
+target = "conditional proof Exact References"
+disposition = "preserved"
+
+[[translations]]
+source = "proof execution and target comparison"
+target = "mechanical proof result"
+disposition = "unsupported"
+
+[[methods]]
+id = "pr-audit-core-replay"
+root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
+
+[[methods]]
+id = "formal-proof-condition-review"
+root = "sha256:0a5c29f9ce0d53ce029e963aaf1fa782c7c88d00c3d46074061e55405d0ee944"
+
+[audit]
+core_path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/expected-core.json"
+core_root = "sha256:e112acd89b801c121d8aebebd4756a481a9db7c2e9790a3a1fd19802b39ab37e"
+observation_path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/expected-observation.json"
+observation_root = "sha256:8570f2d6ac166e348d59bf550c365f35c587392ebe95e47314e36d1a8e5ba4e4"
+check_ids = ["conditional-proof-metadata"]
+
+[rights]
+license = "NOASSERTION"
+redistribution = "Retained repository and linked-proof bytes remain subject to their source notices and terms."
+
+[availability]
+evidence = "available"
+class = "public_retained_bytes"
+observed_at = "2026-08-12T20:25:19Z"
+access = "anonymous Git clone of the contributor fork"
+retention = "frozen in source packet commit 96eeecf40bc06ddc8bae6d106f461d4fd774858a and descendants"
+
+[provenance]
+agents = ["codex_ai_packet_preparer"]
+activities = ["retained formal-proof metadata review"]
+entities = ["metadata review procedure sha256:98e2e25f10eb82bfcd1e675c91896e6bc79ed3dbdae85b514f6e31d3d2e9ec62", "retained declaration and proof bytes", "typed result"]
+roles = ["producer metadata reviewer"]
+independence = "The source v1 producer declares independent=false."
+shared_dependencies = "The review and export use the same retained source packet."

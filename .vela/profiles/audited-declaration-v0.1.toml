@@ -1,0 +1,26 @@
+schema = "vela.integration-profile.v0.1"
+profile_root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
+profile_id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/audited-declaration/v0.1"
+version = "0.1"
+owner = "williamjblair/formal-conjectures contributor fork"
+conformance = [
+  "One Lean declaration resolves to retained source bytes at a full Git commit and exact selector.",
+  "Every exposed PR-audit core and observation validates under the source-owned v1 validators.",
+  "Mechanical and semantic checks remain separate and individually attributed.",
+  "Merge, approval, CI, publication, and advisory disposition remain non-authoritative.",
+]
+limitations = [
+  "This source-local draft covers retained pull-request evidence, not every Formal Conjectures declaration.",
+  "A rooted GitHub observation is retained evidence, not a cryptographic GitHub signature.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_upstream_adoption",
+  "not_a_claim_of_mathematical_truth",
+]
+authority_effect = "none"
+
+[rights]
+license = "NOASSERTION"
+redistribution = "Repository software is Apache-2.0; repository-authored non-software material is generally CC-BY-4.0; source-specific material retains its own terms."

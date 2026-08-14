@@ -1,0 +1,23 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
+method_id = "pr-audit-core-replay"
+version = "0.1"
+inputs = ["retained canonical formal-conjectures.pr-audit.v1 core", "retained typed results and artifacts"]
+outputs = ["scoped validated audit evidence"]
+limitations = ["Replays retained evidence only; it does not fetch GitHub or execute Lean, Comparator, a model, or contributor code."]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_source_fidelity_beyond_named_checks",
+]
+authority_effect = "none"
+
+[implementation]
+path = "scripts/pr_audit.py"
+digest = "sha256:2c41ae2bd4fed8f9748ebf8c57630673ca2eb7ea3c690525ea292641590c3098"
+
+[environment]
+kind = "exact"
+runtime = "Python 3.11 or newer with the repository test environment"
+network = "forbidden"
+subprocess = "forbidden"

@@ -1,0 +1,81 @@
+schema = "vela.integration-binding.v0.1"
+binding_root = "sha256:eafa2190474dba5dd2f5bde5e60b7134f2b867739b28bf90df2d364b7fef275f"
+binding_id = "min-modulus-statement-fidelity"
+outputs = ["exact_reference", "verification_input"]
+limitations = [
+  "The retained independent review covers MinModulus.min_modulus only.",
+  "The review observation and maintainer approval are rooted public bytes, not cryptographic signatures or Vela authority.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_upstream_adoption",
+  "not_a_claim_of_mathematical_truth",
+]
+authority_effect = "none"
+
+[profile]
+id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/audited-declaration/v0.1"
+version = "0.1"
+root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
+
+[[references]]
+schema = "vela.exact-reference.v0.1"
+id = "min-modulus-declaration"
+native_system = "lean4"
+object_kind = "lean_declaration"
+native_identifier = "FormalConjectures/Arxiv/2607.08366/MinModulus.lean#MinModulus.min_modulus"
+revision_kind = "git_commit"
+revision_value = "0f8d60f1a5811eb00ad9f12cf8031ee5c1cc215c"
+media_type = "text/x-lean"
+digest = "sha256:abb822a6dd603f95a9c9d773c199399222539c9cd91c8a124a3cc5429d9da416"
+byte_size = 3982
+selector_kind = "lean_declaration"
+selector_value = "MinModulus.min_modulus"
+locator_uri = "audit/pr-audit-v1/fixtures/clean-source-faithful-min-modulus-4829/inputs/head-source.lean"
+locator_mutability = "retained_immutable_bytes"
+authentication = "none"
+
+[[mappings]]
+source = "MinModulus.min_modulus"
+target = "formal-conjectures:problem:Arxiv/2607.08366/MinModulus"
+relation = "exact"
+
+[[translations]]
+source = "retained Lean declaration and source-author review chain"
+target = "audited declaration Verification input"
+disposition = "preserved"
+
+[[methods]]
+id = "pr-audit-core-replay"
+root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
+
+[[methods]]
+id = "source-statement-fidelity-review"
+root = "sha256:b04be736f7a37d43e5d863ee33ba942658d8659a13834d99e3e9adc9da41e311"
+
+[audit]
+core_path = "audit/pr-audit-v1/fixtures/clean-source-faithful-min-modulus-4829/expected-core.json"
+core_root = "sha256:7a6318a1874a297e7003f20cf005f46285a6e92ab49571d95996fdbccd3a197f"
+observation_path = "audit/pr-audit-v1/fixtures/clean-source-faithful-min-modulus-4829/expected-observation.json"
+observation_root = "sha256:4e1cb38e1937b8dc9010f219ff28b80aa8ebf2d7c9ffa94ffa2a8b46686c2892"
+check_ids = ["snapshot-identity", "source-statement-fidelity"]
+
+[rights]
+license = "NOASSERTION"
+redistribution = "The combined source and review chain retains repository and source-specific rights; no single license is inferred."
+
+[availability]
+evidence = "available"
+class = "public_retained_bytes"
+observed_at = "2026-08-13T11:50:00Z"
+access = "anonymous Git clone of the contributor fork"
+retention = "frozen in source packet commit 96eeecf40bc06ddc8bae6d106f461d4fd774858a and descendants"
+
+[provenance]
+agents = ["jarfo", "formal_conjectures_pr_audit"]
+activities = ["source-statement-fidelity review", "deterministic snapshot identity validation"]
+entities = ["human review method sha256:5160a68f4c1bf6cf20c1c0baf0b36040601a4b624ea62f3878d1f4e579416794", "retained source revisions", "typed results"]
+roles = ["independent source reviewer", "producer evidence validator"]
+independence = "The semantic typed result declares an independent human reviewer; the mechanical snapshot result is a separate deterministic adapter."
+shared_dependencies = "Both checks bind exact retained MinModulus source bytes."

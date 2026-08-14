@@ -1,0 +1,98 @@
+schema = "vela.integration-binding.v0.1"
+binding_root = "sha256:e8138776d71e25913e6d42b4fa5082fde3cedffdb0b12ed265c708f572da16be"
+binding_id = "erdos-887-selected-declaration"
+outputs = ["exact_reference", "verification_input"]
+limitations = [
+  "The retained source formalizes one historical PR head and is not a mutable view of upstream main.",
+  "The source-owned audit v1 calls the normalized GitHub repository result repository-authority; this Binding treats it only as repository metadata, never Vela authority.",
+  "The build passed, the semantic review failed, and the PR later merged; none of those facts is scientific acceptance or Standing.",
+  "Erdős 887 has no reviewed problems.science resolver entity in this phase and remains unavailable to that projection.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_upstream_adoption",
+  "not_a_claim_of_mathematical_truth",
+  "not_a_problem_resolver_mapping",
+]
+authority_effect = "none"
+
+[profile]
+id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/audited-declaration/v0.1"
+version = "0.1"
+root = "sha256:040157f15603d596040d40f95161c7ee14ba08c1bb2787812331e0eedf60051c"
+
+[[references]]
+schema = "vela.exact-reference.v0.1"
+id = "erdos-887-declaration"
+native_system = "lean4"
+object_kind = "lean_declaration"
+native_identifier = "FormalConjectures/ErdosProblems/887.lean#Erdos887.erdos_887"
+revision_kind = "git_commit"
+revision_value = "288608562e684a2f3c97ba0ce960a2649a71370b"
+media_type = "text/x-lean"
+digest = "sha256:3e4c9376ebfa464985a2da4ac3b8401b1b54d64be1075368032eced0700706c5"
+byte_size = 2307
+selector_kind = "lean_declaration"
+selector_value = "Erdos887.erdos_887"
+locator_uri = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/head-source.lean"
+locator_mutability = "retained_immutable_bytes"
+authentication = "none"
+
+[[mappings]]
+source = "Erdos887.erdos_887"
+target = "formal-conjectures:problem:ErdosProblems/887"
+relation = "exact"
+
+[[translations]]
+source = "retained Lean declaration"
+target = "Vela Exact Reference"
+disposition = "preserved"
+
+[[translations]]
+source = "source audit v1 repository-authority artifact"
+target = "source repository metadata observation"
+disposition = "normalized"
+
+[[translations]]
+source = "problems.science occurrence mapping"
+target = "public Problem resolver entity"
+disposition = "unresolved"
+
+[[methods]]
+id = "pr-audit-core-replay"
+root = "sha256:35cad804504ea2371e2c849c840b28f33506a5f4208c5b2352bad6c88532161e"
+
+[[methods]]
+id = "retained-exact-head-build-result"
+root = "sha256:84a3a40ef361206dc6c062066ea3bc4ded4dbc0721dea1d04153f4854fc518d6"
+
+[[methods]]
+id = "answer-slot-scope-review"
+root = "sha256:e7f0f3152f5409e5e6e8eedf94d2c18141c860e981c418486cf74d1e668b264d"
+
+[audit]
+core_path = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/expected-core.json"
+core_root = "sha256:7b7414a06990c4f6ba41facaba6e6b9795da4890214caa5f8bc8ff85fada63c9"
+observation_path = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/expected-observation.json"
+observation_root = "sha256:d5e1d4eb96e041905d0df3c7eb89aa4c28e0aa350c76aa2225089e0724266026"
+check_ids = ["answer-slot-scope", "exact-head-build"]
+
+[rights]
+license = "NOASSERTION"
+redistribution = "The retained Lean source is repository material with source-specific provenance; the combined evidence packet does not assert one license for every input."
+
+[availability]
+evidence = "available"
+class = "public_retained_bytes"
+observed_at = "2026-08-13T12:27:53Z"
+access = "anonymous Git clone of the contributor fork"
+retention = "frozen in source packet commit 96eeecf40bc06ddc8bae6d106f461d4fd774858a and descendants"
+
+[provenance]
+agents = ["codex_ai_packet_preparer", "github_actions"]
+activities = ["answer-slot-scope-fidelity review", "exact-head Lean build result retention"]
+entities = ["review guide sha256:bc10a92b25047a46225221c7ecb090a5b3e9ac174fd44f6d1f6042d7c6971700", "workflow sha256:9654c8eff1eb84976e26b527f7dadc8c70267c9ed70fb9300e9e3fe8c2913202", "typed result records"]
+roles = ["advisory reviewer", "producer evidence source"]
+independence = "Both retained v1 producers declare independent=false; the results remain separate."
+shared_dependencies = "Both checks bind the same exact PR head source bytes."

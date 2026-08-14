@@ -1,0 +1,26 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:84a3a40ef361206dc6c062066ea3bc4ded4dbc0721dea1d04153f4854fc518d6"
+method_id = "retained-exact-head-build-result"
+version = "0.1"
+inputs = ["exact PR head", "commit-qualified Formal Conjectures build workflow", "retained GitHub job result"]
+outputs = ["mechanical lean-build result for the exact head"]
+limitations = [
+  "This Method exposes a retained historical external result; it does not rerun the historical GitHub job.",
+  "A successful Lean build allows sorry and does not establish statement fidelity or mathematical truth.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_source_fidelity_review",
+]
+authority_effect = "none"
+
+[implementation]
+path = "audit/pr-audit-v1/fixtures/fidelity-erdos-887-1237/inputs/method-build-and-docs.yml"
+digest = "sha256:9654c8eff1eb84976e26b527f7dadc8c70267c9ed70fb9300e9e3fe8c2913202"
+
+[environment]
+kind = "exact"
+revision = "288608562e684a2f3c97ba0ce960a2649a71370b"
+toolchain = "leanprover/lean4:v4.27.0"
+result_custody = "retained in the PR-audit v1 core"

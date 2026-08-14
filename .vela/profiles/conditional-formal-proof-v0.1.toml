@@ -1,0 +1,25 @@
+schema = "vela.integration-profile.v0.1"
+profile_root = "sha256:d3d99125438ff6e8e27953d7fcb8031720e2ca9c4abbbbf149f54efed19b0212"
+profile_id = "https://github.com/williamjblair/formal-conjectures/.vela/profiles/conditional-formal-proof/v0.1"
+version = "0.1"
+owner = "williamjblair/formal-conjectures contributor fork"
+conformance = [
+  "The Formal Conjectures declaration and linked proof both resolve to retained exact bytes.",
+  "Proof conditions and assumptions retain declaration identity and are never collapsed into an unconditional proof claim.",
+  "Metadata review remains distinct from proof execution, comparison, and source-fidelity review.",
+]
+limitations = [
+  "The retained Erdős 427 review checks metadata only and does not execute or compare the proof.",
+  "This source-local draft does not generalize the Formal Conjectures proof-link schema into Vela Core.",
+]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_upstream_adoption",
+  "not_a_claim_of_proof_correctness",
+]
+authority_effect = "none"
+
+[rights]
+license = "NOASSERTION"
+redistribution = "Retained repository and linked-proof bytes remain subject to their source notices and terms."

@@ -1,0 +1,23 @@
+schema = "vela.integration-method.v0.1"
+method_root = "sha256:0a5c29f9ce0d53ce029e963aaf1fa782c7c88d00c3d46074061e55405d0ee944"
+method_id = "formal-proof-condition-review"
+version = "0.1"
+inputs = ["exact Erdős 427 source bytes", "exact retained linked-proof bytes", "retained metadata review procedure"]
+outputs = ["conditional formal-proof metadata result"]
+limitations = ["Checks proof-link and condition metadata only; it does not execute or compare the linked proof."]
+nonclaims = [
+  "not_an_acceptance_or_merge_decision",
+  "not_a_vela_decision_event_or_standing",
+  "not_a_claim_of_proof_correctness",
+  "not_a_source_fidelity_review",
+]
+authority_effect = "none"
+
+[implementation]
+path = "audit/pr-audit-v1/fixtures/conditional-erdos-427-4884/inputs/metadata-review-procedure.json"
+digest = "sha256:98e2e25f10eb82bfcd1e675c91896e6bc79ed3dbdae85b514f6e31d3d2e9ec62"
+
+[environment]
+kind = "bounded"
+revision = "601aff40d6fa6c3150242144fadba5dbcc24c89c"
+performer = "codex_ai_packet_preparer"

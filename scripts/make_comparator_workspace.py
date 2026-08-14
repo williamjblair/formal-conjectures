@@ -85,148 +85,56 @@ DOC_START = re.compile(r"^/-[-!]")
 FILE_SCOPED = ("open", "variable", "universe", "set_option", "notation")
 
 
-class Block:
-    """One top-level chunk: docstring + attributes + declaration, or a loose line."""
+def elaborator_facts(module, declaration):
+    """What the elaborated environment knows about a declaration.
 
-    def __init__(self, lines):
-        self.lines = lines
-        self.text = "\n".join(lines)
-        self.kind = None
-        self.name = None
-        # The line the kind came from, which is not always `lines[0]`: a `/-!`
-        # section docstring can sit above a `namespace` inside one block, and
-        # reading the name off `lines[0]` then crashes.
-        self.kind_line = None
-        # Prose inside a doc comment is not Lean. A docstring whose line begins
-        # `end ...` or `open ...` at column zero would otherwise type the whole
-        # block as that directive, and a block typed `end` used to be dropped
-        # with the declaration it documented.
-        depth = 0
-        for line in lines:
-            if depth == 0:
-                # `open X in` modifies the declaration below it and is not a
-                # directive in its own right. Typing the block `open` swept
-                # Koethe's whole research statement, `@[category]` and all,
-                # into Challenge.lean as if it were preamble.
-                if KEEP_LOOSE.match(line) and not line.rstrip().endswith(" in"):
-                    self.kind = line.split()[0]
-                    self.kind_line = line
-                    break
-                m = DECL_START.match(line)
-                if m:
-                    self.kind = m.group(1)
-                    after = line[m.end():].strip()
-                    nm = re.match(r"([\w.«»]+)", after)
-                    self.name = nm.group(1) if nm else None
-                    break
-            depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
-            depth = max(depth, 0)
-
-    @property
-    def category(self):
-        m = re.search(r"@\[category\s+([\w ]+?)[,\]]", self.text)
-        return m.group(1).strip() if m else None
-
-
-def peel_loose(lines):
-    """Split leading single-line directives off a block.
-
-    This repository writes `namespace Erdos269` directly above the first
-    declaration, with no blank line between them, so grouping on blank lines
-    puts both into one block. Reading one kind per block then kept the
-    namespace and dropped the declaration, and dropped it silently: Erdos 41
-    lost `variable {α : Type}` and Erdos 269 lost `HasPrimeFactorsIn`. Both
-    workspaces generated, and both failed only when Lean elaborated them.
-
-    A trailing `end X` is peeled for the same reason: the namespace stack is
-    read off these lines, and an `end` hidden inside a declaration's block
-    would leave the stack too deep. `KEEP_LOOSE` anchors at column zero, so an
-    indented line inside a proof body cannot be peeled by mistake.
-
-    A doc comment at column zero also starts a block. Several files write one
-    declaration directly below another with no blank line between them, and
-    blank lines are all `split_blocks` has to go on: Erdos 1108's `parts.i`
-    was swallowed by the `def IsPowerful` above it and lost its name, as were
-    Erdos 1072's `variants.littleo` and Artin's `parts.i`.
-
-    `open X in` is a modifier on the declaration below it, so it is not peeled.
+    Runs `lake exe comparator_facts`, which imports the module and reports the
+    declaration's source range, its binders with real explicitness, and the
+    inferred type of each `answer(sorry)` slot. Every one of these used to be
+    reconstructed from text, and each reconstruction had failure modes the
+    elaborator does not.
     """
-    out, current, depth = [], [], 0
-    for line in lines:
-        loose = (depth == 0 and KEEP_LOOSE.match(line)
-                 and not line.rstrip().endswith(" in"))
-        doc = depth == 0 and DOC_START.match(line)
-        # `open X in` is written *above* the docstring it precedes, so a block
-        # holding only modifiers must not be split off from the declaration
-        # they modify. Erdos 184 lost its `open scoped Classical in` this way,
-        # and the statement then could not synthesize a `Decidable` instance.
-        modifier_only = bool(current) and all(
-            line_.rstrip().endswith(" in") for line_ in current if line_.strip())
-        if (loose or (doc and not modifier_only)) and current:
-            out.append(current)
-            current = []
-        if loose:
-            out.append([line])
-        else:
-            current.append(line)
-        # Depth is counted after the decision, so a line *inside* a doc comment
-        # is never taken for a directive. `end of the story` on its own line in
-        # a docstring would otherwise split the declaration away from its
-        # documentation.
+    proc = subprocess.run(
+        ["lake", "exe", "comparator_facts", module, declaration],
+        capture_output=True, text=True, cwd=ROOT)
+    if proc.returncode != 0:
+        raise SystemExit(
+            f"comparator_facts {declaration}: "
+            f"{proc.stderr.strip() or proc.stdout.strip()}")
+    out = proc.stdout
+    if "{" not in out:
+        raise SystemExit(f"comparator_facts {declaration}: no JSON in output")
+    return json.loads(out[out.index("{"):])
+
+
+def file_scoped_preamble(lines, start_line):
+    """Directives in force at `start_line`, and the namespace stack there.
+
+    Lean scopes `open`, `variable`, `universe`, `set_option` and notation to
+    the file, so Challenge.lean has to restate them; nothing in the olean
+    records them. A directive counts only if it precedes the statement and
+    its scope still encloses it.
+    """
+    stack, preamble, depth = [], [], 0
+    for i, line in enumerate(lines[: start_line - 1]):
+        stripped = line
+        if depth == 0 and KEEP_LOOSE.match(line) and not line.rstrip().endswith(" in"):
+            kind = line.split()[0]
+            parts = line.split(None, 1)
+            name = parts[1].strip() if len(parts) > 1 else None
+            if kind in ("namespace", "section"):
+                stack.append((kind, name))
+            elif kind == "end":
+                if stack and (stack[-1][1] == name
+                              or (name is None and stack[-1][0] == "section")):
+                    stack.pop()
+            else:
+                preamble.append((line, list(stack)))
         depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
         depth = max(depth, 0)
-    if current:
-        out.append(current)
-    return out
-
-
-def split_blocks(body):
-    """Group a file body into blocks separated by blank lines at top level.
-
-    Docstrings and attribute lines have no blank line before their declaration
-    in this repository's style, so they stay attached to it. A blank line
-    *inside* a doc comment is part of the comment, not a separator, so comment
-    depth is tracked across lines; Lean block comments nest.
-    """
-    blocks, current, depth = [], [], 0
-    for line in body.split("\n"):
-        if line.strip() == "" and current and depth == 0:
-            blocks.extend(Block(g) for g in peel_loose(current))
-            current = []
-            continue
-        if line.strip() != "" or current:
-            current.append(line)
-        depth += len(re.findall(r"/-", line)) - len(re.findall(r"-/", line))
-        depth = max(depth, 0)
-    if current:
-        blocks.extend(Block(g) for g in peel_loose(current))
-    return blocks
-
-
-def declares(declared, requested):
-    """Whether a block declaring `declared` answers a request for `requested`.
-
-    Most research statements in this repository carry a qualified name:
-    `erdos_940.variants.large_integers`, `erdos_1038.parts.i`. A request may
-    give that name in full, or drop any whole prefix of it, so the variant
-    above is reachable as itself, as `variants.large_integers`, or as
-    `large_integers`. Matching on the last component alone, which is what this
-    did first, made every qualified name unreachable: all 413 of them.
-    """
-    return declared == requested or declared.endswith("." + requested)
-
-
-def resolve(matches, declaration):
-    """Narrow to the block named exactly, when there is one.
-
-    Paper/WeaklyFirstCountable declares both
-    `existsWeaklyFirstCountableCompactNotFirstCountable` and
-    `CH.existsWeaklyFirstCountableCompactNotFirstCountable` in one file, so
-    the first name is a suffix of the second and asking for it matched both.
-    Naming a declaration in full is unambiguous, so an exact match wins.
-    """
-    exact = [b for b in matches if b.name == declaration]
-    return exact if len(exact) == 1 else matches
+    scope = list(stack)
+    in_force = [text for text, s in preamble if s == scope[: len(s)]]
+    return in_force, [n for k, n in scope if k == "namespace" and n]
 
 
 def slug(name):
@@ -380,114 +288,37 @@ def replace_proof_with_sorry(text):
     return text.rstrip() + " := by\n  sorry"
 
 
-def hoist_answers(statement, basename, answer_type):
+def hoist_answers(statement, basename, slot_types, override=None):
     """Replace each `answer(sorry)` with a named definition hole.
 
-    Returns (statement, [hole definition lines]). A slot flanking `↔` is a
-    `Prop`; anything else needs `--answer-type`, because the surface syntax
-    does not carry the type and guessing it would corrupt the challenge.
+    The slot types come from the elaborated environment, where the `answer`
+    elaborator ran with the expected type in hand; the old surface-syntax
+    guess (an `↔` beside the slot means `Prop`) and the manifest's hand-kept
+    `answer_type` both survive only as overrides. Slots of different types in
+    one statement are refused: the environment reports the types as a set,
+    and matching them to positions would be a guess.
     """
     holes = []
     count = statement.count("answer(sorry)")
     if count == 0:
         return statement, holes
+    if override:
+        types = [override] * count
+    elif len(set(slot_types)) == 1 and len(slot_types) >= count:
+        types = [slot_types[0]] * count
+    elif len(slot_types) == count:
+        raise SystemExit(
+            f"{basename} has {count} answer slots of differing types "
+            f"{slot_types}; pass --answer-type or add a manifest")
+    else:
+        raise SystemExit(
+            f"{basename}: found {len(slot_types)} slot types for {count} "
+            "slots; pass --answer-type")
     for i in range(count):
         hole = f"{basename}_answer" if count == 1 else f"{basename}_answer_{i + 1}"
-        idx = statement.index("answer(sorry)")
-        window = statement[max(0, idx - 8): idx + 24]
-        is_iff = "↔" in window
-        if is_iff:
-            hole_type = "Prop"
-        elif answer_type:
-            hole_type = answer_type
-        else:
-            raise SystemExit(
-                "answer(sorry) is not flanking an ↔, so its type cannot be read "
-                "from the statement; pass --answer-type")
-        holes.append(f"noncomputable def {hole} : {hole_type} := sorry")
+        holes.append(f"noncomputable def {hole} : {types[i]} := sorry")
         statement = statement.replace("answer(sorry)", hole, 1)
     return statement, holes
-
-
-def hole_names_of(holes):
-    return [h.split()[2] for h in holes]
-
-
-def split_signature(signature):
-    """(prefix lines, declared name, binder text, body) of a signature."""
-    lines = signature.split("\n")
-    for i, line in enumerate(lines):
-        m = DECL_START.match(line)
-        if m:
-            prefix = "\n".join(lines[:i])
-            rest = "\n".join(lines[i:])[m.end():]
-            break
-    else:
-        raise SystemExit("no declaration line in the signature")
-    nm = re.match(r"\s*([\w.«»]+)", rest)
-    name = nm.group(1)
-    rest = rest[nm.end():]
-    um = re.match(r"\.\{[^}]*\}", rest)
-    if um:
-        rest = rest[um.end():]
-    depth, i = 0, 0
-    openers, closers = "({[⦃⟨", ")}]⦄⟩"
-    while i < len(rest):
-        c = rest[i]
-        if depth == 0 and c == ":":
-            return prefix, name, rest[:i], rest[i + 1:]
-        if c in openers:
-            depth += 1
-        elif c in closers:
-            depth -= 1
-        i += 1
-    raise SystemExit("no top-level `:` in the signature")
-
-
-def explicit_binder_names(signature):
-    """Names of the explicit binders in a theorem signature.
-
-    Solution.lean proves the statement by applying the participant's
-    `Submission` theorem to exactly these, the way lean-eval's generated
-    adapter writes `exact Submission.abel_ruffini n _hn`. Implicit and
-    instance binders are left to elaboration. A group this cannot read is
-    refused, as everywhere else the script cannot decide.
-    """
-    _, _, binder_text, _ = split_signature(signature)
-    rest = binder_text
-    names, depth, i = [], 0, 0
-    openers, closers = "({[⦃⟨", ")}]⦄⟩"
-    while i < len(rest):
-        c = rest[i]
-        if c in openers:
-            if depth == 0 and c == "(":
-                j, d = i, 0
-                while j < len(rest):
-                    if rest[j] in openers:
-                        d += 1
-                    elif rest[j] in closers:
-                        d -= 1
-                    if d == 0:
-                        break
-                    j += 1
-                group = rest[i + 1:j]
-                # `(r)` is a binder too: no ascription, type left to Lean.
-                # Erdos 1055 writes one. The names are the whole group then.
-                head, _, _ = group.partition(":")
-                got = head.split()
-                if not got or not all(
-                        re.fullmatch(r"[^\s(){}\[\]:]+", n) for n in got):
-                    raise SystemExit(
-                        f"cannot read the explicit binder group ({group.strip()}); "
-                        "the Solution adapter needs its names")
-                names.extend(got)
-                i = j + 1
-                continue
-            depth += 1
-        elif c in closers:
-            depth -= 1
-        i += 1
-    return names
 
 
 def pins(source_path=None):
@@ -555,65 +386,40 @@ root = "WorkspaceTest"
 
 
 
-def locate(blocks, declaration, path=""):
-    """Find the target declaration, and what is in force at its position.
-
-    Returns (target block, namespaces open at it, file-scoped preamble).
-
-    The preamble keeps only directives that precede the target and whose
-    scope still encloses it. A `variable` inside a `section` that closed
-    before the statement is out of force there, and an `open` written after
-    the statement played no part in how its names resolved. Carrying either
-    would change the statement, silently in the `open` case: an extra open
-    namespace can make a name ambiguous, which is how a stray research
-    statement broke the Koethe workspace.
-    """
-    matches, preamble, stack = [], [], []
-    for index, b in enumerate(blocks):
-        if b.kind in ("namespace", "section"):
-            parts = (b.kind_line or "").split(None, 1)
-            stack.append((b.kind, parts[1].strip() if len(parts) > 1 else None))
-            continue
-        if b.kind == "end":
-            parts = (b.kind_line or "").split(None, 1)
-            name = parts[1].strip() if len(parts) > 1 else None
-            if stack and (stack[-1][1] == name
-                          or (name is None and stack[-1][0] == "section")):
-                stack.pop()
-            continue
-        if b.name and declares(b.name, declaration):
-            matches.append((index, b, list(stack)))
-            continue
-        if b.kind in FILE_SCOPED:
-            preamble.append((index, b.text, list(stack)))
-
-    if not matches:
-        raise SystemExit(f"{declaration!r} not found as a block in {path}")
-    chosen = resolve([b for _, b, _ in matches], declaration)
-    if len(chosen) > 1:
-        # Taking the last silently would pose a problem the caller did not ask
-        # for, and nothing downstream would notice.
-        raise SystemExit(
-            f"{declaration!r} matches more than one declaration in {path}: "
-            + ", ".join(b.name for b in chosen)
-            + "; name one of them in full")
-    index, target, scope = next(
-        (i, b, s) for i, b, s in matches if b is chosen[0])
-    namespaces = [n for kind, n in scope if kind == "namespace" and n]
-    in_force = [text for i, text, s in preamble
-                if i < index and s == scope[:len(s)]]
-    return target, namespaces, in_force
+def split_signature(signature):
+    """(prefix lines, declared name, binder text, body) of a signature."""
+    lines = signature.split("\n")
+    for i, line in enumerate(lines):
+        m = DECL_START.match(line)
+        if m:
+            prefix = "\n".join(lines[:i])
+            rest = "\n".join(lines[i:])[m.end():]
+            break
+    else:
+        raise SystemExit("no declaration line in the signature")
+    nm = re.match(r"\s*([\w.«»]+)", rest)
+    name = nm.group(1)
+    rest = rest[nm.end():]
+    depth, i = 0, 0
+    openers, closers = "({[⦃⟨", ")}]⦄⟩"
+    while i < len(rest):
+        c = rest[i]
+        if depth == 0 and c == ":":
+            return prefix, name, rest[:i], rest[i + 1:]
+        if c in openers:
+            depth += 1
+        elif c in closers:
+            depth -= 1
+        i += 1
+    raise SystemExit("no top-level `:` in the signature")
 
 
 def disprove_statement(signature, declared):
     """The negation of a plain statement, as a challenge of its own.
 
-    An open problem accepts a proof or a disproof. A statement whose
-    `answer(sorry)` flanks an `↔` carries that choice in the hole; a plain
-    statement does not, so its disprove challenge is the explicit negation:
-    for `theorem foo <binders> : body`, the statement `(∀ <binders>, body) →
-    False`. Negating under the binders instead would claim every instance
-    fails, which is a different and stronger assertion.
+    For `theorem foo <binders> : body`, the statement
+    `(∀ <binders>, body) → False`. Negating under the binders instead would
+    claim every instance fails, which is a different and stronger assertion.
     """
     prefix, _, binder_text, body = split_signature(signature)
     binder_text = " ".join(binder_text.split())
@@ -624,6 +430,10 @@ def disprove_statement(signature, declared):
         + f"theorem {declared}_disproof :\n"
         + f"    ({inner}) → False := by\n  sorry"
     )
+
+
+def hole_names_of(holes):
+    return [h.split()[2] for h in holes]
 
 
 def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
@@ -648,13 +458,35 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
     answer_type = answer_type or manifest.get("answer_type")
     module = module or manifest.get("module")
     path, _imports, _module_doc, body = find_declaration(declaration, module)
-    target, namespaces_at_target, preamble = locate(
-        split_blocks(body), declaration, path)
+    fc_module = module_name(path.relative_to(ROOT))
+    facts = elaborator_facts(fc_module, declaration)
+    if facts["range"] is None:
+        raise SystemExit(f"{declaration}: no source range recorded")
 
-    declared = target.name
-    statement = strip_decorations(target.text)
+    source_lines = path.read_text(encoding="utf-8").split("\n")
+    lo, hi = facts["range"]["startLine"], facts["range"]["endLine"]
+    # `open X in` is part of the command but sits above what the range covers
+    # in some toolchains; pull it in when the line above ends with ` in`.
+    while lo > 1 and source_lines[lo - 2].rstrip().endswith(" in") \
+            and KEEP_LOOSE.match(source_lines[lo - 2]):
+        lo -= 1
+    original = "\n".join(source_lines[lo - 1: hi])
+    statement = original
+
+    preamble, namespaces_at_target = file_scoped_preamble(source_lines, lo)
+
+    statement = strip_decorations(statement)
     statement = replace_proof_with_sorry(statement)
-    statement, holes = hoist_answers(statement, declared, answer_type)
+    declared = None
+    for line in statement.split("\n"):
+        dm = DECL_START.match(line)
+        if dm:
+            declared = re.match(r"\s*([\w.«»]+)", line[dm.end():]).group(1)
+            break
+    if declared is None:
+        raise SystemExit(f"{declaration}: no declaration line in the slice")
+    statement, holes = hoist_answers(
+        statement, declared, facts.get("answerTypes", []), answer_type)
 
     if disprove:
         # A holed statement already carries prove-or-disprove in the hole,
@@ -670,6 +502,13 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
         statement = disprove_statement(sig_, declared)
         declared = f"{declared}_disproof"
 
+    args = [] if disprove else [b["name"] for b in facts["binders"] if b["explicit"]]
+    bad = [a for a in args if "✝" in a or "._" in a]
+    if bad:
+        raise SystemExit(
+            f"{declared} has inaccessible explicit binders {bad}; the "
+            "Solution adapter cannot apply them by name")
+
     # `open A`, then `open A.B`: opening the inner namespace does not open the
     # outer one, and a statement may name siblings from either.
     opens = [f"open {'.'.join(namespaces_at_target[:i + 1])}"
@@ -682,12 +521,10 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
         + ("\n".join(preamble) + "\n" if preamble else "")
         + ("\n" if opens or preamble else "")
     )
-    fc_module = module_name(path.relative_to(ROOT))
     suffix = ":= by\n  sorry"
     signature = statement.rstrip()
     if signature.endswith(suffix):
         signature = signature[: -len(suffix)].rstrip()
-    args = explicit_binder_names(statement)
 
     challenge = (
         f"import {fc_module}\n\n" + header
@@ -801,7 +638,7 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
             for hn, body_ in zip(hole_names, holes)
         ] + [
             {"name": full_name, "basename": declared, "kind": "theorem",
-             "body": target.text}
+             "body": original}
         ],
     }, indent=2, ensure_ascii=False) + "\n")
     return ws
@@ -872,8 +709,8 @@ def validate():
         try:
             manifest = load_manifest(problem_id)
             declaration = manifest["declaration"]
-            path, _i, _d, body = find_declaration(declaration, manifest.get("module"))
-            locate(split_blocks(body), declaration, path.relative_to(ROOT))
+            path, _i, _d, _b = find_declaration(declaration, manifest.get("module"))
+            elaborator_facts(module_name(path.relative_to(ROOT)), declaration)
         except SystemExit as exc:
             print(f"{problem_id}: {exc}", file=sys.stderr)
             bad += 1

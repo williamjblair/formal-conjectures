@@ -153,6 +153,22 @@ def strip_decorations(block_text):
     return re.sub(r"\A\s*@\[[^\]]*\]\s*", "", block_text, flags=re.DOTALL)
 
 
+def drop_problem_attributes(block_text):
+    """Remove `category` and `AMS` from a carried declaration's attributes.
+
+    ChallengeDeps imports `FormalConjecturesForMathlib`, which deliberately
+    carries no problem-attribute machinery, so a dependency arriving with
+    `@[category test, AMS 5]` fails to elaborate with "Unknown attribute".
+    Other attributes, `simp` and `ext` among them, are real Lean and stay.
+    """
+    def prune(match):
+        kept = [a.strip() for a in match.group(1).split(",")
+                if not re.match(r"\s*(category|AMS)\b", a)]
+        return f"@[{', '.join(kept)}]\n" if kept else ""
+
+    return re.sub(r"@\[([^\]]*)\]\s*\n", prune, block_text)
+
+
 def replace_proof_with_sorry(text):
     """Cut the proof body after `:=`, keeping the statement."""
     m = re.search(r":=\s*by\b", text)
@@ -275,11 +291,11 @@ def generate(basename, out_dir, answer_type):
             # lemmas do get carried, since a statement may genuinely use them.
             if b.category in ("research open", "research solved") or "sorry" in b.text:
                 continue
-            deps.append(b.text)
+            deps.append(drop_problem_attributes(b.text))
             continue
         if b.kind in ("def", "abbrev", "structure", "inductive", "instance",
                       "notation", "variable", "universe", "attribute", "section"):
-            deps.append(b.text)
+            deps.append(drop_problem_attributes(b.text))
 
     if target is None:
         raise SystemExit(f"{basename!r} not found as a block in {path}")

@@ -34,7 +34,8 @@ one file per problem: that answer type, and which file is meant when two
 declare the same name. See that directory's README.
 
 Usage:
-  python make_comparator_workspace.py (ID | DECLARATION) [--out DIR] [--answer-type T]
+  python make_comparator_workspace.py (ID | DECLARATION) [--out DIR]
+      [--answer-type T] [--module FILE]
   python make_comparator_workspace.py --validate
 
 The workspace's own build needs a network fetch of its pinned dependencies, so
@@ -322,7 +323,8 @@ def find_declaration(basename, module=None):
         raise SystemExit(
             f"{basename!r} is ambiguous: "
             + ", ".join(str(h.relative_to(ROOT)) for h in hits)
-            + f"; add comparator/problems/<id>.toml naming one in `module`")
+            + "; pass --module to choose one, or record the choice in "
+              "comparator/problems/<id>.toml")
     return _read_source(hits[0])
 
 
@@ -426,16 +428,25 @@ def pins(source_path=None):
             ["git", "-C", str(ROOT), "diff", "--quiet", fc_rev, "--",
              str(source_path)]).returncode != 0
         if differs:
+            # Challenge.lean now restates the statement read from the working
+            # tree while importing its context from `fc_rev`. If the two
+            # disagree the workspace can fail to build, or worse, build the
+            # statement against definitions it was not written for.
             print(f"WARNING: {source_path} differs from the pinned FC revision "
-                  f"{fc_rev[:12]}; the workspace restates a version upstream "
-                  f"does not carry", file=sys.stderr)
+                  f"{fc_rev[:12]}. The statement is read from the working tree "
+                  f"and its context is imported from that revision, so the two "
+                  f"may disagree. Push the change first.", file=sys.stderr)
     return mathlib_rev, fc_rev
 
 
 def lakefile(workspace_id, mathlib_rev, fc_rev):
+    # Only the two libraries that are written. The hand-made prototype copied
+    # lean-eval's `Submission` library and `workspace_test` driver, which this
+    # generator does not produce, so a plain `lake build` or `lake test` in the
+    # workspace failed on a missing target. Naming `Challenge` explicitly, as
+    # the validation harness did, hid that for the whole of its development.
     return f"""name = "{workspace_id}"
-testDriver = "workspace_test"
-defaultTargets = ["Challenge", "Solution", "Submission"]
+defaultTargets = ["Challenge", "Solution"]
 
 [leanOptions]
 autoImplicit = false
@@ -455,13 +466,10 @@ name = "Challenge"
 
 [[lean_lib]]
 name = "Solution"
-
-[[lean_lib]]
-name = "Submission"
 """
 
 
-def generate(basename, out_dir, answer_type=None):
+def generate(basename, out_dir, answer_type=None, module=None):
     """Write a comparator workspace for one declaration.
 
     Challenge.lean imports the problem's own module rather than restating its
@@ -478,9 +486,11 @@ def generate(basename, out_dir, answer_type=None):
     """
     manifest = load_manifest(basename)
     declaration = manifest.get("declaration", basename)
+    # An argument given on the command line is explicit, so it wins over the
+    # manifest; the manifest is the durable record of the same choice.
     answer_type = answer_type or manifest.get("answer_type")
-    path, _imports, _module_doc, body = find_declaration(
-        declaration, manifest.get("module"))
+    module = module or manifest.get("module")
+    path, _imports, _module_doc, body = find_declaration(declaration, module)
     blocks = split_blocks(body)
 
     target, matches, preamble = None, [], []
@@ -621,6 +631,9 @@ def main(argv):
     ap.add_argument("--answer-type", default=None,
                     help="type of a non-Prop answer(sorry) slot; "
                          "the manifest's `answer_type` is used when absent")
+    ap.add_argument("--module", default=None,
+                    help="the file declaring it, when more than one does; "
+                         "overrides the manifest's `module`")
     ap.add_argument("--validate", action="store_true",
                     help="check every manifest resolves, and generate nothing")
     args = ap.parse_args(argv)
@@ -628,7 +641,7 @@ def main(argv):
         return validate()
     if not args.declaration:
         ap.error("give a declaration, or --validate")
-    ws = generate(args.declaration, args.out, args.answer_type)
+    ws = generate(args.declaration, args.out, args.answer_type, args.module)
     print(ws)
     return 0
 

@@ -260,9 +260,27 @@ def module_names(root):
     return out
 
 
-def run_probe(root, imports, theorems, timeout):
+def namespaces_in(root):
+    """Namespaces the project opens, so a short declaration name resolves.
+
+    `#print axioms erdos_750_FC` fails when the declaration is really
+    `Erdos750.erdos_750_FC`; the probe has to open the namespace or name it
+    in full. A reviewer reads short names off the source, so open them.
+    """
+    found = []
+    for path in sorted(pathlib.Path(root).rglob("*.lean")):
+        if ".lake" in path.parts:
+            continue
+        code = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        found.extend(re.findall(r"^namespace\s+([\w.«»]+)", code, re.MULTILINE))
+    return list(dict.fromkeys(found))
+
+
+def run_probe(root, imports, theorems, timeout, opens=()):
     body = "\n".join(f"#print axioms {t}" for t in theorems)
-    text = "\n".join(f"import {m}" for m in imports) + f"\n\n{body}\n"
+    text = ("\n".join(f"import {m}" for m in imports)
+            + ("\n" + "\n".join(f"open {n}" for n in opens) if opens else "")
+            + f"\n\n{body}\n")
     probe_file = pathlib.Path(root) / "VerifyProbe.lean"
     probe_file.write_text(text, encoding="utf-8")
     try:
@@ -285,12 +303,13 @@ def probe(root, theorems, timeout):
     proof exists at all.
     """
     modules = module_names(root)
-    results = run_probe(root, modules, theorems, timeout)
+    opens = namespaces_in(root)
+    results = run_probe(root, modules, theorems, timeout, opens)
     unresolved = [t for t, r in results.items()
                   if "error" in r or not r.get("sorry_free", False)]
     if unresolved:
         for mod in modules:
-            partial = run_probe(root, [mod], unresolved, timeout)
+            partial = run_probe(root, [mod], unresolved, timeout, opens)
             for t, r in partial.items():
                 if "error" in r:
                     continue

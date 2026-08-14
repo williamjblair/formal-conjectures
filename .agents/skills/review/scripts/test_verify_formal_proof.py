@@ -196,6 +196,24 @@ class ConditionalProofTest(unittest.TestCase):
         self.assertTrue(out["sorry_free"])
         self.assertEqual(out["extra"], ["Erdos750.stiebitz_lower_bound"])
 
+    def test_it_separates_declarations_that_rest_on_the_axiom_from_those_that_do_not(self):
+        # The behaviour that makes a probe worth running. `Erdos/P750/Proof.lean`
+        # declares one axiom, and its author documents which public theorems reach
+        # it. Verified end to end against the live repository: erdos_750_FC and
+        # erdos_750_independence carry `Erdos750.stiebitz_lower_bound`,
+        # finite_oct_profile does not. A file-level `axiom` count cannot make that
+        # distinction; only the probe can.
+        output = (
+            "'Erdos750.erdos_750_FC' depends on axioms: [propext, Classical.choice, "
+            "Erdos750.stiebitz_lower_bound, Quot.sound]\n"
+            "'Erdos750.finite_oct_profile' depends on axioms: [propext, "
+            "Classical.choice, Quot.sound]")
+        out = parse_axioms(output, ["erdos_750_FC", "finite_oct_profile"])
+        self.assertEqual(out["erdos_750_FC"]["extra"],
+                         ["Erdos750.stiebitz_lower_bound"])
+        self.assertEqual(out["finite_oct_profile"]["extra"], [])
+        self.assertTrue(all(r["sorry_free"] for r in out.values()))
+
     def test_the_static_pass_sees_the_axiom_declarations(self):
         # The same file, read without a toolchain: two `axiom` declarations,
         # which is how `--static-only` surfaces a conditional proof.

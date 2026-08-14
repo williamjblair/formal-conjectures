@@ -21,6 +21,15 @@ Usage:
   python verify_formal_proof.py FILE.lean ...      # audit every link in these files
   python verify_formal_proof.py --link URL --json  # machine-readable report
 
+Validated end to end against `Shashi456/erdos-formalizations` at
+`Erdos/P750/Proof.lean`, which Erdős 750 cites as a `conditional formal_proof`:
+the build succeeds, and the probe reports `erdos_750_FC` and
+`erdos_750_independence` as sorry-free but resting on
+`Erdos750.stiebitz_lower_bound`, while `finite_oct_profile` in the same module
+rests on nothing beyond the standard three. That split matches the trust
+boundary the file's own author documents, and a file-level `axiom` count cannot
+make it.
+
 The static stage never lies in one direction: zero `sorry` in the sources means the
 build cannot manufacture one. The converse needs the probe, because a clean grep says
 nothing about which axioms a proof term actually reaches. Both are reported.

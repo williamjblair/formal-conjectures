@@ -176,6 +176,15 @@ def run(cmd, cwd=None, check=True, timeout=None):
 # ---------------------------------------------------------------------------- static
 
 
+def static_audit_file(path, root=None):
+    """Count sorry / axiom / native_decide in one file, comments stripped."""
+    code = strip_comments(pathlib.Path(path).read_text(encoding="utf-8",
+                                                       errors="replace"))
+    return {key: len(pattern.findall(code))
+            for key, pattern in (("sorry", SORRY), ("axiom", AXIOM_DECL),
+                                 ("native_decide", NATIVE_DECIDE))}
+
+
 def static_audit(root):
     """Count sorry / axiom / native_decide per .lean file, comments stripped."""
     report = {"files": 0, "sorry": {}, "axiom": {}, "native_decide": {}}
@@ -345,6 +354,15 @@ def verify(link, theorems, static_only, build_timeout):
         shape = detect_project(root)
         report["project"] = shape
         report["stages"]["static"] = static_audit(root)
+        # A link that names a file is a claim about that file. Auditing the
+        # whole clone and reporting one number buries it: a link into a
+        # multi-problem repository reported 89 `sorry` from other people's
+        # unrelated problems while the cited file had none. Scope it.
+        if plan.get("file"):
+            named = pathlib.Path(root) / plan["file"]
+            if named.is_file():
+                report["stages"]["static_named_file"] = dict(
+                    static_audit_file(named, root), file=plan["file"])
 
         if static_only:
             return report
@@ -382,13 +400,24 @@ def summarise(report):
         return lines[0] + f"\n  UNRESOLVED: {stages['resolve']['error']}"
     if not stages.get("materialise", {}).get("ok"):
         return lines[0] + f"\n  FETCH FAILED: {stages['materialise']['error']}"
+    named = stages.get("static_named_file")
+    if named:
+        lines.append(
+            f"  the file this link names: {named['file']}"
+            f"\n    sorry={named['sorry']} axiom={named['axiom']} "
+            f"native_decide={named['native_decide']}"
+        )
     st = stages["static"]
+    label = "  rest of the clone, for context: " if named else "  static: "
     lines.append(
-        f"  static: {st['files']} lean files, "
+        f"{label}{st['files']} lean files, "
         f"{sum(st['sorry'].values())} sorry, "
         f"{sum(st['axiom'].values())} axiom decls, "
         f"{sum(st['native_decide'].values())} native_decide"
     )
+    if named:
+        lines.append("    a repository may hold unrelated work; these counts "
+                     "are not about the cited file")
     for key in ("sorry", "axiom", "native_decide"):
         for rel, n in st[key].items():
             lines.append(f"    {key} x{n}  {rel}")

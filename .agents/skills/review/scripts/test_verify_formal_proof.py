@@ -27,6 +27,7 @@ from verify_formal_proof import (
     parse_axioms,
     resolve,
     static_audit,
+    static_audit_file,
     strip_comments,
 )
 
@@ -184,6 +185,17 @@ class ConditionalProofTest(unittest.TestCase):
         out = parse_axioms(self.OUTPUT, ["erdos_1141"])["erdos_1141"]
         self.assertTrue(out["sorry_free"] and out["extra"])
 
+    def test_one_assumption_is_reported_the_same_way(self):
+        # Erdős 750 cites `Shashi456/erdos-formalizations` at
+        # `Erdos/P750/Proof.lean`, whose single axiom is Stiebitz's theorem;
+        # FC marks it `conditional ... assuming erdos_750.variants.stiebitz`.
+        # One assumption rather than two, same shape.
+        output = ("'erdos_750_FC' depends on axioms: [propext, "
+                  "Classical.choice, Erdos750.stiebitz_lower_bound, Quot.sound]")
+        out = parse_axioms(output, ["erdos_750_FC"])["erdos_750_FC"]
+        self.assertTrue(out["sorry_free"])
+        self.assertEqual(out["extra"], ["Erdos750.stiebitz_lower_bound"])
+
     def test_the_static_pass_sees_the_axiom_declarations(self):
         # The same file, read without a toolchain: two `axiom` declarations,
         # which is how `--static-only` surfaces a conditional proof.
@@ -200,6 +212,44 @@ class ConditionalProofTest(unittest.TestCase):
             report = static_audit(tmp)
         self.assertEqual(report["axiom"], {"Erdos1141.lean": 2})
         self.assertEqual(report["sorry"], {})
+
+
+class NamedFileScopeTest(unittest.TestCase):
+    """A link that names a file is a claim about that file, not its repository.
+
+    Erdős 750 cites `Erdos/P750/Proof.lean` inside a repository holding many
+    unrelated problems. Auditing the whole clone reports 89 `sorry` from
+    P42, P202, P283 and others, while the cited file has none — a reviewer
+    reading the aggregate would conclude the linked proof is full of holes.
+    """
+
+    REPO = {
+        "Erdos/P750/Proof.lean": "axiom stiebitz_lower_bound : True\n",
+        "Erdos/P42/safeverify/Spec.lean": "theorem a : True := by sorry\n"
+                                          "theorem b : True := by sorry\n",
+        "Erdos/P283/safeverify/Spec.lean": "theorem c : True := by sorry\n",
+    }
+
+    def build(self, tmp):
+        for rel, text in self.REPO.items():
+            p = pathlib.Path(tmp) / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text)
+
+    def test_the_named_file_is_audited_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.build(tmp)
+            named = static_audit_file(
+                pathlib.Path(tmp) / "Erdos/P750/Proof.lean")
+        self.assertEqual(named, {"sorry": 0, "axiom": 1, "native_decide": 0})
+
+    def test_the_repository_aggregate_would_mislead(self):
+        # The number the scoped audit exists to stop anyone quoting.
+        with tempfile.TemporaryDirectory() as tmp:
+            self.build(tmp)
+            whole = static_audit(tmp)
+        self.assertEqual(sum(whole["sorry"].values()), 3)
+        self.assertNotIn("Erdos/P750/Proof.lean", whole["sorry"])
 
 
 if __name__ == "__main__":

@@ -76,9 +76,14 @@ class Block:
         self.text = "\n".join(lines)
         self.kind = None
         self.name = None
+        # The line the kind came from, which is not always `lines[0]`: a `/-!`
+        # section docstring can sit above a `namespace` inside one block, and
+        # reading the name off `lines[0]` then crashes.
+        self.kind_line = None
         for line in lines:
             if KEEP_LOOSE.match(line):
                 self.kind = line.split()[0]
+                self.kind_line = line
                 break
             m = DECL_START.match(line)
             if m:
@@ -277,7 +282,9 @@ def generate(basename, out_dir, answer_type):
             target = b
             continue
         if b.kind == "namespace":
-            namespaces.append(b.lines[0].split(None, 1)[1])
+            parts_ = (b.kind_line or "").split(None, 1)
+            if len(parts_) > 1:
+                namespaces.append(parts_[1].strip())
             continue
         if b.kind == "end":
             continue

@@ -112,6 +112,13 @@ class SplitTest(unittest.TestCase):
         blocks = split_blocks("def a := 1\n\ndef b := 2\n")
         self.assertEqual([b.name for b in blocks], ["a", "b"])
 
+    def test_kind_line_is_the_matching_line_not_the_first(self):
+        # A `/-!` section docstring can sit above `namespace` in one block.
+        # Reading the namespace name off lines[0] crashed on 22 real files.
+        blocks = split_blocks("/-! ## A section -/\nnamespace Erdos196\n")
+        self.assertEqual(blocks[0].kind, "namespace")
+        self.assertEqual(blocks[0].kind_line.split(None, 1)[1].strip(), "Erdos196")
+
     def test_category_is_read_off_the_block(self):
         blocks = split_blocks("@[category research open, AMS 5]\ntheorem t : True := trivial\n")
         self.assertEqual(blocks[0].category, "research open")

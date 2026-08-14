@@ -82,7 +82,23 @@ def tokens_to_math(lean):
                  lambda m: r"\text{" + m.group(1).replace("_", r"\_") + "}", out)
     # A bare underscore left over is a tactic placeholder (`?_`, `⟨_, _⟩`),
     # which in math mode is a subscript with nothing to attach to.
-    return re.sub(r"(?<!\\)_", r"\\_", out)
+    out = re.sub(r"(?<!\\)_", r"\\_", out)
+    # `#` is `Finset.card` in Lean and a macro parameter character in TeX.
+    out = re.sub(r"(?<!\\)#", r"\\#", out)
+    # A Lean comment inside a statement is not mathematics.
+    return re.sub(r"/-.*?-/", "", out, flags=re.DOTALL)
+
+
+def unbalanced(doc):
+    """True when a docstring's math delimiters do not pair.
+
+    `\\$` is a literal dollar, which the Erdős prize amounts use constantly, and
+    `$$` opens and closes display math. What is left must pair, and 28 docstrings
+    in this repository do not: a missing closing `$` renders the rest of the
+    sentence as mathematics on the site, and stops this renderer compiling.
+    """
+    body = re.sub(r"\\\$", "", doc)
+    return body.replace("$$", "").count("$") % 2 == 1
 
 
 def docstring_to_tex(doc):
@@ -186,7 +202,9 @@ def render(path, fragment):
     module_doc = ""
     m = re.search(r"/-!(.*?)-/", text, flags=re.DOTALL)
     if m:
-        module_doc = docstring_to_tex(m.group(0))
+        module_doc = (docstring_to_tex(m.group(0)) if not unbalanced(m.group(0))
+                      else r"\textbf{[unbalanced math delimiters in the module "
+                           r"docstring; omitted]}")
         text = text.replace(m.group(0), "", 1)
     decls = split_declarations(text)
 
@@ -203,6 +221,11 @@ def render(path, fragment):
             r" {↔}{{$\iff$}}1 {→}{{$\to$}}1 {∧}{{$\wedge$}}1 {¬}{{$\neg$}}1"
             r" {∑}{{$\sum$}}1 {∣}{{$\mid$}}1 {ᶠ}{{}}1 {'}{{'}}1}",
             r"\newtheorem{statement}{Statement}",
+            # Bibliography entries pasted from BibTeX carry accent commands that
+            # a bare preamble lacks (\polhk for an ogonek, among others). Define
+            # them as no-ops rather than fail the document over a reference list.
+            r"\providecommand{\polhk}[1]{#1}",
+            r"\providecommand{\cprime}{'}",
             r"\begin{document}",
             rf"\title{{\texttt{{{tex_escape(path.name)}}}}}",
             r"\date{}",
@@ -217,7 +240,14 @@ def render(path, fragment):
         if d["attr"]:
             out.append(rf"\noindent\texttt{{{tex_escape(d['attr'])}}}\par")
         if d["doc"]:
-            out.append(docstring_to_tex(d["doc"]))
+            if unbalanced(d["doc"]):
+                out.append(r"\medskip\noindent\textbf{[unbalanced math delimiters in "
+                           r"this docstring; shown verbatim]}\par")
+                out.append(r"\begin{lstlisting}")
+                out.append(d["doc"])
+                out.append(r"\end{lstlisting}")
+            else:
+                out.append(docstring_to_tex(d["doc"]))
         out.append(r"\begin{statement}\ (best-effort rendering; the Lean below "
                    r"is the authority)")
         out.append(r"\[ " + tokens_to_math(d["statement"]) + r" \]")

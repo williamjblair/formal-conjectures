@@ -22,6 +22,7 @@ import unittest
 
 from lean_to_latex import (
     docstring_to_tex,
+    unbalanced,
     skeleton,
     split_declarations,
     tokens_to_math,
@@ -52,6 +53,35 @@ class DocstringTest(unittest.TestCase):
         self.assertIn(r"\end{itemize}", out)
 
 
+class UnbalancedTest(unittest.TestCase):
+    """Whether a docstring's math delimiters pair.
+
+    A missing closing `$` renders the rest of a sentence as mathematics on the
+    generated site, and stops this renderer compiling. 28 docstrings in this
+    repository are unbalanced, found by running the renderer over all 1080
+    files; the cases below are drawn from them.
+    """
+
+    def test_balanced_is_not_flagged(self):
+        self.assertFalse(unbalanced("/-- $a$ and $b$ -/"))
+
+    def test_missing_closing_dollar_is_flagged(self):
+        # Arxiv/1609.08688/sIncreasingrTuples.lean:79
+        self.assertTrue(unbalanced("/-- but $(1,2,3)$ is not $2$-less than $(1,2,4). -/"))
+
+    def test_escaped_dollar_is_money_not_a_delimiter(self):
+        # Erdős prize amounts are written \$250 throughout; counting those as
+        # delimiters flagged four correct docstrings before this was handled.
+        self.assertFalse(unbalanced(r"/-- Erdős offered \$250 for a proof. -/"))
+
+    def test_unescaped_prize_amount_is_flagged(self):
+        # ErdosProblems/593.lean:38 writes ($500), which opens math mode.
+        self.assertTrue(unbalanced("/-- **Erdős Problem 593 ($500)**: Characterize -/"))
+
+    def test_display_math_pairs_do_not_count(self):
+        self.assertFalse(unbalanced("/-- $$2f(x) \\le f(x+h)$$ holds -/"))
+
+
 class TokensTest(unittest.TestCase):
 
     def test_quantifiers_and_types(self):
@@ -68,6 +98,14 @@ class TokensTest(unittest.TestCase):
         out = tokens_to_math("(hall x hx).trans ?_")
         self.assertNotIn(" _", out.replace(r"\_", ""))
         self.assertIn(r"\_", out)
+
+    def test_finset_card_hash_is_escaped(self):
+        # `#` is Finset.card in Lean and a macro parameter character in TeX;
+        # unescaped it broke 37 documents.
+        self.assertIn(r"\#", tokens_to_math("#(P.parts i) ≠ #(P.parts j)"))
+
+    def test_a_lean_comment_inside_a_statement_is_dropped(self):
+        self.assertNotIn("aside", tokens_to_math("theorem t /- an aside -/ : True"))
 
     def test_anonymous_constructor_brackets(self):
         out = tokens_to_math("⟨h1, h2⟩")

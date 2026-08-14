@@ -19,10 +19,14 @@ rule whose violation would generate a workspace that builds but poses the
 wrong problem. The build itself is the comparator's job, not these tests'.
 """
 
+import pathlib
+import tempfile
 import unittest
 
+import make_comparator_workspace as mcw
 from make_comparator_workspace import (
     declares,
+    load_manifest,
     hoist_answers,
     module_name,
     peel_loose,
@@ -196,6 +200,42 @@ class NameTest(unittest.TestCase):
         self.assertEqual(slug("erdos_940.variants.large_integers"),
                          "erdos_940_variants_large_integers")
         self.assertEqual(slug("dean_conjecture"), "dean_conjecture")
+
+
+class ManifestTest(unittest.TestCase):
+    """A manifest supplies what the Lean source cannot."""
+
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self._saved = mcw.MANIFEST_DIR
+        mcw.MANIFEST_DIR = pathlib.Path(self._dir.name)
+
+    def tearDown(self):
+        mcw.MANIFEST_DIR = self._saved
+        self._dir.cleanup()
+
+    def write(self, name, body):
+        (mcw.MANIFEST_DIR / name).write_text(body)
+
+    def test_absent_manifest_is_not_an_error(self):
+        # Most statements need none, and the generator works without one.
+        self.assertEqual(load_manifest("no_such_problem"), {})
+
+    def test_fields_are_read(self):
+        self.write("p.toml", 'id = "p"\ndeclaration = "d"\nanswer_type = "ENNReal"\n')
+        self.assertEqual(load_manifest("p")["answer_type"], "ENNReal")
+
+    def test_id_must_match_the_filename(self):
+        # The filename is what the generator looks up, so a disagreeing `id`
+        # would silently name a workspace directory nobody asked for.
+        self.write("p.toml", 'id = "other"\ndeclaration = "d"\n')
+        with self.assertRaises(SystemExit):
+            load_manifest("p")
+
+    def test_declaration_is_required(self):
+        self.write("p.toml", 'id = "p"\n')
+        with self.assertRaises(SystemExit):
+            load_manifest("p")
 
 
 if __name__ == "__main__":

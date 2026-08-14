@@ -1,0 +1,12 @@
+# The answer slot is not flanked by `↔`, so its type is not in the syntax.
+# It is the type of the `⨅` it is compared against, whose body is
+# `volume {x | ...}`, and `MeasureTheory.volume` lands in `ℝ≥0∞`.
+id = "erdos_1038_part_i"
+declaration = "erdos_1038.parts.i"
+module = "FormalConjectures/ErdosProblems/1038.lean"
+answer_type = "ENNReal"
+source = "https://www.erdosproblems.com/1038"
+notes = """
+Asks for the infimum of `|{x : |f x| < 1}|` over nonconstant monic real
+polynomials whose roots all lie in `[-1,1]`.
+"""

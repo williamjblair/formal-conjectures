@@ -10,8 +10,8 @@ Challenge.lean imports the problem's own module. lean-eval's generated
 Challenge is one `import Mathlib` and one statement, because its problems are
 authored self-contained; this repository's are not, so the import here is the
 problem's module and the statement's context comes with it. Only what Lean
-scopes to a file has to be copied: `open`, `variable`, `set_option` and
-`local notation`.
+scopes to a file has to be copied: `open`, `variable`, `universe`,
+`set_option` and `local notation`.
 
 Layout produced:
 
@@ -27,10 +27,15 @@ Layout produced:
 
 `answer(sorry)` handling follows the mechanism's own semantics: a slot flanking
 an `↔` is a `Prop`; any other slot's type cannot be read off the surface syntax,
-so it must be supplied with `--answer-type`, and the script refuses to guess.
+so it must be supplied, and the script refuses to guess.
+
+Two things the source cannot settle live in `comparator/problems/<id>.toml`,
+one file per problem: that answer type, and which file is meant when two
+declare the same name. See that directory's README.
 
 Usage:
-  python make_comparator_workspace.py DECLARATION [--out DIR] [--answer-type T]
+  python make_comparator_workspace.py (ID | DECLARATION) [--out DIR] [--answer-type T]
+  python make_comparator_workspace.py --validate
 
 The workspace's own build needs a network fetch of its pinned dependencies, so
 this script does not attempt it; generation is offline and the build belongs to
@@ -43,9 +48,11 @@ import pathlib
 import re
 import subprocess
 import sys
+import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE_DIRS = [ROOT / "FormalConjectures"]
+MANIFEST_DIR = ROOT / "comparator" / "problems"
 
 LICENSE_HEADER = """/-
 Copyright 2026 The Formal Conjectures Authors.
@@ -210,6 +217,44 @@ def slug(name):
     return re.sub(r"[^0-9A-Za-z_]", "_", name)
 
 
+def load_manifest(problem_id):
+    """Per-problem facts the source cannot supply, or supplies ambiguously.
+
+    Two things cannot be read off a statement. The type of an `answer(sorry)`
+    slot that does not flank an `↔`, which the surface syntax does not carry;
+    and which file is meant when two declare the same name, as
+    `conjecture_1_1` is declared by both Arxiv/2501.03234 and Arxiv/2504.17644.
+    Guessing either would pose a problem nobody asked for.
+
+    `leanprover/lean-eval` keeps one TOML per problem, and the reason is worth
+    copying: two pull requests adding different problems never touch the same
+    file.
+
+      id           the filename stem, and the workspace directory name
+      declaration  the Lean name, which need not be unique across the repository
+      module       the file declaring it, relative to the repository root
+      answer_type  the type of a non-`Prop` answer slot
+      notes        free text for a reviewer
+      source       a citation or URL
+    """
+    path = MANIFEST_DIR / f"{problem_id}.toml"
+    if not path.exists():
+        return {}
+    with path.open("rb") as handle:
+        data = tomllib.load(handle)
+    if data.get("id") != problem_id:
+        raise SystemExit(
+            f"{path} declares id {data.get('id')!r}, but its filename says "
+            f"{problem_id!r}; the two must agree")
+    if "declaration" not in data:
+        raise SystemExit(f"{path} has no `declaration` field")
+    return data
+
+
+def manifest_ids():
+    return sorted(p.stem for p in MANIFEST_DIR.glob("*.toml"))
+
+
 def module_name(rel_path):
     """The Lean module name for a path under `FormalConjectures/`.
 
@@ -222,10 +267,19 @@ def module_name(rel_path):
     return ".".join(parts)
 
 
-def find_declaration(basename):
-    """Locate the file declaring `basename`. Returns (path, module_docstring, body)."""
+def find_declaration(basename, module=None):
+    """Locate the file declaring `basename`. Returns (path, module_docstring, body).
+
+    `module` names the file when more than one declares the name, and comes
+    from the problem's manifest.
+    """
     pattern = re.compile(rf"^(?:theorem|lemma|def)\s.*\b{re.escape(basename)}\b",
                          re.MULTILINE)
+    if module is not None:
+        named = ROOT / module
+        if not named.exists():
+            raise SystemExit(f"manifest names {module}, which does not exist")
+        return _read_source(named)
     hits = []
     for src in SOURCE_DIRS:
         for path in sorted(src.rglob("*.lean")):
@@ -236,8 +290,14 @@ def find_declaration(basename):
     if not hits:
         raise SystemExit(f"no declaration named {basename!r} found under FormalConjectures/")
     if len(hits) > 1:
-        raise SystemExit(f"{basename!r} is ambiguous: " + ", ".join(str(h) for h in hits))
-    path = hits[0]
+        raise SystemExit(
+            f"{basename!r} is ambiguous: "
+            + ", ".join(str(h.relative_to(ROOT)) for h in hits)
+            + f"; add comparator/problems/<id>.toml naming one in `module`")
+    return _read_source(hits[0])
+
+
+def _read_source(path):
     text = path.read_text(encoding="utf-8")
     # Drop the license header; keep the module docstring; the rest is the body.
     text = re.sub(r"\A/-.*?-/\s*", "", text, flags=re.DOTALL)
@@ -387,7 +447,11 @@ def generate(basename, out_dir, answer_type=None):
     checks axioms. A solution closing the goal with the imported statement
     reports `sorryAx`, which `permitted_axioms` does not allow.
     """
-    path, _imports, _module_doc, body = find_declaration(basename)
+    manifest = load_manifest(basename)
+    declaration = manifest.get("declaration", basename)
+    answer_type = answer_type or manifest.get("answer_type")
+    path, _imports, _module_doc, body = find_declaration(
+        declaration, manifest.get("module"))
     blocks = split_blocks(body)
 
     target, matches, preamble = None, [], []
@@ -403,7 +467,7 @@ def generate(basename, out_dir, answer_type=None):
             if len(name) > 1 and stack and stack[-1] == name[1].strip():
                 stack.pop()
             continue
-        if b.name and declares(b.name, basename):
+        if b.name and declares(b.name, declaration):
             matches.append(b)
             target = b
             # The namespaces open *here*, which is what the statement's short
@@ -418,12 +482,12 @@ def generate(basename, out_dir, answer_type=None):
             preamble.append(b.text)
 
     if target is None:
-        raise SystemExit(f"{basename!r} not found as a block in {path}")
+        raise SystemExit(f"{declaration!r} not found as a block in {path}")
     if len(matches) > 1:
         # Taking the last silently would pose a problem the caller did not ask
         # for, and nothing downstream would notice.
         raise SystemExit(
-            f"{basename!r} matches more than one declaration in {path}: "
+            f"{declaration!r} matches more than one declaration in {path}: "
             + ", ".join(b.name for b in matches)
             + "; name one of them in full")
 
@@ -457,9 +521,10 @@ def generate(basename, out_dir, answer_type=None):
     full_name = ".".join(namespaces_at_target + [declared])
     hole_names = [h.split()[2] for h in holes]
 
-    ws = pathlib.Path(out_dir) / slug(declared)
+    workspace_id = slug(manifest.get("id", declared))
+    ws = pathlib.Path(out_dir) / workspace_id
     ws.mkdir(parents=True, exist_ok=True)
-    (ws / "lakefile.toml").write_text(lakefile(slug(declared), mathlib_rev, fc_rev))
+    (ws / "lakefile.toml").write_text(lakefile(workspace_id, mathlib_rev, fc_rev))
     # Without a toolchain file, lake in the workspace falls back to elan's
     # default, which need not exist and need not match the pinned Mathlib.
     (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
@@ -474,7 +539,7 @@ def generate(basename, out_dir, answer_type=None):
         "definition_names": hole_names,
     }, indent=2) + "\n")
     (ws / "holes.json").write_text(json.dumps({
-        "id": declared,
+        "id": manifest.get("id", declared),
         "module": str(path.relative_to(ROOT)),
         "holes": [
             {"name": ".".join(namespaces_at_target + [hn]), "basename": hn,
@@ -488,13 +553,49 @@ def generate(basename, out_dir, answer_type=None):
     return ws
 
 
+def validate():
+    """Check every manifest resolves to exactly one declaration.
+
+    Run this rather than discovering a stale `module` field when someone
+    generates the workspace months later.
+    """
+    bad = 0
+    for problem_id in manifest_ids():
+        try:
+            manifest = load_manifest(problem_id)
+            declaration = manifest["declaration"]
+            path, _i, _d, body = find_declaration(declaration, manifest.get("module"))
+            matches = [b for b in split_blocks(body)
+                       if b.name and declares(b.name, declaration)]
+            if len(matches) != 1:
+                raise SystemExit(
+                    f"{declaration!r} matches {len(matches)} declarations in "
+                    f"{path.relative_to(ROOT)}")
+        except SystemExit as exc:
+            print(f"{problem_id}: {exc}", file=sys.stderr)
+            bad += 1
+            continue
+        print(f"{problem_id}: {declaration} in {path.relative_to(ROOT)}")
+    if bad:
+        print(f"{bad} manifest(s) do not resolve", file=sys.stderr)
+    return 1 if bad else 0
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("declaration", help="basename, e.g. dean_conjecture or erdos_940")
+    ap.add_argument("declaration", nargs="?",
+                    help="a manifest id, or a declaration name such as erdos_940")
     ap.add_argument("--out", default=str(ROOT / ".comparator"))
     ap.add_argument("--answer-type", default=None,
-                    help="type of a non-Prop answer(sorry) slot")
+                    help="type of a non-Prop answer(sorry) slot; "
+                         "the manifest's `answer_type` is used when absent")
+    ap.add_argument("--validate", action="store_true",
+                    help="check every manifest resolves, and generate nothing")
     args = ap.parse_args(argv)
+    if args.validate:
+        return validate()
+    if not args.declaration:
+        ap.error("give a declaration, or --validate")
     ws = generate(args.declaration, args.out, args.answer_type)
     print(ws)
     return 0

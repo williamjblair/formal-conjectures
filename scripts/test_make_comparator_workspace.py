@@ -29,6 +29,7 @@ from make_comparator_workspace import (
     load_manifest,
     resolve,
     hoist_answers,
+    locate,
     module_name,
     peel_loose,
     replace_proof_with_sorry,
@@ -83,6 +84,12 @@ class StatementTest(unittest.TestCase):
         out = replace_proof_with_sorry("theorem t : True := trivial")
         self.assertNotIn("trivial", out)
         self.assertTrue(out.rstrip().endswith("sorry"))
+
+    def test_term_proof_with_a_structure_literal_is_refused(self):
+        # The statement's own `:=` cannot be told from the proof's, and
+        # cutting at the wrong one truncates the statement.
+        with self.assertRaises(SystemExit):
+            replace_proof_with_sorry("theorem t : F { a := 1 } := ⟨rfl⟩")
 
     def test_a_line_comment_between_docstring_and_attribute_is_stripped(self):
         # Erdos 918 writes a `--` formalisation note there. One anchored pass
@@ -180,6 +187,41 @@ class SplitTest(unittest.TestCase):
         blocks = split_blocks("open Classical in\ntheorem t : True := trivial\n")
         self.assertEqual(blocks[0].kind, "theorem")
         self.assertEqual(blocks[0].name, "t")
+
+
+class LocateTest(unittest.TestCase):
+    """Only directives in force at the statement are carried."""
+
+    def test_variable_in_a_closed_section_is_dropped(self):
+        blocks = split_blocks("section S\nvariable {n : Nat}\nend S\n\n"
+                              "open Nat\n\ntheorem t : True := trivial\n")
+        target, _, pre = locate(blocks, "t")
+        self.assertEqual(target.name, "t")
+        self.assertEqual(pre, ["open Nat"])
+
+    def test_directive_after_the_target_is_dropped(self):
+        # It played no part in how the statement's names resolved, and an
+        # extra `open` can make a name ambiguous.
+        blocks = split_blocks("theorem t : True := trivial\n\nopen Nat\n")
+        _, _, pre = locate(blocks, "t")
+        self.assertEqual(pre, [])
+
+    def test_directive_in_an_enclosing_namespace_is_kept(self):
+        blocks = split_blocks("namespace A\nopen Nat\n"
+                              "theorem t : True := trivial\nend A\n")
+        _, namespaces, pre = locate(blocks, "t")
+        self.assertEqual(namespaces, ["A"])
+        self.assertEqual(pre, ["open Nat"])
+
+    def test_anonymous_section_scopes_its_variable(self):
+        blocks = split_blocks("section\nvariable {n : Nat}\nend\n\n"
+                              "theorem t : True := trivial\n")
+        _, _, pre = locate(blocks, "t")
+        self.assertEqual(pre, [])
+
+    def test_missing_declaration_raises(self):
+        with self.assertRaises(SystemExit):
+            locate(split_blocks("def a := 1\n"), "t")
 
 
 class NameTest(unittest.TestCase):

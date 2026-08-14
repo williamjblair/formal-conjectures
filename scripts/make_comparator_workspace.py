@@ -22,6 +22,7 @@ Layout produced:
                         replaced by `sorry`, and each `answer(sorry)` hoisted
                         into a definition hole the solver must fill
     Solution.lean       a stub the solver replaces
+    README.md           what the solver needs to know, cache fetch included
     config.json         theorem and definition names, permitted axioms
     holes.json          the extracted blocks, for tooling and for review
 
@@ -55,22 +56,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE_DIRS = [ROOT / "FormalConjectures"]
 MANIFEST_DIR = ROOT / "comparator" / "problems"
 
-LICENSE_HEADER = """/-
-Copyright 2026 The Formal Conjectures Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--/
-"""
 
 PERMITTED_AXIOMS = ["propext", "Quot.sound", "Classical.choice"]
 
@@ -303,8 +288,6 @@ def find_declaration(basename, module=None):
     `module` names the file when more than one declares the name, and comes
     from the problem's manifest.
     """
-    pattern = re.compile(rf"^(?:theorem|lemma|def)\s.*\b{re.escape(basename)}\b",
-                         re.MULTILINE)
     if module is not None:
         named = ROOT / module
         if not named.exists():
@@ -370,10 +353,21 @@ def strip_decorations(block_text):
 
 
 def replace_proof_with_sorry(text):
-    """Cut the proof body after `:=`, keeping the statement."""
+    """Cut the proof body after `:=`, keeping the statement.
+
+    A tactic proof is found by `:= by`, which a statement cannot contain,
+    `by` being a keyword. A term proof leaves only a bare `:=` to cut at, and
+    a statement can contain one of those: a structure literal `{ a := b }`
+    inside the statement would be cut in half. With more than one candidate
+    the script refuses, as everywhere else it cannot decide.
+    """
     m = re.search(r":=\s*by\b", text)
     if m:
         return text[: m.start()].rstrip() + " := by\n  sorry"
+    if text.count(":=") > 1:
+        raise SystemExit(
+            "the declaration has a term-mode proof and more than one `:=`, so "
+            "the start of the proof cannot be read off the text")
     m = re.search(r":=", text)
     if m:
         return text[: m.start()].rstrip() + " := by\n  sorry"
@@ -469,6 +463,56 @@ name = "Solution"
 """
 
 
+def locate(blocks, declaration, path=""):
+    """Find the target declaration, and what is in force at its position.
+
+    Returns (target block, namespaces open at it, file-scoped preamble).
+
+    The preamble keeps only directives that precede the target and whose
+    scope still encloses it. A `variable` inside a `section` that closed
+    before the statement is out of force there, and an `open` written after
+    the statement played no part in how its names resolved. Carrying either
+    would change the statement, silently in the `open` case: an extra open
+    namespace can make a name ambiguous, which is how a stray research
+    statement broke the Koethe workspace.
+    """
+    matches, preamble, stack = [], [], []
+    for index, b in enumerate(blocks):
+        if b.kind in ("namespace", "section"):
+            parts = (b.kind_line or "").split(None, 1)
+            stack.append((b.kind, parts[1].strip() if len(parts) > 1 else None))
+            continue
+        if b.kind == "end":
+            parts = (b.kind_line or "").split(None, 1)
+            name = parts[1].strip() if len(parts) > 1 else None
+            if stack and (stack[-1][1] == name
+                          or (name is None and stack[-1][0] == "section")):
+                stack.pop()
+            continue
+        if b.name and declares(b.name, declaration):
+            matches.append((index, b, list(stack)))
+            continue
+        if b.kind in FILE_SCOPED:
+            preamble.append((index, b.text, list(stack)))
+
+    if not matches:
+        raise SystemExit(f"{declaration!r} not found as a block in {path}")
+    chosen = resolve([b for _, b, _ in matches], declaration)
+    if len(chosen) > 1:
+        # Taking the last silently would pose a problem the caller did not ask
+        # for, and nothing downstream would notice.
+        raise SystemExit(
+            f"{declaration!r} matches more than one declaration in {path}: "
+            + ", ".join(b.name for b in chosen)
+            + "; name one of them in full")
+    index, target, scope = next(
+        (i, b, s) for i, b, s in matches if b is chosen[0])
+    namespaces = [n for kind, n in scope if kind == "namespace" and n]
+    in_force = [text for i, text, s in preamble
+                if i < index and s == scope[:len(s)]]
+    return target, namespaces, in_force
+
+
 def generate(basename, out_dir, answer_type=None, module=None):
     """Write a comparator workspace for one declaration.
 
@@ -491,46 +535,8 @@ def generate(basename, out_dir, answer_type=None, module=None):
     answer_type = answer_type or manifest.get("answer_type")
     module = module or manifest.get("module")
     path, _imports, _module_doc, body = find_declaration(declaration, module)
-    blocks = split_blocks(body)
-
-    target, matches, preamble = None, [], []
-    stack, namespaces_at_target = [], []
-    for b in blocks:
-        if b.kind == "namespace":
-            name = (b.kind_line or "").split(None, 1)
-            if len(name) > 1:
-                stack.append(name[1].strip())
-            continue
-        if b.kind == "end":
-            name = (b.kind_line or "").split(None, 1)
-            if len(name) > 1 and stack and stack[-1] == name[1].strip():
-                stack.pop()
-            continue
-        if b.name and declares(b.name, declaration):
-            matches.append(b)
-            target = b
-            # The namespaces open *here*, which is what the statement's short
-            # names resolve against. Tracking the stack rather than collecting
-            # every `namespace` line handles both nesting and siblings.
-            namespaces_at_target = list(stack)
-            continue
-        if b.kind in FILE_SCOPED:
-            # Lean scopes these to their file, so an import does not carry
-            # them and they have to be copied. Everything else the statement
-            # needs is a real declaration, and the import supplies it.
-            preamble.append(b.text)
-
-    if target is None:
-        raise SystemExit(f"{declaration!r} not found as a block in {path}")
-    matches = resolve(matches, declaration)
-    target = matches[0] if len(matches) == 1 else target
-    if len(matches) > 1:
-        # Taking the last silently would pose a problem the caller did not ask
-        # for, and nothing downstream would notice.
-        raise SystemExit(
-            f"{declaration!r} matches more than one declaration in {path}: "
-            + ", ".join(b.name for b in matches)
-            + "; name one of them in full")
+    target, namespaces_at_target, preamble = locate(
+        split_blocks(body), declaration, path)
 
     declared = target.name
     statement = strip_decorations(target.text)
@@ -569,16 +575,38 @@ def generate(basename, out_dir, answer_type=None, module=None):
     # Without a toolchain file, lake in the workspace falls back to elan's
     # default, which need not exist and need not match the pinned Mathlib.
     (ws / "lean-toolchain").write_text((ROOT / "lean-toolchain").read_text())
+    holes_line = (
+        "\nFill each definition hole with the same name and type. Hole answers "
+        "also get a\nhuman check, because a hole can be gamed in ways the "
+        "comparator cannot see.\n" if holes else "")
+    (ws / "README.md").write_text(
+        f"# {workspace_id}\n\n"
+        f"A comparator challenge for `{declared}`, generated from\n"
+        f"`{path.relative_to(ROOT)}` in google-deepmind/formal-conjectures.\n\n"
+        "Replace `Solution.lean` with a proof of the statement in "
+        "`Challenge.lean`.\n"
+        "Comparator accepts it only if it proves the same statement under the "
+        "axioms in\n`config.json`. `sorry` adds `sorryAx`, which is not "
+        "permitted, and closing the\ngoal with the imported original fails "
+        "the same way, since that is `sorry` too.\n"
+        + holes_line +
+        "\nFetch the Mathlib cache before the first build; a cold build takes "
+        "the best\npart of an hour without it:\n\n"
+        "    lake exe cache get\n"
+        "    lake build\n")
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)
-    (ws / "config.json").write_text(json.dumps({
+    config = {
         "challenge_module": "Challenge",
         "solution_module": "Solution",
         "theorem_names": [declared],
         "permitted_axioms": PERMITTED_AXIOMS,
         "enable_nanoda": False,
-        "definition_names": hole_names,
-    }, indent=2) + "\n")
+    }
+    if hole_names:
+        # Comparator's documented no-hole config carries no such field.
+        config["definition_names"] = hole_names
+    (ws / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     (ws / "holes.json").write_text(json.dumps({
         "id": manifest.get("id", declared),
         "module": str(path.relative_to(ROOT)),
@@ -606,13 +634,7 @@ def validate():
             manifest = load_manifest(problem_id)
             declaration = manifest["declaration"]
             path, _i, _d, body = find_declaration(declaration, manifest.get("module"))
-            matches = resolve([b for b in split_blocks(body)
-                               if b.name and declares(b.name, declaration)],
-                              declaration)
-            if len(matches) != 1:
-                raise SystemExit(
-                    f"{declaration!r} matches {len(matches)} declarations in "
-                    f"{path.relative_to(ROOT)}")
+            locate(split_blocks(body), declaration, path.relative_to(ROOT))
         except SystemExit as exc:
             print(f"{problem_id}: {exc}", file=sys.stderr)
             bad += 1

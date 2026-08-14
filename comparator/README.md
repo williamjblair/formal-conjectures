@@ -59,6 +59,13 @@ moving or renaming a statement.
 
 ## Pins
 
+The external tools carry pins of their own, taken from lean-eval's tested set:
+comparator at or after `71b52ec2`, which added definition-hole support that
+our `answer(sorry)` workspaces rely on; landrun at `5ed4a3db`, since tagged
+releases lack fixes comparator needs; and `lean4export` built with the
+workspace's own `lean-toolchain`, never its default, because olean headers
+differ between Lean releases.
+
 A workspace pins Mathlib to the revision in this checkout's
 `lake-manifest.json`, and `formal_conjectures` to the merge-base of `HEAD`
 with `origin/main`, so the workspace's own build can fetch both. The pins

@@ -680,7 +680,9 @@ def generate(basename, out_dir, answer_type=None, module=None):
     holes_line = (
         "\nFill each definition hole in `Submission.lean` too. Hole answers "
         "also get a\nhuman check, because a hole can be gamed in ways the "
-        "comparator cannot see.\n" if holes else "")
+        "comparator cannot see.\nChecking holes needs a comparator built at "
+        "or after commit `71b52ec2`, which\nadded definition support.\n"
+        if holes else "")
     manifest_lines = "".join(
         f"- {field.capitalize()}: {' '.join(str(manifest[field]).split())}\n"
         for field in ("source", "notes") if manifest.get(field))

@@ -42,6 +42,7 @@ Usage:
   python make_comparator_workspace.py (ID | DECLARATION) [--out DIR]
       [--answer-type T] [--module FILE]
   python make_comparator_workspace.py --validate
+  python make_comparator_workspace.py --all [--out DIR]
 
 The workspace's own build needs a network fetch of its pinned dependencies, so
 this script does not attempt it; generation is offline and the build belongs to
@@ -645,7 +646,7 @@ def generate(basename, out_dir, answer_type=None, module=None):
     # The participant's file. The statement sits inside `namespace Submission`
     # so nothing here can collide with, or stand in for, the trusted names.
     submission = (
-        f"import {fc_module}\n\n" + header
+        f"import {fc_module}\nimport Submission.Helpers\n\n" + header
         + "namespace Submission\n\n"
         + "\n\n".join(holes) + ("\n\n" if holes else "")
         + statement + "\n\n"
@@ -699,6 +700,11 @@ def generate(basename, out_dir, answer_type=None, module=None):
         "not permitted, and\nclosing the goal with the imported original "
         "fails the same way, since that is\n`sorry` too. `lake test` runs "
         "comparator, from `PATH` or `COMPARATOR_BIN`.\n"
+        "\nIf comparator fails with `incompatible header` on an `.olean`, the "
+        "mismatch is\nbetween this workspace's toolchain and the one "
+        "`lean4export` was built with,\nnever a problem with the proof: copy "
+        "this workspace's `lean-toolchain` into\nyour `lean4export` checkout, "
+        "rebuild it, and clear `.lake/build` here.\n"
         + holes_line +
         "\nFetch the Mathlib cache before the first build; a cold build takes "
         "the best\npart of an hour without it:\n\n"
@@ -707,6 +713,14 @@ def generate(basename, out_dir, answer_type=None, module=None):
     (ws / "Challenge.lean").write_text(challenge)
     (ws / "Solution.lean").write_text(solution)
     (ws / "Submission.lean").write_text(submission)
+    # A starter helper, so the multi-file pattern is visible rather than
+    # described: lean-eval ships one, and `Submission.lean` imports it.
+    (ws / "Submission").mkdir(exist_ok=True)
+    (ws / "Submission" / "Helpers.lean").write_text(
+        "import Mathlib\n\n"
+        "/-! Helper lemmas for the submission go here, or in further modules\n"
+        "under `Submission/`, each imported from `Submission.lean`. -/\n\n"
+        "namespace Submission\n\nend Submission\n")
     # The template is a real Lean file, not a string in this script, so it
     # can be read and edited as Lean. lean-eval keeps its workspace test the
     # same way, under `templates/`.
@@ -736,6 +750,60 @@ def generate(basename, out_dir, answer_type=None, module=None):
         ],
     }, indent=2, ensure_ascii=False) + "\n")
     return ws
+
+
+def list_declarations():
+    """Every `research open` statement in the repository."""
+    pattern = re.compile(
+        r"@\[category research open[^\]]*\]\s*\n(?:theorem|lemma)\s+([\w.«»]+)")
+    for path in sorted((ROOT / "FormalConjectures").rglob("*.lean")):
+        for m in pattern.finditer(path.read_text(encoding="utf-8")):
+            yield m.group(1)
+
+
+def generate_all(out_dir):
+    """Generate every reachable workspace, and index.json beside them.
+
+    lean-eval commits a `generated/index.json` naming each workspace, and a
+    catalog is what any consumer of these workspaces reads first. Manifests go
+    first, so a manifested problem's workspace is generated with its manifest;
+    a refusal in the plain pass is counted, not fatal, since the two refusal
+    classes are exactly what a manifest exists to resolve.
+    """
+    entries, seen = [], set()
+    need_type = ambiguous = errors = 0
+    for name in list(manifest_ids()) + sorted(set(list_declarations())):
+        try:
+            ws = generate(name, out_dir)
+        except SystemExit as err:
+            msg = str(err)
+            if "--answer-type" in msg:
+                need_type += 1
+            elif "is ambiguous" in msg:
+                ambiguous += 1
+            else:
+                print(f"{name}: {msg}", file=sys.stderr)
+                errors += 1
+            continue
+        if ws.name in seen:
+            continue
+        seen.add(ws.name)
+        info = json.loads((ws / "holes.json").read_text())
+        entries.append({
+            "id": info["id"],
+            "declaration": info["holes"][-1]["basename"],
+            "module": info["module"],
+            "holes": [h["basename"] for h in info["holes"][:-1]],
+            "generated_path": ws.name,
+        })
+    entries.sort(key=lambda e: e["id"])
+    out = pathlib.Path(out_dir)
+    (out / "index.json").write_text(
+        json.dumps(entries, indent=2, ensure_ascii=False) + "\n")
+    print(f"generated {len(entries)}; skipped {need_type} needing an "
+          f"answer_type and {ambiguous} ambiguous without a manifest; "
+          f"{errors} errors")
+    return 1 if errors else 0
 
 
 def validate():
@@ -774,9 +842,13 @@ def main(argv):
                          "overrides the manifest's `module`")
     ap.add_argument("--validate", action="store_true",
                     help="check every manifest resolves, and generate nothing")
+    ap.add_argument("--all", action="store_true",
+                    help="generate every reachable workspace, and index.json")
     args = ap.parse_args(argv)
     if args.validate:
         return validate()
+    if args.all:
+        return generate_all(args.out)
     if not args.declaration:
         ap.error("give a declaration, or --validate")
     ws = generate(args.declaration, args.out, args.answer_type, args.module)

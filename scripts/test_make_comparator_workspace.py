@@ -293,6 +293,16 @@ class NameTest(unittest.TestCase):
         self.assertEqual(slug("dean_conjecture"), "dean_conjecture")
 
 
+class InventoryTest(unittest.TestCase):
+
+    def test_list_declarations_finds_a_known_statement(self):
+        # Ties the scan to the repository on purpose: if this fails, either
+        # the statement moved or the scan broke, and both are worth knowing.
+        names = set(mcw.list_declarations())
+        self.assertIn("erdos_940.variants.large_integers", names)
+        self.assertGreater(len(names), 1000)
+
+
 class TemplateTest(unittest.TestCase):
 
     def test_workspace_test_template_exists_and_is_the_runner(self):

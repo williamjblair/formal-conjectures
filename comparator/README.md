@@ -28,7 +28,8 @@ python3 scripts/make_comparator_workspace.py erdos_940.variants.large_integers
 ```
 
 The script's docstring covers the layout it produces and the cases where it
-refuses rather than guesses.
+refuses rather than guesses. `--all` generates every reachable workspace and
+an `index.json` cataloguing them.
 
 ## Manifests
 
@@ -55,6 +56,15 @@ python3 scripts/make_comparator_workspace.py --validate
 
 checks every manifest still resolves to exactly one declaration. Run it after
 moving or renaming a statement.
+
+## Pins
+
+A workspace pins Mathlib to the revision in this checkout's
+`lake-manifest.json`, and `formal_conjectures` to the merge-base of `HEAD`
+with `origin/main`, so the workspace's own build can fetch both. The pins
+move by regenerating; there is no separate bump step. If the source file
+changed since the merge-base, the generator warns that the statement and its
+imported context may disagree, and the fix is to push first.
 
 ## The intended end state
 

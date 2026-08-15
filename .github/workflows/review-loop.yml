@@ -78,9 +78,10 @@ jobs:
           t = sub.read_text()
           t = t.replace("import Submission.Helpers",
                         "import Submission.Helpers\nimport Submission.External")
-          t = t.replace(": Prop := sorry", ": Prop := True")
+          # 427's answer is decided, `answer(True)`, so the generator hoists
+          # no hole and the statement is `True ↔ erdos427`.
           proof = (":= by\n"
-                   "  simp only [erdos_427_answer, true_iff]\n"
+                   "  simp only [true_iff]\n"
                    "  intro n d hd\n"
                    "  obtain \u27e8k, hk1, hkdvd\u27e9 := External.erdos427 n d (Nat.one_le_iff_ne_zero.mpr hd)\n"
                    "  refine \u27e8k, Nat.one_le_iff_ne_zero.mp hk1, ?_\u27e9\n"

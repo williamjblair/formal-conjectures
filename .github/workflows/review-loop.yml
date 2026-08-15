@@ -54,6 +54,14 @@ jobs:
           curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
+      - name: Build lean4export
+        working-directory: .ci/lean4export
+        run: lake build lean4export
+
+      - name: Build comparator
+        working-directory: .ci/comparator
+        run: lake build comparator
+
       - name: Build the extractor and the problem module
         run: |
           lake exe cache get
@@ -117,7 +125,12 @@ jobs:
           python3 - <<'PY'
           import json, pathlib, os
           log = pathlib.Path(".comparator/erdos_427/comparator.log").read_text()
-          verdict = "pass" if "solution is okay" in log else "fail"
+          if "solution is okay" in log:
+              verdict = "pass"
+          elif "could not execute" in log or not log.strip():
+              verdict = "error"
+          else:
+              verdict = "fail"
           report = {
             "schemaVersion": 1,
             "pr": 4884,

@@ -23,6 +23,20 @@ Pinned source evidence:
 - external toolchain: `leanprover/lean4:v4.28.0`
 - this draft branch toolchain: `leanprover/lean4:v4.27.0`
 
-That toolchain mismatch is an execution gate. Do not copy generated `.olean`
-files across it, silently retarget Mathlib, or report green until a single
-fully pinned workspace compiles FC, the external source, and `Bridge.lean`.
+`scripts/prepare_claudes_cycles_pilot.py` makes the cross-toolchain test
+deterministic: it verifies the exact external commit, both declared
+toolchains, and the Basic/Challenge/Solution source hashes, then copies only
+`KnuthClaudeLean/Basic.lean` and this bridge into a new generated FC workspace.
+It never imports the product/triple challenge or copies `.olean` files. A
+focused build of `ClaudesCyclesPilot` is the next gate; even a passing build is
+bridge compatibility evidence, not a Comparator result or proof acceptance.
+
+The 2026-08-15 focused build reached that gate and stopped deterministically:
+the pinned v4.28 `KnuthClaudeLean.Basic` source does not compile in the pinned
+v4.27 FC workspace. The first error is `Basic.lean:123:67: unknown tactic`,
+followed by unsolved algebra goals; Lean exits after its 100-error limit. The
+FC dependency itself builds, but `Bridge.lean` is not elaborated because the
+external library fails first. See `bridge-gate.json` for the bounded command
+and typed boundary. Do not patch the external theorem source in this workspace,
+invoke Comparator, or report a bridge result until one exact toolchain can
+compile both sources.

@@ -16,7 +16,7 @@ limitations under the License.
 
 /- Draft bridge. This file is not imported by Formal Conjectures. -/
 import FormalConjectures.Paper.ClaudesCycles
-import KnuthClaudeLean
+import KnuthClaudeLean.Basic
 
 namespace ClaudesCyclesPilot
 

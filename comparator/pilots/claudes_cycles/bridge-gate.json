@@ -1,0 +1,26 @@
+{
+  "authority_effect": "none",
+  "bounded_replay": {
+    "command": "gtimeout --signal=TERM --kill-after=5s 120s lake --wfail build ClaudesCyclesPilot",
+    "elapsed_seconds": 6.7,
+    "exit_code": 1,
+    "timeout_reached": false
+  },
+  "external_commit": "bdda6025fb7954f614ed9a7ac7382455fd064940",
+  "external_toolchain": "leanprover/lean4:v4.28.0",
+  "first_failure": {
+    "column": 67,
+    "file": "KnuthClaudeLean/Basic.lean",
+    "line": 123,
+    "message": "unknown tactic"
+  },
+  "outcome": {
+    "bridge_elaboration": "not_reached",
+    "comparator_invocation": "not_attempted",
+    "external_basic_build": "error",
+    "formal_conjectures_dependency_build": "complete"
+  },
+  "schema": "formal-conjectures.claudes-cycles-bridge-gate.v1",
+  "source_hash": "sha256:f697fff467799075f2bef8c9f0390461abb2f89d853adbba2a99f07f841adf9c",
+  "workspace_toolchain": "leanprover/lean4:v4.27.0"
+}

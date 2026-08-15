@@ -30,7 +30,10 @@ elaborated environment knows exactly and the text layer can only guess:
   `answer(sorry)` slot. The generator's manifest `answer_type` field exists
   only because surface syntax does not carry this; the environment does.
 
-Usage: lake exe comparator_facts <Module> <declaration>
+Usage:
+  lake exe comparator_facts <Module> <declaration>
+  lake exe comparator_facts --batch    (pairs "<Module> <decl>" on stdin; one
+                                        environment holds every module named)
 
 The declaration may be given in full or by any whole suffix, the same rule
 the Python generator uses.
@@ -64,29 +67,85 @@ unsafe def runWithImports {α : Type} (moduleNames : Array Name)
   let imports := moduleNames.map fun n => { module := n }
   Lean.enableInitializersExecution
   let env ← Lean.importModules imports {} (trustLevel := 1024) (loadExts := true)
-  let ctx := { fileName := "", fileMap := default }
+  -- Twice the default budget, in the context's raw units, which are a
+  -- thousand times the `maxHeartbeats` option's: 800000 here meant "800" and
+  -- killed the first query. Finite, so a pathological statement errors and is
+  -- caught rather than grinding forever, which maxHeartbeats := 0 did.
+  let ctx := { fileName := "", fileMap := default, maxHeartbeats := 400000000 }
   let (result, _) ← Core.CoreM.toIO (actionToRun.run' {} {}) ctx { env := env }
   return result
 
+/-- Resolve within one module. Names declared elsewhere are not candidates,
+which is what lets one environment holding every module still disambiguate
+`conjecture_1_1` the way a per-module import does. -/
+def resolveIn (env : Environment) (modName : Name) (declName : String) :
+    Except String Name :=
+  let inModule (n : Name) : Bool :=
+    match env.getModuleIdxFor? n with
+    | some idx => env.header.moduleNames[idx.toNat]? == some modName
+    | none => false
+  -- No `isInternal` filter: `erdos_340.variants._33_mem_sub` has a component
+  -- starting with an underscore, which that heuristic calls internal. The
+  -- whole-suffix rule in `declares` already keeps auxiliary declarations out,
+  -- since `foo.proof_1` is not a suffix match for `foo`.
+  let matches_ := env.constants.toList.filterMap fun (n, _) =>
+    if declares n declName && inModule n then some n else none
+  match matches_ with
+  | [] => .error s!"{declName} not found in {modName}"
+  | [n] => .ok n
+  | _ =>
+    match matches_.filter (·.toString == declName) with
+    | [n] => .ok n
+    | _ => .error s!"{declName} is ambiguous: {matches_}"
+
 unsafe def main (args : List String) : IO UInt32 := do
+  if args == ["--batch"] then
+    -- Pairs "<Module> <declaration>" on stdin, blank line or EOF ends. Every
+    -- named module is imported into ONE environment: `importModules` takes an
+    -- array, so no aggregator module is needed, and the per-query cost of an
+    -- import, which made a repository sweep take hours, is paid once.
+    let stdin ← IO.getStdin
+    let mut pairs : Array (Name × String) := #[]
+    let mut line ← stdin.getLine
+    while !line.trim.isEmpty do
+      match line.trim.splitOn " " with
+      | [m, d] => pairs := pairs.push (m.toName, d)
+      | _ => IO.eprintln s!"bad line: {line.trim}"
+      line ← stdin.getLine
+    let modules := pairs.map (·.1) |>.toList.eraseDups.toArray
+    return ← runWithImports modules do
+      let env ← getEnv
+      for (m, d) in pairs do
+        match resolveIn env m d with
+        | .error msg =>
+          IO.println (Json.compress <| Json.mkObj
+            [("declaration", toJson d), ("error", toJson msg)])
+        | .ok n =>
+          -- One pathological statement must cost one error record, not the
+          -- batch: record 61 of the first full run died in `whnf`.
+          tryCatchRuntimeEx
+            -- withCurrHeartbeats: the budget counts from the run's start, so
+            -- without a per-query reset the heavy statements exhaust it for
+            -- everyone after them; 198 of 1210 starved that way.
+            (do let _ ← withCurrHeartbeats (emit env n d (compact := true)))
+            fun _ =>
+            -- Rendering the exception's MessageData needs elaboration context
+            -- this loop does not have, and crashed the first handler. The
+            -- declaration name is the useful part.
+            IO.println (Json.compress <| Json.mkObj
+              [("declaration", toJson d),
+               ("error", toJson "extraction failed; run the single-declaration mode for the message")])
+      return (0 : UInt32)
   let [modName, declName] := args
-    | IO.eprintln "usage: comparator_facts <Module> <declaration>"; return 1
+    | IO.eprintln "usage: comparator_facts <Module> <declaration> | --batch"; return 1
   runWithImports #[modName.toName] do
     let env ← getEnv
-    let matches_ := env.constants.toList.filterMap fun (n, _) =>
-      if declares n declName && !n.isInternal then some n else none
-    match matches_ with
-    | [] => IO.eprintln s!"{declName} not found in {modName}"; return 1
-    | _ :: _ :: _ =>
-      -- The exact-name rule the Python generator uses.
-      let exact := matches_.filter (·.toString == declName)
-      match exact with
-      | [n] => emit env n
-      | _ =>
-        IO.eprintln s!"{declName} is ambiguous: {matches_}"; return 1
-    | [n] => emit env n
+    match resolveIn env modName.toName declName with
+    | .error msg => IO.eprintln msg; return 1
+    | .ok n => emit env n declName
 where
-  emit (env : Environment) (name : Name) : MetaM UInt32 := do
+  emit (env : Environment) (name : Name) (decl : String)
+      (compact : Bool := false) : MetaM UInt32 := do
     let some info := env.find? name | IO.eprintln "vanished"; return 1
     let ranges ← findDeclarationRanges? name
     -- The statement's sorries are `answer(sorry)` slots; a proof's sorry is
@@ -111,9 +170,11 @@ where
           ("endLine", toJson r.range.endPos.line),
           ("endColumn", toJson r.range.endPos.column)]
       | none => Json.null
-    IO.println <| Json.mkObj [
+    let payload := Json.mkObj [
+      ("declaration", toJson decl),
       ("name", toJson name.toString),
       ("range", rangeJson),
       ("binders", toJson binders.toList),
       ("answerTypes", toJson answerTypes.toList)]
+    IO.println (if compact then payload.compress else payload.pretty)
     return 0

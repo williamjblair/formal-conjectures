@@ -92,6 +92,33 @@ DOC_START = re.compile(r"^/-[-!]")
 FILE_SCOPED = ("open", "variable", "universe", "set_option", "notation")
 
 
+_FACTS_CACHE = {}
+
+
+def prefetch_facts(pairs):
+    """One environment, every query.
+
+    A per-problem `comparator_facts` call pays an environment import, and
+    over the repository that is hours of importing mostly the same oleans.
+    `--batch` names every module in one `importModules` call and answers
+    everything from the union environment.
+    """
+    stdin = "".join(f"{m} {d}\n" for m, d in pairs) + "\n"
+    proc = subprocess.run(
+        ["lake", "exe", "comparator_facts", "--batch"],
+        input=stdin, capture_output=True, text=True, cwd=ROOT)
+    if proc.returncode != 0:
+        raise SystemExit(f"comparator_facts --batch: {proc.stderr.strip()[:300]}")
+    # One record per pair, in input order: two files declare `conjecture_1_1`,
+    # so the declaration name alone cannot say which record is whose.
+    records = [json.loads(l) for l in proc.stdout.splitlines() if l.startswith("{")]
+    if len(records) != len(pairs):
+        raise SystemExit(
+            f"comparator_facts --batch: {len(records)} records for {len(pairs)} pairs")
+    for (m, d), obj in zip(pairs, records):
+        _FACTS_CACHE[(m, d)] = obj
+
+
 def elaborator_facts(module, declaration):
     """What the elaborated environment knows about a declaration.
 
@@ -101,6 +128,11 @@ def elaborator_facts(module, declaration):
     reconstructed from text, and each reconstruction had failure modes the
     elaborator does not.
     """
+    cached = _FACTS_CACHE.get((module, declaration))
+    if cached is not None:
+        if "error" in cached:
+            raise SystemExit(f"comparator_facts {declaration}: {cached['error']}")
+        return cached
     proc = subprocess.run(
         ["lake", "exe", "comparator_facts", module, declaration],
         capture_output=True, text=True, cwd=ROOT)
@@ -626,7 +658,18 @@ def generate_all(out_dir):
     """
     entries, seen = [], set()
     need_type = ambiguous = errors = 0
-    for name in list(manifest_ids()) + sorted(set(list_declarations())):
+    names = list(manifest_ids()) + sorted(set(list_declarations()))
+    pairs = []
+    for name in names:
+        try:
+            manifest = load_manifest(name)
+            declaration = manifest.get("declaration", name)
+            path, _i, _d, _b = find_declaration(declaration, manifest.get("module"))
+        except SystemExit:
+            continue
+        pairs.append((module_name(path.relative_to(ROOT)), declaration))
+    prefetch_facts(pairs)
+    for name in names:
         try:
             ws = generate(name, out_dir)
         except SystemExit as err:

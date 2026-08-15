@@ -66,6 +66,13 @@ jobs:
           curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
+      # Generation asks the elaborator via `lake exe comparator_facts`, so
+      # the extractor and the problem's module must be built first.
+      - name: Build the facts extractor and the problem module
+        run: |
+          lake exe cache get
+          lake build comparator_facts FormalConjectures.Wikipedia.Hadamard
+
       - name: Generate the workspace
         run: |
           python3 scripts/make_comparator_workspace.py exists_hadamard_zero --out .comparator

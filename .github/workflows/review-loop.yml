@@ -56,7 +56,9 @@ jobs:
 
       - name: Build lean4export
         working-directory: .ci/lean4export
-        run: lake build lean4export
+        run: |
+          lake build lean4export
+          echo "$GITHUB_WORKSPACE/.ci/lean4export/.lake/build/bin" >> "$GITHUB_PATH"
 
       - name: Build comparator
         working-directory: .ci/comparator
@@ -127,7 +129,8 @@ jobs:
           log = pathlib.Path(".comparator/erdos_427/comparator.log").read_text()
           if "solution is okay" in log:
               verdict = "pass"
-          elif "could not execute" in log or not log.strip():
+          elif ("could not execute" in log or "uncaught exception" in log
+                or "Failed to find binary" in log or not log.strip()):
               verdict = "error"
           else:
               verdict = "fail"

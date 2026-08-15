@@ -1,0 +1,5 @@
+id = "claudes_cycles_odd"
+declaration = "cube_hamiltonian_arc_decomposition"
+module = "FormalConjectures/Paper/ClaudesCycles.lean"
+source = "https://github.com/kim-em/KnuthClaudeLean/tree/bdda6025fb7954f614ed9a7ac7382455fd064940"
+notes = "Phase One pilot; external package ingestion requires the checked bridge and toolchain gate."

@@ -61,6 +61,23 @@ python3 scripts/make_comparator_workspace.py --validate
 checks every manifest still resolves to exactly one declaration. Run it after
 moving or renaming a statement.
 
+## Typed execution and calibration
+
+`scripts/comparator_outcome.py` keeps Comparator invocation, structured-result
+parsing, and the checked property separate. It never converts terminal text
+into a property verdict. In particular, the historical `uncaught exception:
+Illegal axiom detected` stream is an invocation `error`; a policy `fail`
+requires a successful invocation and a witnessed structured result sidecar.
+
+`scripts/calibration_operator.py` checks the immutable #4884 execution gate.
+It does not run Comparator and refuses readiness unless the exact source,
+runner, tools, fetched proof bytes, and a new output path all match
+`calibration/erdos_427.toml`.
+
+The ClaudesCycles pilot design is in `pilots/claudes_cycles/`. It exposes the
+external product/triple challenge mismatch and keeps the candidate FC bridge
+reviewable; the current v4.27/v4.28 toolchain mismatch remains a hard gate.
+
 ## Pins
 
 The external tools are locked in [`tools.toml`](tools.toml), one

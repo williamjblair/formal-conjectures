@@ -1,0 +1,21 @@
+schema = "formal-conjectures.calibration-contract.v1"
+id = "erdos-427-pr-4884"
+source_commit = "1f7b8ac102bbcac443288bc2f0620084db57422c"
+pull_request_head = "601aff40d6fa6c3150242144fadba5dbcc24c89c"
+declaration = "Erdos427.erdos_427"
+runner_image = "ubuntu-24.04@20260810.271.1"
+go_version = "go1.26.6"
+gist_url = "https://gist.githubusercontent.com/JohnEdwardJennings/e2c6ef0daab55857b7cc9d340de7af84/raw/8ff97800e38582c71246a238e7541a9d69488cbd/Erdos427.lean"
+gist_sha256 = "792a4b5fab29e5855fbcb1115d54e28a054d8fcf7ee2bd5589834a73b387c052"
+
+[tools]
+comparator = "71b52ec29e06d4b7d882726553b1ceb99a2499e0"
+landrun = "5ed4a3db3a4ad930d577215c6b9abaa19df7f99f"
+lean4export = "590dec59d93ab6becdf16fdd8aee5abbb99cb856"
+
+[expectation]
+workspace_generation = "pass"
+workspace_build = "pass"
+invocation = "error"
+policy_result = "not_evaluated"
+diagnostic = "uncaught exception: Illegal axiom detected: 'External.shiu_consecutive_primes'"

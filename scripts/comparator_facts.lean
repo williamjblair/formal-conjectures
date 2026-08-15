@@ -107,10 +107,11 @@ unsafe def main (args : List String) : IO UInt32 := do
     let stdin ← IO.getStdin
     let mut pairs : Array (Name × String) := #[]
     let mut line ← stdin.getLine
-    while !line.trim.isEmpty do
-      match line.trim.splitOn " " with
+    while !line.trimAscii.isEmpty do
+      let trimmed := line.trimAscii.toString
+      match trimmed.splitOn " " with
       | [m, d] => pairs := pairs.push (m.toName, d)
-      | _ => IO.eprintln s!"bad line: {line.trim}"
+      | _ => IO.eprintln s!"bad line: {trimmed}"
       line ← stdin.getLine
     let modules := pairs.map (·.1) |>.toList.eraseDups.toArray
     return ← runWithImports modules do

@@ -386,57 +386,11 @@ root = "WorkspaceTest"
 
 
 
-def split_signature(signature):
-    """(prefix lines, declared name, binder text, body) of a signature."""
-    lines = signature.split("\n")
-    for i, line in enumerate(lines):
-        m = DECL_START.match(line)
-        if m:
-            prefix = "\n".join(lines[:i])
-            rest = "\n".join(lines[i:])[m.end():]
-            break
-    else:
-        raise SystemExit("no declaration line in the signature")
-    nm = re.match(r"\s*([\w.«»]+)", rest)
-    name = nm.group(1)
-    rest = rest[nm.end():]
-    depth, i = 0, 0
-    openers, closers = "({[⦃⟨", ")}]⦄⟩"
-    while i < len(rest):
-        c = rest[i]
-        if depth == 0 and c == ":":
-            return prefix, name, rest[:i], rest[i + 1:]
-        if c in openers:
-            depth += 1
-        elif c in closers:
-            depth -= 1
-        i += 1
-    raise SystemExit("no top-level `:` in the signature")
-
-
-def disprove_statement(signature, declared):
-    """The negation of a plain statement, as a challenge of its own.
-
-    For `theorem foo <binders> : body`, the statement
-    `(∀ <binders>, body) → False`. Negating under the binders instead would
-    claim every instance fails, which is a different and stronger assertion.
-    """
-    prefix, _, binder_text, body = split_signature(signature)
-    binder_text = " ".join(binder_text.split())
-    body = " ".join(body.split())
-    inner = f"∀ {binder_text}, {body}" if binder_text else body
-    return (
-        (prefix + "\n" if prefix else "")
-        + f"theorem {declared}_disproof :\n"
-        + f"    ({inner}) → False := by\n  sorry"
-    )
-
-
 def hole_names_of(holes):
     return [h.split()[2] for h in holes]
 
 
-def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
+def generate(basename, out_dir, answer_type=None, module=None):
     """Write a comparator workspace for one declaration.
 
     Challenge.lean imports the problem's own module rather than restating its
@@ -488,21 +442,7 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
     statement, holes = hoist_answers(
         statement, declared, facts.get("answerTypes", []), answer_type)
 
-    if disprove:
-        # A holed statement already carries prove-or-disprove in the hole,
-        # so a negated variant of it would ask a confused question.
-        if holes:
-            raise SystemExit(
-                f"{declared} has an answer(sorry) hole, which is already the "
-                "prove-or-disprove mechanism; --disprove applies to plain "
-                "statements")
-        suffix_ = ":= by\n  sorry"
-        sig_ = statement.rstrip()
-        sig_ = sig_[: -len(suffix_)].rstrip() if sig_.endswith(suffix_) else sig_
-        statement = disprove_statement(sig_, declared)
-        declared = f"{declared}_disproof"
-
-    args = [] if disprove else [b["name"] for b in facts["binders"] if b["explicit"]]
+    args = [b["name"] for b in facts["binders"] if b["explicit"]]
     bad = [a for a in args if "✝" in a or "._" in a]
     if bad:
         raise SystemExit(
@@ -559,8 +499,7 @@ def generate(basename, out_dir, answer_type=None, module=None, disprove=False):
     full_name = ".".join(namespaces_at_target + [declared])
     hole_names = hole_names_of(holes)
 
-    workspace_id = slug((manifest.get("id") + "_disproof") if disprove and manifest.get("id")
-                        else declared if disprove else manifest.get("id", declared))
+    workspace_id = slug(manifest.get("id", declared))
     ws = pathlib.Path(out_dir) / workspace_id
     ws.mkdir(parents=True, exist_ok=True)
     (ws / "lakefile.toml").write_text(lakefile(workspace_id, mathlib_rev, fc_rev))
@@ -736,9 +675,6 @@ def main(argv):
                     help="check every manifest resolves, and generate nothing")
     ap.add_argument("--all", action="store_true",
                     help="generate every reachable workspace, and index.json")
-    ap.add_argument("--disprove", action="store_true",
-                    help="pose the statement's negation instead, for a "
-                         "disproof of a plain statement")
     args = ap.parse_args(argv)
     if args.validate:
         return validate()
@@ -746,8 +682,7 @@ def main(argv):
         return generate_all(args.out)
     if not args.declaration:
         ap.error("give a declaration, or --validate")
-    ws = generate(args.declaration, args.out, args.answer_type, args.module,
-                  disprove=args.disprove)
+    ws = generate(args.declaration, args.out, args.answer_type, args.module)
     print(ws)
     return 0
 

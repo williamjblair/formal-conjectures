@@ -31,11 +31,10 @@ The script's docstring covers the layout it produces and the cases where it
 refuses rather than guesses. `--all` generates every reachable workspace and
 an `index.json` cataloguing them.
 
-An open problem accepts a proof or a disproof. A statement whose
-`answer(sorry)` flanks an `↔` carries that choice in its hole. For a plain
-statement, `--disprove` poses the negation instead, as its own workspace:
-`(∀ <binders>, <statement>) → False`. Passing `--disprove` on a holed
-statement is refused, since the hole already asks the question.
+An open problem accepts a proof or a disproof. A holed statement carries that
+choice in its `answer(sorry)` slot. For plain statements, disproof submission
+is comparator's `allow_disproofs` (its PR #48), not a protocol of ours; this
+generator stays prove-only until that lands.
 
 ## Manifests
 
@@ -65,12 +64,12 @@ moving or renaming a statement.
 
 ## Pins
 
-The external tools carry pins of their own, taken from lean-eval's tested set:
-comparator at or after `71b52ec2`, which added definition-hole support that
-our `answer(sorry)` workspaces rely on; landrun at `5ed4a3db`, since tagged
-releases lack fixes comparator needs; and `lean4export` built with the
-workspace's own `lean-toolchain`, never its default, because olean headers
-differ between Lean releases.
+The external tools are locked in [`tools.toml`](tools.toml), one
+machine-readable source of truth: comparator at the commit that added the
+definition-hole support our `answer(sorry)` workspaces rely on, landrun at
+the commit lean-eval tests (tagged releases lack fixes comparator needs),
+and `lean4export` at the tag matching the workspace's `lean-toolchain`,
+because olean headers differ between Lean releases.
 
 A workspace pins Mathlib to the revision in this checkout's
 `lake-manifest.json`, and `formal_conjectures` to the merge-base of `HEAD`

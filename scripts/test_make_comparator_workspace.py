@@ -25,14 +25,12 @@ import unittest
 
 import make_comparator_workspace as mcw
 from make_comparator_workspace import (
-    disprove_statement,
     file_scoped_preamble,
     hoist_answers,
     load_manifest,
     module_name,
     replace_proof_with_sorry,
     slug,
-    split_signature,
     strip_decorations,
 )
 
@@ -128,26 +126,6 @@ class StatementTest(unittest.TestCase):
     def test_decorations_are_stripped_from_the_target(self):
         out = strip_decorations("/-- doc -/\n@[category research open]\ntheorem t : True := by\n  sorry")
         self.assertTrue(out.startswith("theorem"))
-
-
-class DisproveTest(unittest.TestCase):
-    """A plain statement's disprove challenge is its explicit negation."""
-
-    def test_no_binders(self):
-        out = disprove_statement("theorem t :\n    P ∧ Q", "t")
-        self.assertIn("theorem t_disproof :", out)
-        self.assertIn("(P ∧ Q) → False", out)
-
-    def test_binders_move_under_a_forall(self):
-        # Negating under the binders would claim every instance fails, which
-        # is stronger than the negation of the statement.
-        out = disprove_statement("theorem t (n : Nat) (h : 0 < n) : P n", "t")
-        self.assertIn("(∀ (n : Nat) (h : 0 < n), P n) → False", out)
-
-    def test_open_in_prefix_survives(self):
-        out = disprove_statement(
-            "open scoped Classical in\ntheorem t : P", "t")
-        self.assertTrue(out.startswith("open scoped Classical in\n"))
 
 
 class InventoryTest(unittest.TestCase):

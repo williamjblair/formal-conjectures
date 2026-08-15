@@ -101,10 +101,12 @@ def adapt(returncode: int | None, stdout: bytes, stderr: bytes,
 
 
 def run(command: list[str], result_file: pathlib.Path | None,
-        timeout: int) -> tuple[dict[str, Any], bytes, bytes]:
+        timeout: int, *, cwd: pathlib.Path | None = None,
+        env: dict[str, str] | None = None) -> tuple[dict[str, Any], bytes, bytes]:
     try:
         proc = subprocess.run(command, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE, timeout=timeout)
+                              stderr=subprocess.PIPE, timeout=timeout,
+                              cwd=cwd, env=env)
     except FileNotFoundError as exc:
         return adapt(None, b"", b"", unavailable=str(exc)), b"", b""
     except subprocess.TimeoutExpired as exc:

@@ -1,0 +1,57 @@
+{
+  "schema": "formal-conjectures.calibration-environment-lock.v1",
+  "platform": "linux/amd64",
+  "container": {
+    "base": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+    "index": "sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea",
+    "ubuntu_snapshot_url": "https://snapshot.ubuntu.com/ubuntu/20260810T000000Z/",
+    "ca_bootstrap": "apt-signed-metadata-and-package-hashes-with-tls-peer-disabled",
+    "ubuntu_snapshot": "20260810T000000Z"
+  },
+  "archives": {
+    "go": {
+      "url": "https://go.dev/dl/go1.26.6.linux-amd64.tar.gz",
+      "sha256": "708effb774be8237570d0add163225abbdfaf4fca28b2611df167beba4feef89"
+    },
+    "lean": {
+      "url": "https://github.com/leanprover/lean4/releases/download/v4.27.0/lean-4.27.0-linux.tar.zst",
+      "sha256": "056e2dc8564fc064a801e69f3eb18c044b9b546bc8b0e5a2c00247f8a1cb8ce6"
+    }
+  },
+  "repositories": {
+    "formal_conjectures": {
+      "url": "https://github.com/williamjblair/formal-conjectures.git",
+      "commit": "1f7b8ac102bbcac443288bc2f0620084db57422c"
+    },
+    "comparator": {
+      "url": "https://github.com/leanprover/comparator.git",
+      "commit": "71b52ec29e06d4b7d882726553b1ceb99a2499e0"
+    },
+    "landrun": {
+      "url": "https://github.com/Zouuup/landrun.git",
+      "commit": "5ed4a3db3a4ad930d577215c6b9abaa19df7f99f"
+    },
+    "lean4export": {
+      "url": "https://github.com/leanprover/lean4export.git",
+      "commit": "590dec59d93ab6becdf16fdd8aee5abbb99cb856"
+    }
+  },
+  "input": {
+    "url": "https://gist.githubusercontent.com/JohnEdwardJennings/e2c6ef0daab55857b7cc9d340de7af84/raw/8ff97800e38582c71246a238e7541a9d69488cbd/Erdos427.lean",
+    "sha256": "792a4b5fab29e5855fbcb1115d54e28a054d8fcf7ee2bd5589834a73b387c052"
+  },
+  "workspace": {
+    "formal_conjectures_revision": "2411d22e1bd550d050d0eac6c1fb379a76a3e7c5",
+    "mathlib_revision": "a3a10db0e9d66acbebf76c5e6a135066525ac900",
+    "declaration": "Erdos427.erdos_427"
+  },
+  "execution": {
+    "network": "none",
+    "read_only_root": true,
+    "cap_drop": "ALL",
+    "no_new_privileges": true,
+    "pids_limit": 512,
+    "memory": "16g",
+    "cpus": 4
+  }
+}

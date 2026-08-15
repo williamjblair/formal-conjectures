@@ -113,6 +113,6 @@ Read the finished file as if it were someone else's submission, against the
 same table in step 3, and fix what you find before opening the pull request.
 That pass is cheap next to a review round-trip with a maintainer.
 
-If a `review` skill is available alongside this one, run it here: checking a
+If the `formal-conjectures-review` skill is available, run it here: checking a
 statement and writing one are complements, and the reviewer's questions are
 sharper than an author's second reading of their own work.

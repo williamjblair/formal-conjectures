@@ -8,8 +8,8 @@ where useful, `references/` read on demand and `scripts/` that travel with the s
 | `pick-issue` | choosing an issue that is genuinely unclaimed and within reach |
 | `formalize` | turning a source statement into a faithful Lean statement |
 
-They compose in that order, and both stop short of review: a `review` skill covering the
-third step is proposed separately.
+They compose in that order, and both stop short of review. The
+`formal-conjectures-review` skill covering that step is proposed separately, in #4899.
 
 ## Skill tools and repository scripts are different things
 

@@ -44,6 +44,19 @@ class HoistTest(unittest.TestCase):
         self.assertIn("t_answer", stmt)
         self.assertIn("noncomputable def t_answer : Prop := sorry", holes)
 
+    def test_erased_slot_is_prop_by_the_elaborators_rule(self):
+        # The default `alwaysTrue` setting erases a slot iff its expected
+        # type is Prop, so a missing annotation names the type exactly.
+        _, holes = hoist_answers(
+            "theorem t : answer(sorry) ↔ P := by\n  sorry", "t", [])
+        self.assertIn("noncomputable def t_answer : Prop := sorry", holes)
+
+    def test_mixed_prop_and_typed_slots_are_refused(self):
+        with self.assertRaises(SystemExit):
+            hoist_answers(
+                "theorem t : answer(sorry) ∧ (answer(sorry) = 3) := by\n  sorry",
+                "t", ["Nat"])
+
     def test_non_prop_type_is_read_not_guessed(self):
         _, holes = hoist_answers(
             "theorem t : sSup S = answer(sorry) := by\n  sorry", "t", ["ENNReal"])

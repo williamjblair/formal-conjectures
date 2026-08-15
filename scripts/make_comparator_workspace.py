@@ -63,6 +63,13 @@ COMPARATOR_DIR = ROOT / "comparator"
 MANIFEST_DIR = COMPARATOR_DIR / "problems"
 
 
+def tool_pins():
+    """The locked external tool revisions; comparator/tools.toml is the one
+    machine-readable source, and this module refuses to restate it."""
+    with (COMPARATOR_DIR / "tools.toml").open("rb") as handle:
+        return tomllib.load(handle)["tools"]
+
+
 PERMITTED_AXIOMS = ["propext", "Quot.sound", "Classical.choice"]
 
 DECL_START = re.compile(
@@ -302,18 +309,29 @@ def hoist_answers(statement, basename, slot_types, override=None):
     count = statement.count("answer(sorry)")
     if count == 0:
         return statement, holes
+    # Under the default `alwaysTrue` setting, the `answer` elaborator erases a
+    # slot to `True` if and only if its expected type is `Prop`
+    # (FormalConjecturesUtil/Answer.lean). So a slot the environment carries
+    # no annotation for is a `Prop` slot by the elaborator's own rule, not by
+    # guesswork, and no postpone build is needed.
+    missing = count - len(slot_types)
     if override:
         types = [override] * count
-    elif len(set(slot_types)) == 1 and len(slot_types) >= count:
+    elif missing == count:
+        types = ["Prop"] * count
+    elif missing == 0 and len(set(slot_types)) == 1:
         types = [slot_types[0]] * count
-    elif len(slot_types) == count:
+    elif missing == 0:
         raise SystemExit(
             f"{basename} has {count} answer slots of differing types "
-            f"{slot_types}; pass --answer-type or add a manifest")
+            f"{slot_types}; pass --answer-type")
     else:
+        # Some slots are Prop and some are not: which positions are which
+        # cannot be read off an unordered set, so refuse rather than assign.
         raise SystemExit(
-            f"{basename}: found {len(slot_types)} slot types for {count} "
-            "slots; pass --answer-type")
+            f"{basename}: {missing} Prop slot(s) and {len(slot_types)} typed "
+            f"slot(s) {slot_types} cannot be matched to positions; pass "
+            "--answer-type")
     for i in range(count):
         hole = f"{basename}_answer" if count == 1 else f"{basename}_answer_{i + 1}"
         holes.append(f"noncomputable def {hole} : {types[i]} := sorry")
@@ -419,12 +437,16 @@ def generate(basename, out_dir, answer_type=None, module=None):
 
     source_lines = path.read_text(encoding="utf-8").split("\n")
     lo, hi = facts["range"]["startLine"], facts["range"]["endLine"]
+    end_col = facts["range"].get("endColumn")
     # `open X in` is part of the command but sits above what the range covers
     # in some toolchains; pull it in when the line above ends with ` in`.
     while lo > 1 and source_lines[lo - 2].rstrip().endswith(" in") \
             and KEEP_LOOSE.match(source_lines[lo - 2]):
         lo -= 1
-    original = "\n".join(source_lines[lo - 1: hi])
+    sliced = source_lines[lo - 1: hi]
+    if end_col is not None and sliced:
+        sliced = sliced[:-1] + [sliced[-1][:end_col]]
+    original = "\n".join(sliced)
     statement = original
 
     preamble, namespaces_at_target = file_scoped_preamble(source_lines, lo)
@@ -510,7 +532,8 @@ def generate(basename, out_dir, answer_type=None, module=None):
         "\nFill each definition hole in `Submission.lean` too. Hole answers "
         "also get a\nhuman check, because a hole can be gamed in ways the "
         "comparator cannot see.\nChecking holes needs a comparator built at "
-        "or after commit `71b52ec2`, which\nadded definition support.\n"
+        f"commit `{tool_pins()['comparator'][:8]}`, which\nadded definition "
+        "support.\n"
         if holes else "")
     manifest_lines = "".join(
         f"- {field.capitalize()}: {' '.join(str(manifest[field]).split())}\n"

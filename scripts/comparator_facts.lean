@@ -43,6 +43,18 @@ def declares (declared : Name) (requested : String) : Bool :=
   let s := declared.toString
   s == requested || s.endsWith ("." ++ requested)
 
+/-- Declaration parameters, as opposed to `∀` binders in the conclusion.
+
+`theorem foo (n : Nat) : P n` lambda-abstracts `n` in its proof value;
+`theorem foo : ∀ n : Nat, P n` does not. Only the former are applied by the
+generated Solution adapter, and `forallTelescope` alone cannot tell them
+apart: the lambda arity of the (sorry) value can. lean-eval's extractor
+draws the same line for the same reason. -/
+partial def lambdaArity : Expr → Nat
+  | .lam _ _ b _ => lambdaArity b + 1
+  | .mdata _ b => lambdaArity b
+  | _ => 0
+
 def binderJson (name : Name) (bi : BinderInfo) : Json :=
   Json.mkObj [("name", toJson name.toString), ("explicit", toJson bi.isExplicit)]
 
@@ -85,14 +97,19 @@ where
     let answerTypes ← forallTelescope info.type fun _ body => do
       let found := Google.findAnswerExprs body
       found.mapM fun a => do pure (toString (← ppExpr (← inferType a)))
+    let arity := match info.value? with
+      | some v => lambdaArity v
+      | none => 0
     let binders ← forallTelescope info.type fun xs _ =>
-      xs.mapM fun x => do
+      (xs.extract 0 arity).mapM fun x => do
         let d ← x.fvarId!.getDecl
         pure (binderJson d.userName d.binderInfo)
     let rangeJson := match ranges with
       | some r => Json.mkObj [
           ("startLine", toJson r.range.pos.line),
-          ("endLine", toJson r.range.endPos.line)]
+          ("startColumn", toJson r.range.pos.column),
+          ("endLine", toJson r.range.endPos.line),
+          ("endColumn", toJson r.range.endPos.column)]
       | none => Json.null
     IO.println <| Json.mkObj [
       ("name", toJson name.toString),

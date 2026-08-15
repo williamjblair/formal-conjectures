@@ -45,15 +45,14 @@ A manifest supplies what the Lean source cannot. Most statements need none.
 | `id` | required; must equal the filename stem, and names the workspace directory |
 | `declaration` | required; the Lean name, which need not be unique in the repository |
 | `module` | the file declaring it, when more than one does |
-| `answer_type` | the type of an `answer(sorry)` slot that does not flank an `↔` |
+| `answer_type` | override only; slot types are inferred from the elaborated statement |
 | `notes`, `source` | surfaced in the workspace README |
 
-Two situations need one. A name two files share: `conjecture_1_1` is declared
+One situation needs one: a name two files share. `conjecture_1_1` is declared
 by both `Arxiv/2501.03234` and `Arxiv/2504.17644`, so each gets a manifest
-naming its file, and `--module` does the same for a single run. And a non-Prop
-answer slot, whose type is not in the syntax, so `answer_type` has to say; 134
-statements are in this position, and they are the only ones the generator
-cannot reach on its own.
+naming its file, and `--module` does the same for a single run. Answer slot
+types are read from the elaborated statement, so no statement needs type
+metadata; `answer_type` survives only as an explicit override.
 
 ```bash
 python3 scripts/make_comparator_workspace.py --validate
@@ -80,7 +79,9 @@ imported context may disagree, and the fix is to push first.
 
 ## The intended end state
 
-Extraction currently reads Lean by regex, in Python. The honest long-term
-home is a `lake exe`, the way `scripts/extract_names.lean` already elaborates
-these files and the way lean-eval's own generator works. When that lands, the
-Python goes away and this directory holds the whole subsystem.
+Semantic extraction lives in `scripts/comparator_facts.lean`, on the
+elaborator; the Python that remains is workspace assembly and source-text
+surgery. The end state worth pursuing upstream is lean-eval's tooling
+factored into a reusable library that this repository consumes through a
+small adapter, so nobody maintains a second evaluation stack; #4930 is where
+that conversation lives.

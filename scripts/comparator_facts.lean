@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -/
 import Lean
+import FormalConjecturesUtil.Answer
+import FormalConjecturesUtil.Attributes.Basic
 
 /-!
 The elaborator-side facts `make_comparator_workspace.py` currently gets by
@@ -77,23 +79,12 @@ where
     let ranges ← findDeclarationRanges? name
     -- The statement's sorries are `answer(sorry)` slots; a proof's sorry is
     -- not in the *type*, so everything found here is a slot.
+    -- `findAnswerExprs` is the repository's own detection: it reads the
+    -- annotation the `answer` elaborator leaves, rather than guessing from
+    -- `sorryAx` applications.
     let answerTypes ← forallTelescope info.type fun _ body => do
-      let mut found : Array Expr := #[]
-      let rec collect (e : Expr) (acc : Array Expr) : MetaM (Array Expr) := do
-        match e with
-        | .app .. =>
-          if e.isAppOf ``sorryAx then
-            return acc.push (← inferType e)
-          else
-            let mut acc := acc
-            for arg in e.getAppArgs do
-              acc ← collect arg acc
-            collect e.getAppFn acc
-        | .lam _ _ b _ | .forallE _ _ b _ => collect b acc
-        | .mdata _ b => collect b acc
-        | _ => return acc
-      found ← collect body #[]
-      found.mapM fun t => do pure (toString (← ppExpr t))
+      let found := Google.findAnswerExprs body
+      found.mapM fun a => do pure (toString (← ppExpr (← inferType a)))
     let binders ← forallTelescope info.type fun xs _ =>
       xs.mapM fun x => do
         let d ← x.fvarId!.getDecl
@@ -104,7 +95,7 @@ where
           ("endLine", toJson r.range.endPos.line)]
       | none => Json.null
     IO.println <| Json.mkObj [
-      ("fullName", toJson name.toString),
+      ("name", toJson name.toString),
       ("range", rangeJson),
       ("binders", toJson binders.toList),
       ("answerTypes", toJson answerTypes.toList)]

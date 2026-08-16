@@ -15,6 +15,11 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
+import pathlib
+import subprocess
+import tempfile
 import unittest
 
 import fc100_bundle
@@ -52,6 +57,92 @@ class FC100ManifestTest(unittest.TestCase):
         case["source"]["files"][0]["submission_path"] = "lakefile.toml"
         with self.assertRaisesRegex(fc100_bundle.BundleError, "escapes Submission"):
             fc100_bundle.validate_case(case)
+
+
+class FC100MaterializationTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self._tmp.name)
+        self.source = self.root / "source"
+        self.source.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.source)], check=True)
+        subprocess.run(
+            ["git", "-C", str(self.source), "config", "user.name", "FC100 Test"],
+            check=True)
+        subprocess.run(
+            ["git", "-C", str(self.source), "config", "user.email", "fc100@example.com"],
+            check=True)
+        source_file = self.source / "Example.lean"
+        source_file.write_text("theorem example : True := by trivial\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(self.source), "add", "Example.lean"], check=True)
+        subprocess.run(
+            ["git", "-C", str(self.source), "commit", "-q", "-m", "fixture"],
+            check=True)
+
+        def git(*args: str) -> str:
+            return subprocess.run(
+                ["git", "-C", str(self.source), *args], check=True,
+                capture_output=True, text=True).stdout.strip()
+
+        raw = source_file.read_bytes()
+        self.case = {
+            "id": "example",
+            "role": "theorem_proof",
+            "fc_module": "FormalConjectures.Example",
+            "fc_declaration": "example",
+            "source": {
+                "repository": "https://example.com/source.git",
+                "commit": git("rev-parse", "HEAD"),
+                "license": "Apache-2.0",
+                "lean_toolchain": "leanprover/lean4:v4.27.0",
+                "files": [{
+                    "path": "Example.lean",
+                    "git_blob_sha1": git("rev-parse", "HEAD:Example.lean"),
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "submission_path": "Submission/Example.lean",
+                }],
+            },
+            "projection": {
+                "status": "prepared",
+                "entrypoint_import": "Submission.Example",
+                "external_declaration": "example",
+                "bridge_status": "requires_adapter",
+                "gate": "semantic bridge required",
+            },
+            "disclosure": {
+                "visibility": "public",
+                "embargo_until": None,
+                "release_at": None,
+            },
+        }
+        fc100_bundle.validate_case(self.case)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_exact_source_materializes_a_stage_separated_bundle(self) -> None:
+        output = self.root / "bundle"
+        evidence = fc100_bundle.materialize(self.case, self.source, output)
+        self.assertEqual(
+            (output / "source/Example.lean").read_bytes(),
+            (output / "Submission/Example.lean").read_bytes())
+        self.assertEqual(
+            (output / "Submission.lean").read_text(encoding="utf-8").splitlines()[0],
+            "import Submission.Example")
+        self.assertEqual(evidence["stages"]["source_inspection"], "pass")
+        self.assertEqual(evidence["stages"]["comparator"], "not_evaluated")
+        self.assertEqual(
+            json.loads((output / "bundle.json").read_text(encoding="utf-8")),
+            evidence)
+        with self.assertRaisesRegex(fc100_bundle.BundleError, "refusing to overwrite"):
+            fc100_bundle.materialize(self.case, self.source, output)
+
+    def test_modified_worktree_source_is_rejected_as_drift(self) -> None:
+        (self.source / "Example.lean").write_text(
+            "theorem example : False := by trivial\n", encoding="utf-8")
+        with self.assertRaisesRegex(fc100_bundle.BundleError, "SHA-256 drift"):
+            fc100_bundle.materialize(self.case, self.source, self.root / "drifted")
 
 
 if __name__ == "__main__":

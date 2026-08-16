@@ -1,0 +1,115 @@
+{
+  "schema": "formal-conjectures.fc100-pilot-cases.v1",
+  "authority_effect": "none",
+  "formal_conjectures": {
+    "repository": "https://github.com/google-deepmind/formal-conjectures.git",
+    "commit": "e7f4b0e92fac48ae221532dc2f4fbd42245afe53"
+  },
+  "cases": [
+    {
+      "id": "erdos-164",
+      "role": "theorem_proof",
+      "fc_module": "FormalConjectures.ErdosProblems.164",
+      "fc_declaration": "Erdos164.erdos_164",
+      "source": {
+        "repository": "https://github.com/plby/lean-proofs.git",
+        "commit": "1d7b3f00780b85ed0462e79a1cd5650ee9055655",
+        "license": "Apache-2.0",
+        "lean_toolchain": "leanprover/lean4:v4.29.1",
+        "files": [
+          {
+            "path": "src/v4.29.1/ErdosProblems/Erdos164.lean",
+            "git_blob_sha1": "09566606d444678941e8b43dfe9a9de4610711a6",
+            "sha256": "2f2a13b25a1d5bec494e5c2244cffab4375cffb8c2f79424a1ec7861407041cd",
+            "submission_path": "Submission/Erdos164.lean"
+          }
+        ]
+      },
+      "projection": {
+        "status": "prepared",
+        "entrypoint_import": "Submission.Erdos164",
+        "external_declaration": "Erdos164.erdos164",
+        "bridge_status": "requires_adapter",
+        "gate": "FC uses Erdos1196.IsPrimitive and explicit sums under Lean 4.27.0; the Lean 4.29.1 source proves the corresponding PrimitiveSet and primitiveWeightSum formulation"
+      },
+      "disclosure": {
+        "visibility": "public",
+        "embargo_until": null,
+        "release_at": null
+      }
+    },
+    {
+      "id": "erdos-1044",
+      "role": "definition_answer",
+      "fc_module": "FormalConjectures.ErdosProblems.1044",
+      "fc_declaration": "Erdos1044.erdos_1044",
+      "source": {
+        "repository": "https://github.com/plby/lean-proofs.git",
+        "commit": "15e3f96641f9757fdcf1ea637c5b1ad555796c1f",
+        "license": "Apache-2.0",
+        "lean_toolchain": "leanprover/lean4:v4.29.1",
+        "files": [
+          {
+            "path": "src/v4.29.1/ErdosProblems/Erdos1044.lean",
+            "git_blob_sha1": "ab1e48ad8baf4d9b20334cdc6250646699856c1a",
+            "sha256": "b1ba6caddf5eda056fa5673eddff5dfc2b2e44d162d7fd7f5dc47512101d7df7",
+            "submission_path": "Submission/Erdos1044.lean"
+          }
+        ]
+      },
+      "projection": {
+        "status": "prepared",
+        "entrypoint_import": "Submission.Erdos1044",
+        "external_declaration": "Erdos1044.erdos_problem_1044",
+        "bridge_status": "requires_adapter",
+        "gate": "FC asks for an IsGLB over its IsAdmissible and maxBoundaryLength definitions; the Lean 4.29.1 source proves lambdaInf = 2 for its packaged definitions"
+      },
+      "disclosure": {
+        "visibility": "public",
+        "embargo_until": null,
+        "release_at": null
+      }
+    },
+    {
+      "id": "erdos-130",
+      "role": "multi_file_theorem",
+      "fc_module": "FormalConjectures.ErdosProblems.130",
+      "fc_declaration": "Erdos130.erdos_130",
+      "source": {
+        "repository": "https://github.com/williamjblair/lean-proofs.git",
+        "commit": "4f915a323443bfb1709a6805a013812016dca88a",
+        "license": "MIT",
+        "lean_toolchain": "leanprover/lean4:v4.31.0",
+        "files": [
+          {"path": "starfleet/erdos-130/Research.lean", "git_blob_sha1": "68fea1fd392a7ce2460b0129ffc37676badb57d1", "sha256": "a1369598ec9340869fa138c753654e639501e9290657b087339dbcfa34979655"},
+          {"path": "starfleet/erdos-130/Research/Basic.lean", "git_blob_sha1": "ce14abb6755027b8e46ae6ec27a2509d89ffd0a6", "sha256": "bcc3257ef6fc85f722e4a32f0a6b0852d124fd0e8f92dffb0f0604f4462771dc"},
+          {"path": "starfleet/erdos-130/Research/Circles.lean", "git_blob_sha1": "c7678cc3c3082f6b1f8c680ad5f1321135abb798", "sha256": "a9ea1a857c1dea80fc963ee9d4c5ae2e3a92f3daae48f995ba85072b90efc325"},
+          {"path": "starfleet/erdos-130/Research/Defs.lean", "git_blob_sha1": "95e14dcb7a629effa0ccebdac5f6d84b27eebae7", "sha256": "223e45d1cce98b77af79c9e97ef11b52c00ee53bca53424b2bdd4541615040f7"},
+          {"path": "starfleet/erdos-130/Research/FiniteWitness.lean", "git_blob_sha1": "2ce1c4e3b4a71abf63fae362f923383a9231476e", "sha256": "a2f3f8a141638df41b892eed5f39616c4d70d1bfbeb610c9143cf9e01512a98a"},
+          {"path": "starfleet/erdos-130/Research/GenericBooster.lean", "git_blob_sha1": "3315123018ac20d35c78dcf19188fc024a72d7b7", "sha256": "94cc0b26746df7fa7091a9f70338585a42edb50caae8eecf62e6ac5f548c9027"},
+          {"path": "starfleet/erdos-130/Research/InfiniteAssembly.lean", "git_blob_sha1": "d2b4fc14906525ddb967c95b2279cb456ed66a0e", "sha256": "8e20788ecf6e8e07e1a20ca049fc9f38fe7a09549c7b20df8da4da9ad9dc4771"},
+          {"path": "starfleet/erdos-130/Research/QuadGeneric.lean", "git_blob_sha1": "b4578ee09ee60e078789a5200aac46d60b85c2c8", "sha256": "8878cd5463d50be84c712541558ca89847f7c84c4a00b9d14f4370ce847f48c9"},
+          {"path": "starfleet/erdos-130/Research/RationalInversion.lean", "git_blob_sha1": "d6fdaef53452560df27e7ee6fb0327795fdb0ace", "sha256": "d6c7b6d9a35a5440ac1d5b305ea400325595710f0dfd9aa6b8a54852990ee0cd"},
+          {"path": "starfleet/erdos-130/Research/TangencyBooster.lean", "git_blob_sha1": "551e36cc4a325ae078fb7f05778af71374dfe029", "sha256": "9792a5750e6863077c757dca98c5f02a704cbb78f4bbd13ccea5915512d03902"}
+        ]
+      },
+      "projection": {
+        "status": "blocked",
+        "entrypoint_import": null,
+        "external_declaration": "Erdos130.erdos130_infinite_chromatic",
+        "bridge_status": "requires_adapter",
+        "gate": "The Lean 4.31.0 package uses Point, GeneralPosition, and HasKColoring, while FC uses Set Real^2, InGeneralPosition, and chromaticNumber = top; its internal Research.* imports also need an accepted external-package contract"
+      },
+      "disclosure": {
+        "visibility": "public",
+        "embargo_until": null,
+        "release_at": null
+      }
+    }
+  ],
+  "nonclaims": [
+    "not_a_comparator_result",
+    "not_maintainer_or_upstream_acceptance",
+    "not_a_benchmark_admission_decision"
+  ]
+}

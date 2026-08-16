@@ -202,6 +202,8 @@ def load_manifest(problem_id):
       declaration  the Lean name, which need not be unique across the repository
       module       the file declaring it, relative to the repository root
       answer_type  the type of a non-`Prop` answer slot
+      hide_answers replace fixed `answer(value)` terms with definition holes;
+                   intended for fixed benchmark fixtures, never by default
       notes        free text for a reviewer
       source       a citation or URL
     """
@@ -327,7 +329,112 @@ def replace_proof_with_sorry(text):
     return text.rstrip() + " := by\n  sorry"
 
 
-def hoist_answers(statement, basename, slot_types, override=None):
+def answer_spans(text):
+    """Return the source spans of syntactic `answer(...)` calls.
+
+    This small lexer skips strings and nested line/block comments and balances
+    parentheses, so an answer term may itself contain parentheses. It is not a
+    Lean parser; malformed or unterminated syntax is refused.
+    """
+    spans = []
+    i = 0
+    block_depth = 0
+    in_string = False
+    escaped = False
+    while i < len(text):
+        pair = text[i:i + 2]
+        if block_depth:
+            if pair == "/-":
+                block_depth += 1
+                i += 2
+            elif pair == "-/":
+                block_depth -= 1
+                i += 2
+            else:
+                i += 1
+            continue
+        if in_string:
+            if escaped:
+                escaped = False
+            elif text[i] == "\\":
+                escaped = True
+            elif text[i] == '"':
+                in_string = False
+            i += 1
+            continue
+        if pair == "/-":
+            block_depth = 1
+            i += 2
+            continue
+        if pair == "--":
+            newline = text.find("\n", i + 2)
+            i = len(text) if newline < 0 else newline + 1
+            continue
+        if text[i] == '"':
+            in_string = True
+            i += 1
+            continue
+        if text.startswith("answer", i) and (
+            i == 0 or not (text[i - 1].isalnum() or text[i - 1] in "_.'")
+        ):
+            j = i + len("answer")
+            while j < len(text) and text[j].isspace():
+                j += 1
+            if j < len(text) and text[j] == "(":
+                depth = 1
+                k = j + 1
+                nested_string = False
+                nested_escaped = False
+                nested_comment = 0
+                while k < len(text) and depth:
+                    nested_pair = text[k:k + 2]
+                    if nested_comment:
+                        if nested_pair == "/-":
+                            nested_comment += 1
+                            k += 2
+                        elif nested_pair == "-/":
+                            nested_comment -= 1
+                            k += 2
+                        else:
+                            k += 1
+                        continue
+                    if nested_string:
+                        if nested_escaped:
+                            nested_escaped = False
+                        elif text[k] == "\\":
+                            nested_escaped = True
+                        elif text[k] == '"':
+                            nested_string = False
+                        k += 1
+                        continue
+                    if nested_pair == "/-":
+                        nested_comment = 1
+                        k += 2
+                    elif nested_pair == "--":
+                        newline = text.find("\n", k + 2)
+                        k = len(text) if newline < 0 else newline + 1
+                    elif text[k] == '"':
+                        nested_string = True
+                        k += 1
+                    else:
+                        if text[k] == "(":
+                            depth += 1
+                        elif text[k] == ")":
+                            depth -= 1
+                        k += 1
+                if depth:
+                    raise SystemExit("unterminated answer(...) term")
+                spans.append((i, k, text[j + 1:k - 1]))
+                i = k
+                continue
+        i += 1
+    if block_depth or in_string:
+        raise SystemExit("unterminated comment or string while reading answers")
+    return spans
+
+
+def hoist_answers(statement, basename, slot_types, override=None,
+                  hide_answers=False):
     """Replace each `answer(sorry)` with a named definition hole.
 
     The slot types come from the elaborated environment, where the `answer`
@@ -338,7 +445,11 @@ def hoist_answers(statement, basename, slot_types, override=None):
     and matching them to positions would be a guess.
     """
     holes = []
-    count = statement.count("answer(sorry)")
+    calls = answer_spans(statement)
+    selected = calls if hide_answers else [
+        call for call in calls if call[2].strip() == "sorry"
+    ]
+    count = len(selected)
     if count == 0:
         return statement, holes
     # Under the default `alwaysTrue` setting, the `answer` elaborator erases a
@@ -364,10 +475,13 @@ def hoist_answers(statement, basename, slot_types, override=None):
             f"{basename}: {missing} Prop slot(s) and {len(slot_types)} typed "
             f"slot(s) {slot_types} cannot be matched to positions; pass "
             "--answer-type")
-    for i in range(count):
+    replacements = []
+    for i, (start, end, _argument) in enumerate(selected):
         hole = f"{basename}_answer" if count == 1 else f"{basename}_answer_{i + 1}"
         holes.append(f"noncomputable def {hole} : {types[i]} := sorry")
-        statement = statement.replace("answer(sorry)", hole, 1)
+        replacements.append((start, end, hole))
+    for start, end, hole in reversed(replacements):
+        statement = statement[:start] + hole + statement[end:]
     return statement, holes
 
 
@@ -460,6 +574,9 @@ def generate(basename, out_dir, answer_type=None, module=None):
     # An argument given on the command line is explicit, so it wins over the
     # manifest; the manifest is the durable record of the same choice.
     answer_type = answer_type or manifest.get("answer_type")
+    hide_answers = manifest.get("hide_answers", False)
+    if not isinstance(hide_answers, bool):
+        raise SystemExit(f"{basename}: manifest hide_answers must be boolean")
     module = module or manifest.get("module")
     path, _imports, _module_doc, body = find_declaration(declaration, module)
     fc_module = module_name(path.relative_to(ROOT))
@@ -494,7 +611,8 @@ def generate(basename, out_dir, answer_type=None, module=None):
     if declared is None:
         raise SystemExit(f"{declaration}: no declaration line in the slice")
     statement, holes = hoist_answers(
-        statement, declared, facts.get("answerTypes", []), answer_type)
+        statement, declared, facts.get("answerTypes", []), answer_type,
+        hide_answers)
 
     args = [b["name"] for b in facts["binders"] if b["explicit"]]
     bad = [a for a in args if "✝" in a or "._" in a]

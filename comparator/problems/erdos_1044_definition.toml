@@ -1,0 +1,6 @@
+id = "erdos_1044_definition"
+declaration = "erdos_1044"
+module = "FormalConjectures/ErdosProblems/1044.lean"
+hide_answers = true
+source = "https://www.erdosproblems.com/1044"
+notes = "Fixed FC100 fixture: hide the published value 2 so definition comparison is exercised."

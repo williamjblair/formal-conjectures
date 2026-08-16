@@ -25,6 +25,7 @@ import unittest
 
 import make_comparator_workspace as mcw
 from make_comparator_workspace import (
+    answer_spans,
     file_scoped_preamble,
     hoist_answers,
     load_manifest,
@@ -76,6 +77,28 @@ class HoistTest(unittest.TestCase):
     def test_no_slot_is_left_alone(self):
         stmt, holes = hoist_answers("theorem t : True := by\n  sorry", "t", [])
         self.assertEqual(holes, [])
+
+    def test_fixed_answer_is_hidden_only_when_requested(self):
+        original = "theorem t : IsGLB S answer(2) := by\n  sorry"
+        unchanged, holes = hoist_answers(original, "t", ["ENNReal"])
+        self.assertEqual(unchanged, original)
+        self.assertEqual(holes, [])
+        hidden, holes = hoist_answers(
+            original, "t", ["ENNReal"], hide_answers=True)
+        self.assertIn("IsGLB S t_answer", hidden)
+        self.assertEqual(holes, ["noncomputable def t_answer : ENNReal := sorry"])
+
+    def test_nested_answer_term_is_one_balanced_slot(self):
+        calls = answer_spans(
+            "theorem t : f answer((fun x => x) (g 2)) := by\n  sorry")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][2], "(fun x => x) (g 2)")
+
+    def test_answer_text_in_comments_and_strings_is_ignored(self):
+        calls = answer_spans(
+            '-- answer(1)\ntheorem t : p "answer(2)" answer(3) := by sorry')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][2], "3")
 
 
 class PreambleTest(unittest.TestCase):
@@ -181,8 +204,12 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(load_manifest("no_such_problem"), {})
 
     def test_fields_are_read(self):
-        self.write("p.toml", 'id = "p"\ndeclaration = "d"\nanswer_type = "ENNReal"\n')
+        self.write(
+            "p.toml",
+            'id = "p"\ndeclaration = "d"\nanswer_type = "ENNReal"\n'
+            'hide_answers = true\n')
         self.assertEqual(load_manifest("p")["answer_type"], "ENNReal")
+        self.assertTrue(load_manifest("p")["hide_answers"])
 
     def test_id_must_match_the_filename(self):
         # The filename is what the generator looks up, so a disagreeing `id`

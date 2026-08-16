@@ -46,6 +46,7 @@ A manifest supplies what the Lean source cannot. Most statements need none.
 | `declaration` | required; the Lean name, which need not be unique in the repository |
 | `module` | the file declaring it, when more than one does |
 | `answer_type` | override only; slot types are inferred from the elaborated statement |
+| `hide_answers` | fixed-benchmark opt-in; replace explicit `answer(value)` terms with definition holes |
 | `notes`, `source` | surfaced in the workspace README |
 
 One situation needs one: a name two files share. `conjecture_1_1` is declared
@@ -53,6 +54,16 @@ by both `Arxiv/2501.03234` and `Arxiv/2504.17644`, so each gets a manifest
 naming its file, and `--module` does the same for a single run. Answer slot
 types are read from the elaborated statement, so no statement needs type
 metadata; `answer_type` survives only as an explicit override.
+
+`hide_answers = true` is deliberately per-problem and off by default. It lets
+a fixed benchmark with a published `answer(value)` exercise Comparator's
+definition target without changing the canonical FC statement. The generated
+hole still needs human semantic review, and hiding an answer is not a policy
+for embargo, disclosure, or acceptance.
+
+Generated challenge and starter-submission files intentionally contain holes,
+so validate them with `lake build`, not `lake --wfail build`. Comparator, not a
+warning-free starter build, supplies the later structured policy result.
 
 ```bash
 python3 scripts/make_comparator_workspace.py --validate

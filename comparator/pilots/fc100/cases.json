@@ -27,6 +27,7 @@
       },
       "projection": {
         "status": "prepared",
+        "fc_workspace_id": "erdos_164",
         "entrypoint_import": "Submission.Erdos164",
         "external_declaration": "Erdos164.erdos164",
         "bridge_status": "requires_adapter",
@@ -59,6 +60,7 @@
       },
       "projection": {
         "status": "prepared",
+        "fc_workspace_id": "erdos_1044_definition",
         "entrypoint_import": "Submission.Erdos1044",
         "external_declaration": "Erdos1044.erdos_problem_1044",
         "bridge_status": "requires_adapter",
@@ -95,6 +97,7 @@
       },
       "projection": {
         "status": "blocked",
+        "fc_workspace_id": "erdos_130",
         "entrypoint_import": null,
         "external_declaration": "Erdos130.erdos130_infinite_chromatic",
         "bridge_status": "requires_adapter",

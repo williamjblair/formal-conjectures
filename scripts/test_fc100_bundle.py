@@ -61,11 +61,17 @@ class FC100ManifestTest(unittest.TestCase):
             fc100_bundle.validate_case(case)
 
     def test_embargo_timestamp_is_exact_utc(self) -> None:
-        case = copy.deepcopy(self.manifest["cases"][0])
-        case["disclosure"]["visibility"] = "embargoed"
-        case["disclosure"]["embargo_until"] = "2026-09-16"
-        with self.assertRaisesRegex(fc100_bundle.BundleError, "RFC 3339 UTC"):
-            fc100_bundle.validate_case(case)
+        for timestamp in (
+            "2026-09-16",
+            "2026-09-16 00:00:00Z",
+            "2026-09-16T00:00:00+00:00",
+        ):
+            with self.subTest(timestamp=timestamp):
+                case = copy.deepcopy(self.manifest["cases"][0])
+                case["disclosure"]["visibility"] = "embargoed"
+                case["disclosure"]["embargo_until"] = timestamp
+                with self.assertRaisesRegex(fc100_bundle.BundleError, "RFC 3339 UTC"):
+                    fc100_bundle.validate_case(case)
 
     def test_solved_embargo_records_the_future_release_action(self) -> None:
         case = copy.deepcopy(self.manifest["cases"][0])

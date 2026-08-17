@@ -39,6 +39,8 @@ MANIFEST = ROOT / "comparator/pilots/fc100/cases.json"
 SCHEMA = "formal-conjectures.fc100-pilot-cases.v2"
 SHA1 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+RFC3339_UTC = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 
 
 class BundleError(ValueError):
@@ -133,12 +135,15 @@ def validate_case(case: dict[str, Any]) -> None:
     for field in ("embargo_until", "release_at"):
         timestamp = disclosure[field]
         if timestamp is not None:
+            if not isinstance(timestamp, str) or not RFC3339_UTC.fullmatch(timestamp):
+                raise BundleError(
+                    f"{case['id']}: {field} must be an RFC 3339 UTC timestamp")
             try:
                 parsed = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
             except (AttributeError, ValueError) as exc:
                 raise BundleError(
-                    f"{case['id']}: {field} must be an RFC 3339 timestamp") from exc
-            if not timestamp.endswith("Z") or parsed.utcoffset() != datetime.timedelta(0):
+                    f"{case['id']}: {field} must be an RFC 3339 UTC timestamp") from exc
+            if parsed.utcoffset() != datetime.timedelta(0):
                 raise BundleError(f"{case['id']}: {field} must be an RFC 3339 UTC timestamp")
     if visibility != "public" and disclosure["release_at"] is not None:
         raise BundleError(f"{case['id']}: only public sources have a release time")

@@ -1,5 +1,5 @@
 {
-  "schema": "formal-conjectures.fc100-pilot-cases.v1",
+  "schema": "formal-conjectures.fc100-pilot-cases.v2",
   "authority_effect": "none",
   "formal_conjectures": {
     "repository": "https://github.com/google-deepmind/formal-conjectures.git",
@@ -8,6 +8,7 @@
   "cases": [
     {
       "id": "erdos-164",
+      "cohort": "solved",
       "role": "theorem_proof",
       "fc_module": "FormalConjectures.ErdosProblems.164",
       "fc_declaration": "Erdos164.erdos_164",
@@ -41,6 +42,7 @@
     },
     {
       "id": "erdos-1044",
+      "cohort": "solved",
       "role": "definition_answer",
       "fc_module": "FormalConjectures.ErdosProblems.1044",
       "fc_declaration": "Erdos1044.erdos_1044",
@@ -74,6 +76,7 @@
     },
     {
       "id": "erdos-130",
+      "cohort": "solved",
       "role": "multi_file_theorem",
       "fc_module": "FormalConjectures.ErdosProblems.130",
       "fc_declaration": "Erdos130.erdos_130",
@@ -113,6 +116,7 @@
   "nonclaims": [
     "not_a_comparator_result",
     "not_maintainer_or_upstream_acceptance",
-    "not_a_benchmark_admission_decision"
+    "not_a_benchmark_admission_decision",
+    "not_a_disclosure_policy_decision"
   ]
 }

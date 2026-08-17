@@ -24,6 +24,7 @@ exact source bundle and gate without rewriting imports to manufacture a build.
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import pathlib
@@ -35,7 +36,7 @@ from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "comparator/pilots/fc100/cases.json"
-SCHEMA = "formal-conjectures.fc100-pilot-cases.v1"
+SCHEMA = "formal-conjectures.fc100-pilot-cases.v2"
 SHA1 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -70,7 +71,7 @@ def load_manifest(path: pathlib.Path = MANIFEST) -> dict[str, Any]:
         ids.add(case["id"])
     required = {
         "not_a_comparator_result", "not_maintainer_or_upstream_acceptance",
-        "not_a_benchmark_admission_decision",
+        "not_a_benchmark_admission_decision", "not_a_disclosure_policy_decision",
     }
     if not required <= set(value.get("nonclaims", [])):
         raise BundleError("FC100 authority nonclaims are incomplete")
@@ -79,11 +80,13 @@ def load_manifest(path: pathlib.Path = MANIFEST) -> dict[str, Any]:
 
 def validate_case(case: dict[str, Any]) -> None:
     required = {
-        "id", "role", "fc_module", "fc_declaration", "source",
+        "id", "cohort", "role", "fc_module", "fc_declaration", "source",
         "projection", "disclosure",
     }
     if set(case) != required:
         raise BundleError(f"{case.get('id', '<unknown>')}: invalid fields")
+    if case["cohort"] not in {"solved", "open"}:
+        raise BundleError(f"{case['id']}: invalid FC100 cohort")
     source = case["source"]
     if not SHA1.fullmatch(source.get("commit", "")):
         raise BundleError(f"{case['id']}: source commit is not pinned")
@@ -127,6 +130,52 @@ def validate_case(case: dict[str, Any]) -> None:
         raise BundleError(f"{case['id']}: embargoed source needs an end time")
     if visibility != "embargoed" and disclosure["embargo_until"] is not None:
         raise BundleError(f"{case['id']}: only embargoed sources have an end time")
+    for field in ("embargo_until", "release_at"):
+        timestamp = disclosure[field]
+        if timestamp is not None:
+            try:
+                parsed = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            except (AttributeError, ValueError) as exc:
+                raise BundleError(
+                    f"{case['id']}: {field} must be an RFC 3339 timestamp") from exc
+            if not timestamp.endswith("Z") or parsed.utcoffset() != datetime.timedelta(0):
+                raise BundleError(f"{case['id']}: {field} must be an RFC 3339 UTC timestamp")
+    if visibility != "public" and disclosure["release_at"] is not None:
+        raise BundleError(f"{case['id']}: only public sources have a release time")
+    if visibility == "private" and (
+        disclosure["embargo_until"] is not None or disclosure["release_at"] is not None
+    ):
+        raise BundleError(f"{case['id']}: private source cannot claim a release schedule")
+    if case["cohort"] == "open" and visibility != "public":
+        raise BundleError(f"{case['id']}: open-conjecture submissions must be public")
+
+
+def disclosure_projection(case: dict[str, Any]) -> dict[str, Any]:
+    """Return policy-neutral disclosure facts for one validated case.
+
+    This expresses the split needed by a future submission service without
+    scheduling a release or treating visibility as mathematical evidence.
+    """
+    disclosure = case["disclosure"]
+    visibility = disclosure["visibility"]
+    if visibility == "public":
+        release_action = "none_already_public"
+    elif visibility == "embargoed":
+        release_action = "publish_at_embargo_until"
+    else:
+        release_action = "add_release_schedule_before_submission"
+    return {
+        **disclosure,
+        "cohort": case["cohort"],
+        "submission_policy": (
+            "public_source_required" if case["cohort"] == "open"
+            else "temporary_embargo_allowed"
+        ),
+        "submission_eligible": visibility in {"public", "embargoed"},
+        "release_action": release_action,
+        "public_claim_eligible": visibility == "public",
+        "effect_on_comparator_or_acceptance": "none",
+    }
 
 
 def verify_source(case: dict[str, Any], checkout: pathlib.Path) -> list[dict[str, Any]]:
@@ -182,9 +231,8 @@ def materialize(case: dict[str, Any], checkout: pathlib.Path,
                     "sha256": "sha256:" + digest(candidate.read_bytes()),
                 })
 
-    public_claim_eligible = case["disclosure"]["visibility"] == "public"
     evidence = {
-        "schema": "formal-conjectures.fc100-source-bundle.v1",
+        "schema": "formal-conjectures.fc100-source-bundle.v2",
         "authority_effect": "none",
         "case": case["id"],
         "formal_conjectures": {
@@ -211,15 +259,12 @@ def materialize(case: dict[str, Any], checkout: pathlib.Path,
             "comparator": "not_evaluated",
             "review": "not_evaluated",
         },
-        "disclosure": {
-            **case["disclosure"],
-            "public_claim_eligible": public_claim_eligible,
-            "effect_on_comparator_or_acceptance": "none",
-        },
+        "disclosure": disclosure_projection(case),
         "nonclaims": [
             "not_a_comparator_result",
             "not_maintainer_or_upstream_acceptance",
             "not_a_benchmark_admission_decision",
+            "not_a_disclosure_policy_decision",
         ],
     }
     (output / "bundle.json").write_text(

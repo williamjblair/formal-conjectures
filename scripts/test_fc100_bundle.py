@@ -35,6 +35,7 @@ class FC100ManifestTest(unittest.TestCase):
             {"theorem_proof", "definition_answer", "multi_file_theorem"},
         )
         for case in self.manifest["cases"]:
+            self.assertEqual(case["cohort"], "solved")
             self.assertRegex(case["source"]["commit"], r"^[0-9a-f]{40}$")
             self.assertTrue(case["source"]["license"])
 
@@ -51,6 +52,30 @@ class FC100ManifestTest(unittest.TestCase):
             fc100_bundle.validate_case(case)
         case["disclosure"]["embargo_until"] = "2026-09-16T00:00:00Z"
         fc100_bundle.validate_case(case)
+
+    def test_open_conjecture_source_must_be_public(self) -> None:
+        case = copy.deepcopy(self.manifest["cases"][0])
+        case["cohort"] = "open"
+        case["disclosure"]["visibility"] = "private"
+        with self.assertRaisesRegex(fc100_bundle.BundleError, "must be public"):
+            fc100_bundle.validate_case(case)
+
+    def test_embargo_timestamp_is_exact_utc(self) -> None:
+        case = copy.deepcopy(self.manifest["cases"][0])
+        case["disclosure"]["visibility"] = "embargoed"
+        case["disclosure"]["embargo_until"] = "2026-09-16"
+        with self.assertRaisesRegex(fc100_bundle.BundleError, "RFC 3339 UTC"):
+            fc100_bundle.validate_case(case)
+
+    def test_solved_embargo_records_the_future_release_action(self) -> None:
+        case = copy.deepcopy(self.manifest["cases"][0])
+        case["disclosure"]["visibility"] = "embargoed"
+        case["disclosure"]["embargo_until"] = "2026-09-16T00:00:00Z"
+        fc100_bundle.validate_case(case)
+        projected = fc100_bundle.disclosure_projection(case)
+        self.assertTrue(projected["submission_eligible"])
+        self.assertEqual(projected["release_action"], "publish_at_embargo_until")
+        self.assertEqual(projected["effect_on_comparator_or_acceptance"], "none")
 
     def test_submission_paths_cannot_escape_the_lean_eval_layout(self) -> None:
         case = copy.deepcopy(self.manifest["cases"][0])
@@ -88,6 +113,7 @@ class FC100MaterializationTest(unittest.TestCase):
         raw = source_file.read_bytes()
         self.case = {
             "id": "example",
+            "cohort": "solved",
             "role": "theorem_proof",
             "fc_module": "FormalConjectures.Example",
             "fc_declaration": "example",

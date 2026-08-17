@@ -24,3 +24,16 @@ The tool refuses an existing output path or any source drift. A prepared case
 gets the LeanEval submission shape; a blocked case keeps only the immutable
 source bundle and its explicit gate. It never runs Comparator or converts a
 build, visibility choice, or terminal message into acceptance.
+
+## Disclosure contract
+
+Each case belongs to the `solved` or `open` FC100 cohort. A solved-case source
+may be public or temporarily embargoed. An embargo needs an exact UTC release
+time; an unscheduled private source is not submission-eligible. An
+open-conjecture source must already be public. This prevents a private result
+from looking like evidence that an open conjecture was solved.
+
+The bundle records the required release action but does not execute it. A
+future LeanEval submission service owns timed publication. Formal Conjectures
+maintainers still own statement metadata and acceptance, and visibility never
+changes a Comparator result.

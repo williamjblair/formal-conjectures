@@ -1,0 +1,24 @@
+{
+  "schema_version": "formal-conjectures.actionable-review.v1",
+  "repository": {
+    "owner": "williamjblair",
+    "name": "formal-conjectures",
+    "pull_request": 2,
+    "head_commit_oid": "84804da2e04a307be223f7dc067704619ca759c1"
+  },
+  "finding": {
+    "check_id": "source-statement-fidelity",
+    "next_action": "Guard the existential against the terminal `0`; review the inline change in `430.lean`."
+  },
+  "inline_suggestion": {
+    "key": "source-statement-fidelity",
+    "check_id": "source-statement-fidelity",
+    "confidence": "high",
+    "path": "FormalConjectures/ErdosProblems/430.lean",
+    "line": 86,
+    "side": "RIGHT",
+    "original": "    answer(sorry) ↔ ∀ᶠ n : ℕ in atTop, ∃ k : ℕ, (seq n k).Composite := by",
+    "replacement": "    answer(sorry) ↔ ∀ᶠ n : ℕ in atTop, ∃ k : ℕ,\n      seq n k ≠ 0 ∧ (seq n k).Composite := by",
+    "explanation": "The terminal `0` is absorbing, and `Nat.Composite 0` holds. Thus `n = 8, k = 2` witnesses the current existential after the source sequence has already stopped at `7, 5`. Requiring a nonzero term excludes that sentinel."
+  }
+}

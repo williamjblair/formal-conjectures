@@ -63,14 +63,19 @@ ready-to-publish comment, and command evidence. It also creates a neutral
 approve, merge, or establish maintainer disposition or mathematical truth.
 
 The `publish_comment` input defaults to `false`. With that default, the run is
-artifact-only. When an operator explicitly dispatches with `publish_comment`
+artifact-only. Its draft output includes a concise marker-bound summary and,
+only when exact-head configuration binds a high-confidence localized repair,
+an inline review comment with a GitHub suggested-change block. When an operator explicitly dispatches with `publish_comment`
 set to `true`, a separate publication job runs only after the secretless review
 job succeeds. The publication job does not check out or execute contributor
 code. It downloads the completed artifact as data, re-reads the PR, refuses a
 changed head, and then creates or updates exactly one comment carrying the
 stable marker `<!-- formal-conjectures:advisory-review:v1 -->`. Selection
 requires both the marker and the App's own `[bot]` login. Multiple matching App
-comments are an error, so a rerun cannot silently add another comment.
+comments are an error, so a rerun cannot silently add another comment. Inline
+suggestions have a separate stable marker and update only when the App identity,
+head commit, path, side, and line all still match. Drift is an error rather than
+a duplicate. Neither output auto-applies, commits, approves, labels, or merges.
 
 Configure these repository-level values before enabling publication:
 

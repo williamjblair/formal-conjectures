@@ -41,6 +41,11 @@ on:
         required: true
         default: audit/pr-audit-v1/fixtures/fork-dogfood-erdos-430-2/review-request.json
         type: string
+      actionable_review_path:
+        description: Exact-head actionable projection configuration on this trusted branch
+        required: true
+        default: audit/pr-audit-v1/fixtures/fork-dogfood-erdos-430-2/actionable-review.json
+        type: string
       build_target:
         description: Exact Lean module target for lake --wfail build
         required: true
@@ -168,14 +173,21 @@ jobs:
           PYTHONPATH: reviewer/scripts
           REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
           REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+          REVIEW_ACTIONABLE: ${{ inputs.actionable_review_path }}
           REVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           artifact_name="advisory-external-pr-${REVIEW_PULL_REQUEST}-${REVIEW_EXPECTED_HEAD}"
           echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
           python3 -B reviewer/scripts/prepare_external_pr_comment.py render \
-            --draft action-output/pr-comment-draft.md \
-            --output action-output/pr-comment-ready.md \
-            --payload-output action-output/pr-comment-request.json \
+            --core action-output/audit-core.json \
+            --actionable "reviewer/${REVIEW_ACTIONABLE}" \
+            --source-root review-target \
+            --summary-output action-output/pr-comment-ready.md \
+            --summary-payload action-output/pr-comment-request.json \
+            --inline-output action-output/inline-review-comment-ready.md \
+            --inline-create-payload action-output/inline-review-create-request.json \
+            --inline-update-payload action-output/inline-review-update-request.json \
+            --metadata-output action-output/actionable-review-metadata.json \
             --expected-head "$REVIEW_EXPECTED_HEAD" \
             --run-url "$REVIEW_RUN_URL" \
             --artifact-name "$artifact_name"
@@ -272,7 +284,7 @@ jobs:
           permission-contents: read
           permission-pull-requests: write
 
-      - name: Recheck the exact head and select the stable App comment
+      - name: Recheck the exact head and select stable App comments
         id: comment-selection
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -298,18 +310,53 @@ jobs:
           gh api --paginate --slurp \
             -H 'Accept: application/vnd.github+json' \
             "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/${REVIEW_PULL_REQUEST}/comments" \
-            > publication-evidence/comments.json
-          python3 -B reviewer/scripts/prepare_external_pr_comment.py select \
-            --comments publication-evidence/comments.json \
+            > publication-evidence/summary-comments.json
+          gh api --paginate --slurp \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}/comments" \
+            > publication-evidence/inline-comments.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py select-summary \
+            --comments publication-evidence/summary-comments.json \
             --app-slug "$REVIEW_APP_SLUG" \
-            --output publication-evidence/comment-selection.json
-          action=$(python3 -c 'import json; print(json.load(open("publication-evidence/comment-selection.json"))["action"])')
-          comment_id=$(python3 -c 'import json; value=json.load(open("publication-evidence/comment-selection.json"))["comment_id"]; print(value or "")')
-          echo "action=${action}" >> "$GITHUB_OUTPUT"
-          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
+            --output publication-evidence/summary-selection.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py select-inline \
+            --comments publication-evidence/inline-comments.json \
+            --request review-artifact/action-output/inline-review-create-request.json \
+            --app-slug "$REVIEW_APP_SLUG" \
+            --output publication-evidence/inline-selection.json
+          echo "summary_action=$(python3 -c 'import json; print(json.load(open("publication-evidence/summary-selection.json"))["action"])')" >> "$GITHUB_OUTPUT"
+          echo "summary_id=$(python3 -c 'import json; print(json.load(open("publication-evidence/summary-selection.json"))["comment_id"] or "")')" >> "$GITHUB_OUTPUT"
+          echo "inline_action=$(python3 -c 'import json; print(json.load(open("publication-evidence/inline-selection.json"))["action"])')" >> "$GITHUB_OUTPUT"
+          echo "inline_id=$(python3 -c 'import json; print(json.load(open("publication-evidence/inline-selection.json"))["comment_id"] or "")')" >> "$GITHUB_OUTPUT"
 
-      - name: Create the advisory comment
-        if: ${{ steps.comment-selection.outputs.action == 'create' }}
+      - name: Create the inline advisory suggestion
+        if: ${{ steps.comment-selection.outputs.inline_action == 'create' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}/comments" \
+            --input review-artifact/action-output/inline-review-create-request.json \
+            > publication-evidence/inline-comment-response.json
+
+      - name: Update the inline advisory suggestion
+        if: ${{ steps.comment-selection.outputs.inline_action == 'update' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_INLINE_ID: ${{ steps.comment-selection.outputs.inline_id }}
+        run: |
+          gh api --method PATCH -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/comments/${REVIEW_INLINE_ID}" \
+            --input review-artifact/action-output/inline-review-update-request.json \
+            > publication-evidence/inline-comment-response.json
+
+      - name: Create the advisory summary
+        if: ${{ steps.comment-selection.outputs.summary_action == 'create' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REVIEW_OWNER: ${{ inputs.owner }}
@@ -322,13 +369,13 @@ jobs:
             --input review-artifact/action-output/pr-comment-request.json \
             > publication-evidence/comment-response.json
 
-      - name: Update the advisory comment
-        if: ${{ steps.comment-selection.outputs.action == 'update' }}
+      - name: Update the advisory summary
+        if: ${{ steps.comment-selection.outputs.summary_action == 'update' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REVIEW_OWNER: ${{ inputs.owner }}
           REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_COMMENT_ID: ${{ steps.comment-selection.outputs.comment_id }}
+          REVIEW_COMMENT_ID: ${{ steps.comment-selection.outputs.summary_id }}
         run: |
           gh api --method PATCH \
             -H 'Accept: application/vnd.github+json' \
@@ -339,7 +386,9 @@ jobs:
       - name: State the publication boundary
         if: always()
         env:
-          REVIEW_COMMENT_ACTION: ${{ steps.comment-selection.outputs.action }}
+          REVIEW_COMMENT_ACTION: ${{ steps.comment-selection.outputs.summary_action }}
+          REVIEW_INLINE_ACTION: ${{ steps.comment-selection.outputs.inline_action }}
         run: |
           echo "FC Review Pilot comment action: ${REVIEW_COMMENT_ACTION:-not-run}." >> "$GITHUB_STEP_SUMMARY"
+          echo "FC Review Pilot inline action: ${REVIEW_INLINE_ACTION:-not-run}." >> "$GITHUB_STEP_SUMMARY"
           echo 'The comment is an advisory projection only. It has no acceptance or maintainer-authority effect.' >> "$GITHUB_STEP_SUMMARY"

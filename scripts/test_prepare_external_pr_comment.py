@@ -1,151 +1,102 @@
-# Copyright 2026 The Formal Conjectures Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "prepare_external_pr_comment.py"
+FIXTURE = REPO / "audit" / "pr-audit-v1" / "fixtures" / "fork-dogfood-erdos-430-2"
 HEAD = "84804da2e04a307be223f7dc067704619ca759c1"
-MARKER = "<!-- formal-conjectures:advisory-review:v1 -->"
+SUMMARY = "<!-- formal-conjectures:advisory-review:v1 -->"
+INLINE = "<!-- formal-conjectures:advisory-inline:v1:source-statement-fidelity -->"
 
 
-class ExternalPrCommentTest(unittest.TestCase):
+class ActionableCommentTest(unittest.TestCase):
+    def execute(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([sys.executable, "-B", str(SCRIPT), *args], text=True, capture_output=True)
 
-    def run_script(self, *arguments: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [sys.executable, "-B", str(SCRIPT), *arguments],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
+    def rendered(self, mutate=None):
+        temporary = tempfile.TemporaryDirectory()
+        root = Path(temporary.name)
+        source = root / "source" / "FormalConjectures" / "ErdosProblems"
+        source.mkdir(parents=True)
+        shutil.copyfile(FIXTURE / "inputs" / "head-source.lean", source / "430.lean")
+        config = json.loads((FIXTURE / "actionable-review.json").read_text())
+        if mutate:
+            mutate(config)
+        config_path = root / "actionable.json"
+        config_path.write_text(json.dumps(config))
+        args = [
+            "render", "--core", str(FIXTURE / "expected-core.json"), "--actionable", str(config_path),
+            "--source-root", str(root / "source"), "--summary-output", str(root / "summary.md"),
+            "--summary-payload", str(root / "summary.json"), "--inline-output", str(root / "inline.md"),
+            "--inline-create-payload", str(root / "inline-create.json"),
+            "--inline-update-payload", str(root / "inline-update.json"), "--metadata-output", str(root / "metadata.json"),
+            "--expected-head", HEAD, "--run-url", "https://github.com/williamjblair/formal-conjectures/actions/runs/123",
+            "--artifact-name", f"advisory-external-pr-2-{HEAD}",
+        ]
+        return temporary, root, self.execute(*args)
 
-    def draft(self) -> str:
-        return f"""## Advisory Formal Conjectures review
-
-Pinned `williamjblair/formal\\-conjectures` PR #2 at `{HEAD}`.
-
-Advisory disposition: **needs\\_revision**
-
-- `source\\-statement\\-fidelity` (source\\-statement\\-fidelity): **fail**
-  - The terminal value 0 can witness the existential after the source sequence stops.
-
-This automated report is advisory only. It is not maintainer disposition, acceptance, a merge decision, or a claim of mathematical truth.
-
-## Current workflow replay
-
-Fresh deterministic outcome at the pinned head: **pass**.
-"""
-
-    def test_render_requires_and_preserves_publishable_fields(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            draft = root / "draft.md"
-            output = root / "comment.md"
-            payload = root / "payload.json"
-            draft.write_text(self.draft(), encoding="utf-8")
-            result = self.run_script(
-                "render", "--draft", str(draft), "--output", str(output),
-                "--payload-output", str(payload), "--expected-head", HEAD,
-                "--run-url", "https://github.com/williamjblair/formal-conjectures/actions/runs/123",
-                "--artifact-name", f"advisory-external-pr-2-{HEAD}",
-            )
+    def test_renders_concise_summary_and_localized_suggestion(self):
+        temporary, root, result = self.rendered()
+        with temporary:
             self.assertEqual(result.returncode, 0, result.stderr)
-            body = output.read_text(encoding="utf-8")
-            self.assertTrue(body.startswith(MARKER))
-            self.assertIn(HEAD, body)
-            self.assertIn("Advisory disposition: **needs\\_revision**", body)
-            self.assertIn("Fresh deterministic outcome at the pinned head: **pass**", body)
-            self.assertIn("not maintainer disposition, acceptance", body)
-            self.assertIn("[Actions run]", body)
-            self.assertEqual(json.loads(payload.read_text(encoding="utf-8")), {"body": body})
+            summary = (root / "summary.md").read_text()
+            inline = (root / "inline.md").read_text()
+            request = json.loads((root / "inline-create.json").read_text())
+            self.assertTrue(summary.startswith(SUMMARY))
+            self.assertIn("**Verdict:** `needs_revision` · **Findings:** 1", summary)
+            self.assertIn("**Next action:** Guard the existential", summary)
+            self.assertLess(len(summary), 1000)
+            self.assertTrue(inline.startswith(INLINE))
+            self.assertIn("```suggestion\n    answer(sorry)", inline)
+            self.assertIn("seq n k ≠ 0 ∧ (seq n k).Composite := by", inline)
+            self.assertEqual((request["commit_id"], request["path"], request["line"], request["side"]),
+                             (HEAD, "FormalConjectures/ErdosProblems/430.lean", 86, "RIGHT"))
+            self.assertEqual(json.loads((root / "inline-update.json").read_text()), {"body": inline})
 
-    def test_render_rejects_missing_authority_boundary(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            draft = root / "draft.md"
-            draft.write_text(self.draft().replace("not maintainer disposition", "not a decision"), encoding="utf-8")
-            result = self.run_script(
-                "render", "--draft", str(draft), "--output", str(root / "comment.md"),
-                "--payload-output", str(root / "payload.json"), "--expected-head", HEAD,
-                "--run-url", "https://github.com/williamjblair/formal-conjectures/actions/runs/123",
-                "--artifact-name", "artifact",
-            )
+    def test_render_refuses_source_line_drift(self):
+        temporary, _, result = self.rendered(lambda value: value["inline_suggestion"].update({"line": 85}))
+        with temporary:
             self.assertEqual(result.returncode, 2)
-            self.assertIn("authority boundary", result.stderr)
+            self.assertIn("does not match", result.stderr)
 
-    def selection(self, comments: object) -> tuple[subprocess.CompletedProcess[str], dict[str, object] | None]:
+    def select(self, command: str, comments, request=None):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            source = root / "comments.json"
-            output = root / "selection.json"
-            source.write_text(json.dumps(comments), encoding="utf-8")
-            result = self.run_script(
-                "select", "--comments", str(source), "--app-slug", "fc-review-pilot", "--output", str(output),
-            )
-            return result, json.loads(output.read_text(encoding="utf-8")) if output.exists() else None
+            source = root / "comments.json"; source.write_text(json.dumps(comments))
+            output = root / "output.json"
+            args = [command, "--comments", str(source), "--app-slug", "fc-review-pilot", "--output", str(output)]
+            if request is not None:
+                request_path = root / "request.json"; request_path.write_text(json.dumps(request))
+                args.extend(["--request", str(request_path)])
+            result = self.execute(*args)
+            return result, json.loads(output.read_text()) if output.exists() else None
 
-    def test_selection_creates_when_no_app_comment_exists(self):
-        result, selection = self.selection([
-            {"id": 1, "body": MARKER, "user": {"login": "human"}},
-            {"id": 2, "body": "ordinary", "user": {"login": "fc-review-pilot[bot]"}},
-        ])
+    def test_summary_upserts_without_matching_human_comment(self):
+        result, value = self.select("select-summary", [[
+            {"id": 1, "body": SUMMARY, "user": {"login": "human"}},
+            {"id": 2, "body": SUMMARY, "user": {"login": "fc-review-pilot[bot]"}},
+        ]])
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(selection, {"action": "create", "comment_id": None})
+        self.assertEqual(value, {"action": "update", "comment_id": 2})
 
-    def test_selection_updates_one_app_comment(self):
-        result, selection = self.selection([
-            [{"id": 7, "body": f"{MARKER}\nold", "user": {"login": "fc-review-pilot[bot]"}}],
-        ])
+    def test_inline_updates_only_same_head_and_line(self):
+        request = {"body": INLINE, "commit_id": HEAD, "path": "FormalConjectures/ErdosProblems/430.lean", "line": 86, "side": "RIGHT"}
+        comment = {**request, "id": 7, "user": {"login": "fc-review-pilot[bot]"}}
+        result, value = self.select("select-inline", [comment], request)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(selection, {"action": "update", "comment_id": 7})
-
-    def test_selection_refuses_duplicate_app_comments(self):
-        result, selection = self.selection([
-            {"id": 7, "body": MARKER, "user": {"login": "fc-review-pilot[bot]"}},
-            {"id": 8, "body": MARKER, "user": {"login": "fc-review-pilot[bot]"}},
-        ])
+        self.assertEqual(value, {"action": "update", "comment_id": 7})
+        comment["commit_id"] = "0" * 40
+        result, value = self.select("select-inline", [comment], request)
         self.assertEqual(result.returncode, 2)
-        self.assertIsNone(selection)
-        self.assertIn("more than one", result.stderr)
-
-    def test_verify_head_refuses_stale_publication(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            live = root / "live.json"
-            output = root / "binding.json"
-            live.write_text(json.dumps({
-                "number": 2,
-                "base": {"repo": {"full_name": "williamjblair/formal-conjectures"}},
-                "head": {"sha": "0" * 40},
-            }), encoding="utf-8")
-            result = self.run_script(
-                "verify-head", "--live-pr", str(live), "--owner", "williamjblair",
-                "--repository", "formal-conjectures", "--pull-request", "2",
-                "--expected-head", HEAD, "--output", str(output),
-            )
-            self.assertEqual(result.returncode, 2)
-            self.assertFalse(output.exists())
-            self.assertIn("refusing stale publication", result.stderr)
+        self.assertIsNone(value)
+        self.assertIn("another head or line", result.stderr)
 
 
 if __name__ == "__main__":

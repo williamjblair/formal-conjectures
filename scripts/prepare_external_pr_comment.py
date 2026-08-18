@@ -1,18 +1,7 @@
 # Copyright 2026 The Formal Conjectures Authors.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-"""Prepare and safely select the stable advisory comment for an external PR."""
+"""Render and safely select actionable advisory PR comments."""
 
 from __future__ import annotations
 
@@ -20,202 +9,221 @@ import argparse
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from pr_audit import AuditError, parse_json_bytes
 
-
-COMMENT_MARKER = "<!-- formal-conjectures:advisory-review:v1 -->"
-MAX_COMMENT_BYTES = 60_000
-OID_PATTERN = re.compile(r"^[0-9a-f]{40}$")
-
-
-def _text(path: Path, description: str) -> str:
-    try:
-        raw = path.read_bytes()
-    except OSError as error:
-        raise AuditError(f"cannot read {description}: {error}") from error
-    if len(raw) > MAX_COMMENT_BYTES:
-        raise AuditError(f"{description} exceeds {MAX_COMMENT_BYTES} bytes")
-    try:
-        return raw.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise AuditError(f"{description} is not UTF-8") from error
+SUMMARY_MARKER = "<!-- formal-conjectures:advisory-review:v1 -->"
+INLINE_PREFIX = "formal-conjectures:advisory-inline:v1:"
+OID = re.compile(r"^[0-9a-f]{40}$")
+KEY = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
-def _write(path: Path, value: str) -> None:
+def load(path: Path) -> Any:
+    return parse_json_bytes(path.read_bytes())
+
+
+def write(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(value, encoding="utf-8", newline="\n")
 
 
-def render_comment(
-    draft_path: Path,
-    output_path: Path,
-    payload_path: Path,
-    expected_head: str,
-    run_url: str,
-    artifact_name: str,
-) -> None:
-    if not OID_PATTERN.fullmatch(expected_head):
-        raise AuditError("expected head must be a lowercase 40-character Git OID")
-    if not run_url.startswith("https://github.com/") or "/actions/runs/" not in run_url:
-        raise AuditError("workflow run URL must be an HTTPS github.com Actions run URL")
-    if not artifact_name or any(character in artifact_name for character in "\r\n`"):
-        raise AuditError("artifact name is empty or contains an unsafe character")
-
-    draft = _text(draft_path, "advisory comment draft").strip()
-    required = {
-        f"`{expected_head}`": "exact pull request head",
-        "Advisory disposition: **": "advisory disposition",
-        "`source\\-statement\\-fidelity`": "semantic source-fidelity finding",
-        "Fresh deterministic outcome at the pinned head: **": "fresh deterministic outcome",
-        "not maintainer disposition, acceptance, a merge decision, or a claim of mathematical truth":
-            "authority boundary",
-    }
-    for fragment, description in required.items():
-        if fragment not in draft:
-            raise AuditError(f"advisory comment draft is missing {description}")
-
-    body = (
-        f"{COMMENT_MARKER}\n\n{draft}\n\n---\n"
-        f"Workflow evidence: [Actions run]({run_url}); artifact `{artifact_name}`.\n"
-        "The machine-readable JSON report in that artifact is authoritative over this Markdown projection.\n"
-    )
-    if len(body.encode("utf-8")) > MAX_COMMENT_BYTES:
-        raise AuditError(f"rendered comment exceeds {MAX_COMMENT_BYTES} bytes")
-    _write(output_path, body)
-    _write(payload_path, json.dumps({"body": body}, ensure_ascii=False, separators=(",", ":")) + "\n")
+def exact(value: Any, keys: set[str], name: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise AuditError(f"{name} must have exactly keys {sorted(keys)}")
+    return value
 
 
-def _comments(value: Any) -> list[dict[str, Any]]:
+def text(value: Any, name: str, limit: int = 2_000) -> str:
+    if not isinstance(value, str) or not value or len(value) > limit:
+        raise AuditError(f"{name} must be a nonempty bounded string")
+    return value
+
+
+def comments(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
-        raise AuditError("GitHub comments response must be an array")
-    flattened: list[Any] = []
+        raise AuditError("GitHub comments must be an array")
+    flat: list[Any] = []
     for item in value:
-        if isinstance(item, list):
-            flattened.extend(item)
-        else:
-            flattened.append(item)
-    if len(flattened) > 10_000:
-        raise AuditError("GitHub comments response is unexpectedly large")
-    if not all(isinstance(item, dict) for item in flattened):
-        raise AuditError("GitHub comments response contains a non-object")
-    return flattened
+        flat.extend(item if isinstance(item, list) else [item])
+    if len(flat) > 10_000 or not all(isinstance(item, dict) for item in flat):
+        raise AuditError("GitHub comments are malformed or too large")
+    return flat
 
 
-def select_comment(comments_path: Path, app_slug: str, output_path: Path) -> None:
-    if not app_slug or app_slug.endswith("[bot]") or any(character.isspace() for character in app_slug):
+def bot_login(app_slug: str) -> str:
+    if not app_slug or app_slug.endswith("[bot]") or any(c.isspace() for c in app_slug):
         raise AuditError("GitHub App slug is malformed")
-    value = parse_json_bytes(comments_path.read_bytes())
-    expected_login = f"{app_slug}[bot]"
-    matches: list[int] = []
-    for comment in _comments(value):
-        user = comment.get("user")
-        if not isinstance(user, dict) or user.get("login") != expected_login:
-            continue
-        body = comment.get("body")
-        identifier = comment.get("id")
-        if isinstance(body, str) and COMMENT_MARKER in body:
-            if not isinstance(identifier, int) or isinstance(identifier, bool) or identifier <= 0:
-                raise AuditError("matching GitHub comment has an invalid id")
-            matches.append(identifier)
-    if len(matches) > 1:
-        raise AuditError("more than one App-authored advisory comment exists; refusing to add or update")
-    decision = {"action": "update", "comment_id": matches[0]} if matches else {
-        "action": "create", "comment_id": None,
-    }
-    _write(output_path, json.dumps(decision, separators=(",", ":")) + "\n")
+    return f"{app_slug}[bot]"
 
 
-def verify_head(
-    live_pr_path: Path,
-    owner: str,
-    repository: str,
-    pull_request: int,
-    expected_head: str,
-    output_path: Path,
-) -> None:
-    if not OID_PATTERN.fullmatch(expected_head):
+def inline_marker(key: str) -> str:
+    if not KEY.fullmatch(key):
+        raise AuditError("inline suggestion key is malformed")
+    return f"<!-- {INLINE_PREFIX}{key} -->"
+
+
+def render(args: argparse.Namespace) -> None:
+    if not OID.fullmatch(args.expected_head):
         raise AuditError("expected head must be a lowercase 40-character Git OID")
-    value = parse_json_bytes(live_pr_path.read_bytes())
-    if not isinstance(value, dict):
-        raise AuditError("live pull request response must be an object")
-    try:
-        observed_number = value["number"]
-        observed_head = value["head"]["sha"]
-        full_name = value["base"]["repo"]["full_name"]
-    except (KeyError, TypeError) as error:
-        raise AuditError("live pull request response lacks number, head.sha, or base.repo.full_name") from error
-    expected_full_name = f"{owner}/{repository}"
-    if observed_number != pull_request or full_name.casefold() != expected_full_name.casefold():
-        raise AuditError("live pull request identity does not match the requested base repository and number")
-    if observed_head != expected_head:
-        raise AuditError(
-            f"pull request head changed from {expected_head} to {observed_head}; refusing stale publication"
-        )
-    result = {
-        "schema_version": "formal-conjectures.external-pr-comment-binding.v1",
-        "repository": {"owner": owner, "name": repository},
-        "pull_request": pull_request,
-        "head_commit_oid": expected_head,
-        "stale": False,
-        "authority_effect": "none",
+    if not args.run_url.startswith("https://github.com/") or "/actions/runs/" not in args.run_url:
+        raise AuditError("run URL must be a github.com Actions URL")
+    core = load(args.core)
+    config = exact(
+        load(args.actionable),
+        {"schema_version", "repository", "finding", "inline_suggestion"},
+        "actionable review",
+    )
+    if config["schema_version"] != "formal-conjectures.actionable-review.v1":
+        raise AuditError("unsupported actionable review version")
+    repository = exact(
+        config["repository"], {"owner", "name", "pull_request", "head_commit_oid"}, "repository binding",
+    )
+    core_repo = core["repository"]
+    expected = {
+        "owner": core_repo["repository"]["owner"], "name": core_repo["repository"]["name"],
+        "pull_request": core_repo["pull_request"]["number"], "head_commit_oid": core_repo["head"]["commit_oid"],
     }
-    _write(output_path, json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n")
+    if repository != expected or repository["head_commit_oid"] != args.expected_head:
+        raise AuditError("actionable review does not match the exact audit-core PR head")
+    finding = exact(config["finding"], {"check_id", "next_action"}, "finding")
+    next_action = text(finding["next_action"], "next action", 240)
+    if "\n" in next_action or "\r" in next_action:
+        raise AuditError("next action must be one line")
+    failed = [check for check in core["checks"] if check.get("outcome") == "fail"]
+    if len([check for check in failed if check.get("id") == finding["check_id"]]) != 1:
+        raise AuditError("actionable finding must bind one failed core check")
+    count = len(failed)
+    disposition = core["disposition"]["advisory"]
+    suffix = " A localized inline suggestion is available." if config["inline_suggestion"] else ""
+    summary = (
+        f"{SUMMARY_MARKER}\n\n## FC Review Pilot — advisory\n\n"
+        f"**Verdict:** `{disposition}` · **Findings:** {count}\n\n"
+        f"**Next action:** {next_action}{suffix}\n\n"
+        f"Pinned head: `{args.expected_head}`\n\n"
+        f"[Workflow evidence]({args.run_url}) · artifact `{args.artifact_name}`\n\n"
+        "This automated summary is advisory only. It is not maintainer disposition, acceptance, "
+        "a merge decision, or a claim of mathematical truth.\n"
+    )
+    write(args.summary_output, summary)
+    write(args.summary_payload, json.dumps({"body": summary}, ensure_ascii=False, separators=(",", ":")) + "\n")
+    inline = config["inline_suggestion"]
+    metadata: dict[str, Any] = {"inline_available": inline is not None, "finding_count": count}
+    if inline is not None:
+        inline = exact(
+            inline,
+            {"key", "check_id", "confidence", "path", "line", "side", "original", "replacement", "explanation"},
+            "inline suggestion",
+        )
+        if inline["check_id"] != finding["check_id"] or inline["confidence"] != "high":
+            raise AuditError("inline suggestion must bind the failed check at high confidence")
+        path = text(inline["path"], "inline path", 500)
+        pure = PurePosixPath(path)
+        if pure.is_absolute() or ".." in pure.parts or str(pure) != path:
+            raise AuditError("inline path must be normalized and repository-relative")
+        line = inline["line"]
+        if not isinstance(line, int) or isinstance(line, bool) or line <= 0 or inline["side"] != "RIGHT":
+            raise AuditError("inline location must be a positive RIGHT-side line")
+        original = text(inline["original"], "original line")
+        replacement = text(inline["replacement"], "replacement", 8_000)
+        explanation = text(inline["explanation"], "explanation")
+        if "\n" in original or "```" in replacement or "```" in explanation:
+            raise AuditError("inline suggestion text is unsafe")
+        source = (args.source_root / path).resolve(strict=True)
+        source.relative_to(args.source_root.resolve(strict=True))
+        lines = source.read_text(encoding="utf-8").splitlines()
+        if line > len(lines) or lines[line - 1] != original:
+            raise AuditError("inline original does not match the exact-head source line")
+        if path not in {change["path"] for change in core_repo["changes"]}:
+            raise AuditError("inline path is not in the audit-core change set")
+        body = (
+            f"{inline_marker(inline['key'])}\n\n{explanation}\n\n"
+            f"```suggestion\n{replacement}\n```\n\n"
+            "This suggested change is advisory only. It does not approve, apply, merge, or establish "
+            "maintainer disposition or mathematical truth.\n"
+        )
+        create = {"body": body, "commit_id": args.expected_head, "path": path, "line": line, "side": "RIGHT"}
+        write(args.inline_output, body)
+        write(args.inline_create_payload, json.dumps(create, ensure_ascii=False, separators=(",", ":")) + "\n")
+        write(args.inline_update_payload, json.dumps({"body": body}, ensure_ascii=False, separators=(",", ":")) + "\n")
+        metadata.update({"key": inline["key"], "head_commit_oid": args.expected_head, "path": path, "line": line, "side": "RIGHT"})
+    write(args.metadata_output, json.dumps(metadata, separators=(",", ":")) + "\n")
+
+
+def select_summary(args: argparse.Namespace) -> None:
+    matches = [
+        comment for comment in comments(load(args.comments))
+        if comment.get("user", {}).get("login") == bot_login(args.app_slug)
+        and SUMMARY_MARKER in (comment.get("body") or "")
+    ]
+    if len(matches) > 1:
+        raise AuditError("more than one App advisory summary exists")
+    result = {"action": "update", "comment_id": matches[0]["id"]} if matches else {"action": "create", "comment_id": None}
+    write(args.output, json.dumps(result, separators=(",", ":")) + "\n")
+
+
+def select_inline(args: argparse.Namespace) -> None:
+    request = exact(load(args.request), {"body", "commit_id", "path", "line", "side"}, "inline request")
+    marker = re.search(r"<!-- formal-conjectures:advisory-inline:v1:[a-z0-9-]+ -->", request["body"])
+    if marker is None:
+        raise AuditError("inline request lacks its stable marker")
+    matches = [
+        comment for comment in comments(load(args.comments))
+        if comment.get("user", {}).get("login") == bot_login(args.app_slug)
+        and marker.group(0) in (comment.get("body") or "")
+    ]
+    if len(matches) > 1:
+        raise AuditError("more than one App inline suggestion exists")
+    if not matches:
+        result = {"action": "create", "comment_id": None}
+    else:
+        found = matches[0]
+        found_line = found.get("line") if found.get("line") is not None else found.get("original_line")
+        found_side = found.get("side") if found.get("side") is not None else found.get("original_side")
+        if (found.get("commit_id"), found.get("path"), found_line, found_side) != (
+            request["commit_id"], request["path"], request["line"], request["side"],
+        ):
+            raise AuditError("existing inline suggestion is bound to another head or line")
+        result = {"action": "update", "comment_id": found["id"]}
+    write(args.output, json.dumps(result, separators=(",", ":")) + "\n")
+
+
+def verify_head(args: argparse.Namespace) -> None:
+    live = load(args.live_pr)
+    if (
+        live.get("number") != args.pull_request
+        or live.get("base", {}).get("repo", {}).get("full_name", "").casefold()
+        != f"{args.owner}/{args.repository}".casefold()
+    ):
+        raise AuditError("live pull request identity mismatch")
+    observed = live.get("head", {}).get("sha")
+    if observed != args.expected_head:
+        raise AuditError(f"head changed from {args.expected_head} to {observed}; refusing stale publication")
+    value = {"repository": {"owner": args.owner, "name": args.repository}, "pull_request": args.pull_request,
+             "head_commit_oid": args.expected_head, "stale": False, "authority_effect": "none"}
+    write(args.output, json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n")
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(description=__doc__)
-    commands = root.add_subparsers(dest="command", required=True)
-
-    render = commands.add_parser("render")
-    render.add_argument("--draft", type=Path, required=True)
-    render.add_argument("--output", type=Path, required=True)
-    render.add_argument("--payload-output", type=Path, required=True)
-    render.add_argument("--expected-head", required=True)
-    render.add_argument("--run-url", required=True)
-    render.add_argument("--artifact-name", required=True)
-
-    select = commands.add_parser("select")
-    select.add_argument("--comments", type=Path, required=True)
-    select.add_argument("--app-slug", required=True)
-    select.add_argument("--output", type=Path, required=True)
-
-    verify = commands.add_parser("verify-head")
-    verify.add_argument("--live-pr", type=Path, required=True)
-    verify.add_argument("--owner", required=True)
-    verify.add_argument("--repository", required=True)
-    verify.add_argument("--pull-request", type=int, required=True)
-    verify.add_argument("--expected-head", required=True)
-    verify.add_argument("--output", type=Path, required=True)
+    root = argparse.ArgumentParser()
+    sub = root.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("render")
+    for name in ("core", "actionable", "source-root", "summary-output", "summary-payload", "inline-output",
+                 "inline-create-payload", "inline-update-payload", "metadata-output"):
+        p.add_argument(f"--{name}", type=Path, required=True)
+    p.add_argument("--expected-head", required=True); p.add_argument("--run-url", required=True); p.add_argument("--artifact-name", required=True)
+    p = sub.add_parser("select-summary"); p.add_argument("--comments", type=Path, required=True); p.add_argument("--app-slug", required=True); p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser("select-inline"); p.add_argument("--comments", type=Path, required=True); p.add_argument("--request", type=Path, required=True); p.add_argument("--app-slug", required=True); p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser("verify-head"); p.add_argument("--live-pr", type=Path, required=True); p.add_argument("--owner", required=True); p.add_argument("--repository", required=True); p.add_argument("--pull-request", type=int, required=True); p.add_argument("--expected-head", required=True); p.add_argument("--output", type=Path, required=True)
     return root
 
 
 def main() -> int:
-    arguments = parser().parse_args()
+    args = parser().parse_args()
     try:
-        if arguments.command == "render":
-            render_comment(
-                arguments.draft,
-                arguments.output,
-                arguments.payload_output,
-                arguments.expected_head,
-                arguments.run_url,
-                arguments.artifact_name,
-            )
-        elif arguments.command == "select":
-            select_comment(arguments.comments, arguments.app_slug, arguments.output)
-        else:
-            verify_head(
-                arguments.live_pr,
-                arguments.owner,
-                arguments.repository,
-                arguments.pull_request,
-                arguments.expected_head,
-                arguments.output,
-            )
-    except (AuditError, OSError) as error:
+        {"render": render, "select-summary": select_summary, "select-inline": select_inline, "verify-head": verify_head}[args.command](args)
+    except (AuditError, OSError, UnicodeDecodeError, ValueError, KeyError, TypeError) as error:
         print(f"external-pr-comment: {error}", file=sys.stderr)
         return 2
     return 0

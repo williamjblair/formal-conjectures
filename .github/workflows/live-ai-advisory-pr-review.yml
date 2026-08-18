@@ -1,0 +1,616 @@
+# Copyright 2026 The Formal Conjectures Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+
+name: FC Review Pilot — live AI advisory
+run-name: Live AI review of ${{ inputs.owner }}/${{ inputs.repository }}#${{ inputs.pull_request }} at ${{ inputs.expected_head }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: GitHub owner of the PR base repository
+        required: true
+        type: string
+      repository:
+        description: GitHub PR base repository name
+        required: true
+        type: string
+      pull_request:
+        description: Pull request number
+        required: true
+        type: string
+      expected_head:
+        description: Exact 40-character PR head OID
+        required: true
+        type: string
+      live_ai_config_path:
+        description: Trusted exact-head, conclusion-free AI input configuration
+        required: true
+        default: audit/pr-audit-v1/fixtures/fork-dogfood-erdos-430-2/live-ai-review-config.json
+        type: string
+      build_target:
+        description: Exact Lean module target
+        required: true
+        default: FormalConjectures.ErdosProblems.«430»
+        type: string
+      run_ai_review:
+        description: Invoke three fresh Claude roles; false is a credential-free deterministic pilot
+        required: true
+        default: false
+        type: boolean
+      publish_comment:
+        description: Upsert the App summary and independently validated inline findings
+        required: true
+        default: false
+        type: boolean
+      model:
+        description: Exact Claude API model identifier retained in the execution receipt
+        required: true
+        default: claude-sonnet-5
+        type: choice
+        options: [claude-sonnet-5, claude-opus-4-8, claude-haiku-4-5-20251001]
+      effort:
+        description: Claude reasoning effort retained in the execution receipt
+        required: true
+        default: high
+        type: choice
+        options: [low, medium, high, xhigh]
+      max_budget_usd_per_role:
+        description: Hard Claude API budget cap for each isolated role
+        required: true
+        default: "5.00"
+        type: choice
+        options: ["1.00", "2.50", "5.00", "10.00"]
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: fc-live-ai-review-${{ inputs.owner }}-${{ inputs.repository }}-${{ inputs.pull_request }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Bind and sanitize exact-head inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+      - name: Read live PR state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          mkdir -p binding
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > binding/live-pr.json
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          path: review-target
+          persist-credentials: false
+      - name: Create conclusion-free sanitized model input
+        env:
+          PYTHONPATH: reviewer/scripts
+          CONFIG: ${{ inputs.live_ai_config_path }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          RUN_AI_REVIEW: ${{ inputs.run_ai_review }}
+          PUBLISH_COMMENT: ${{ inputs.publish_comment }}
+        run: |
+          args=()
+          [[ "$RUN_AI_REVIEW" == true ]] && args+=(--run-ai-review)
+          [[ "$PUBLISH_COMMENT" == true ]] && args+=(--publish-comment)
+          python3 -B reviewer/scripts/live_ai_pr_review.py prepare \
+            --config "reviewer/${CONFIG}" --live-pr binding/live-pr.json --source-root review-target \
+            --expected-head "$EXPECTED_HEAD" \
+            --prompt-template reviewer/.agents/prompts/live-ai-review-role.md \
+            --output-schema reviewer/.agents/schemas/live-ai-review-role-output.schema.json \
+            --output-dir live-ai-input "${args[@]}"
+          test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - id: metadata
+        name: Name sanitized input artifact
+        env:
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: echo "artifact_name=fc-live-ai-input-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: live-ai-input/
+          retention-days: 14
+
+  deterministic:
+    name: Deterministic Lean and diff lane
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          path: review-target
+          persist-credentials: false
+      - name: Recheck exact head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: reviewer/scripts
+          CONFIG: ${{ inputs.live_ai_config_path }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          mkdir -p deterministic-evidence
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > deterministic-evidence/live-pr.json
+          python3 -B reviewer/scripts/live_ai_pr_review.py prepare \
+            --config "reviewer/${CONFIG}" --live-pr deterministic-evidence/live-pr.json --source-root review-target \
+            --expected-head "$EXPECTED_HEAD" --prompt-template reviewer/.agents/prompts/live-ai-review-role.md \
+            --output-schema reviewer/.agents/schemas/live-ai-review-role-output.schema.json \
+            --output-dir deterministic-evidence/binding
+      - name: Install elan
+        run: |
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.2/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Run bounded checks and retain typed outcome
+        env:
+          PYTHONPATH: reviewer/scripts
+          CONFIG: ${{ inputs.live_ai_config_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          set +e
+          timeout 40m bash -c 'cd review-target && lake exe cache get && lake --wfail build "$BUILD_TARGET"' > deterministic-evidence/lean-build.log 2>&1
+          build_exit=$?
+          base_oid=$(python3 -c 'import json; print(json.load(open("deterministic-evidence/live-pr.json"))["base"]["sha"])')
+          git -C review-target diff --check "$base_oid...$EXPECTED_HEAD" > deterministic-evidence/diff-check.log 2>&1
+          diff_exit=$?
+          set -e
+          python3 -B reviewer/scripts/live_ai_pr_review.py capture-deterministic \
+            --config "reviewer/${CONFIG}" --build-target "$BUILD_TARGET" \
+            --build-exit "$build_exit" --diff-exit "$diff_exit" \
+            --output deterministic-evidence/runtime-deterministic.json
+      - id: metadata
+        env:
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: echo "artifact_name=fc-live-ai-deterministic-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: deterministic-evidence/
+          retention-days: 14
+
+  ai-preflight:
+    name: Confirm protected Anthropic credential
+    needs: prepare
+    if: ${{ inputs.run_ai_review }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Refuse missing protected API key before invoking Claude
+        env:
+          FC_REVIEW_ANTHROPIC_API_KEY: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
+        run: test -n "$FC_REVIEW_ANTHROPIC_API_KEY"
+
+  ai-source-fidelity:
+    name: Isolated Claude source-fidelity role
+    needs: [prepare, ai-preflight]
+    if: ${{ inputs.run_ai_review }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.claude.outputs.structured_output }}
+      session_id: ${{ steps.claude.outputs.session_id }}
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
+      - id: contract
+        name: Load trusted prompt and output schema
+        run: |
+          git init -q .
+          git config user.name fc-review-input
+          git config user.email fc-review-input@invalid.example
+          git add --all && git commit -q -m 'Bind sanitized review input'
+          echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          cat prompt-source_fidelity.md >> "$GITHUB_OUTPUT"
+          echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
+      - id: claude
+        uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
+        with:
+          anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.contract.outputs.prompt }}
+          display_report: "false"
+          show_full_output: "false"
+          track_progress: "false"
+          use_sticky_comment: "false"
+          include_fix_links: "false"
+          claude_args: >-
+            --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
+            --json-schema '${{ steps.contract.outputs.schema }}'
+            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
+            --permission-mode plan --safe-mode --disable-slash-commands
+            --no-session-persistence --max-turns 4
+            --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+
+  ai-lean-semantics:
+    name: Isolated Claude Lean-semantics role
+    needs: [prepare, ai-preflight]
+    if: ${{ inputs.run_ai_review }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: {contents: read}
+    outputs:
+      result: ${{ steps.claude.outputs.structured_output }}
+      session_id: ${{ steps.claude.outputs.session_id }}
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
+      - id: contract
+        name: Load trusted prompt and output schema
+        run: |
+          git init -q .
+          git config user.name fc-review-input
+          git config user.email fc-review-input@invalid.example
+          git add --all && git commit -q -m 'Bind sanitized review input'
+          echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          cat prompt-lean_semantics.md >> "$GITHUB_OUTPUT"
+          echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
+      - id: claude
+        uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
+        with:
+          anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.contract.outputs.prompt }}
+          display_report: "false"
+          show_full_output: "false"
+          track_progress: "false"
+          use_sticky_comment: "false"
+          include_fix_links: "false"
+          claude_args: >-
+            --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
+            --json-schema '${{ steps.contract.outputs.schema }}'
+            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
+            --permission-mode plan --safe-mode --disable-slash-commands
+            --no-session-persistence --max-turns 4
+            --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+
+  ai-adversarial:
+    name: Isolated Claude adversarial role
+    needs: [prepare, ai-preflight]
+    if: ${{ inputs.run_ai_review }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: {contents: read}
+    outputs:
+      result: ${{ steps.claude.outputs.structured_output }}
+      session_id: ${{ steps.claude.outputs.session_id }}
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
+      - id: contract
+        name: Load trusted prompt and output schema
+        run: |
+          git init -q .
+          git config user.name fc-review-input
+          git config user.email fc-review-input@invalid.example
+          git add --all && git commit -q -m 'Bind sanitized review input'
+          echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          cat prompt-adversarial_edge_cases.md >> "$GITHUB_OUTPUT"
+          echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
+      - id: claude
+        uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
+        with:
+          anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.contract.outputs.prompt }}
+          display_report: "false"
+          show_full_output: "false"
+          track_progress: "false"
+          use_sticky_comment: "false"
+          include_fix_links: "false"
+          claude_args: >-
+            --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
+            --json-schema '${{ steps.contract.outputs.schema }}'
+            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
+            --permission-mode plan --safe-mode --disable-slash-commands
+            --no-session-persistence --max-turns 4
+            --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+
+  validate-ai:
+    name: Validate and aggregate actual model receipts
+    needs: [prepare, ai-source-fidelity, ai-lean-semantics, ai-adversarial]
+    if: ${{ inputs.run_ai_review }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: live-ai-input}
+      - name: Validate exact structured outputs; no stored fallback
+        env:
+          PYTHONPATH: reviewer/scripts
+          FC_AI_SOURCE_FIDELITY_OUTPUT: ${{ needs.ai-source-fidelity.outputs.result }}
+          FC_AI_SOURCE_FIDELITY_SESSION_ID: ${{ needs.ai-source-fidelity.outputs.session_id }}
+          FC_AI_LEAN_SEMANTICS_OUTPUT: ${{ needs.ai-lean-semantics.outputs.result }}
+          FC_AI_LEAN_SEMANTICS_SESSION_ID: ${{ needs.ai-lean-semantics.outputs.session_id }}
+          FC_AI_ADVERSARIAL_EDGE_CASES_OUTPUT: ${{ needs.ai-adversarial.outputs.result }}
+          FC_AI_ADVERSARIAL_EDGE_CASES_SESSION_ID: ${{ needs.ai-adversarial.outputs.session_id }}
+          MODEL: ${{ inputs.model }}
+          EFFORT: ${{ inputs.effort }}
+        run: |
+          python3 -B reviewer/scripts/live_ai_pr_review.py validate-panel \
+            --input-manifest live-ai-input/input-manifest.json --output-dir ai-evidence \
+            --action-commit d40ddef4c030e508327d6e35a9c45f3368482c50 \
+            --model "$MODEL" --effort "$EFFORT" \
+            --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --github-run-id "${{ github.run_id }}" --github-run-attempt "${{ github.run_attempt }}"
+      - id: metadata
+        env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}"}
+        run: echo "artifact_name=fc-live-ai-panel-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with: {name: "${{ steps.metadata.outputs.artifact_name }}", path: ai-evidence/, retention-days: 14}
+
+  render-progress:
+    name: Render stable review-in-progress summary
+    needs: [validate-ai]
+    runs-on: ubuntu-latest
+    outputs: {artifact_name: "${{ steps.metadata.outputs.artifact_name }}"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.validate-ai.outputs.artifact_name }}", path: ai-evidence}
+      - id: metadata
+        env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}"}
+        run: |
+          echo "artifact_name=fc-live-ai-progress-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+          mkdir -p progress
+          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py render \
+            --panel ai-evidence/ai-review-panel.json --phase in-progress --expected-head "$EXPECTED_HEAD" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --artifact-name "fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}" \
+            --summary progress/summary.md --summary-payload progress/summary.json \
+            --inline-dir progress/inline --metadata progress/metadata.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with: {name: "${{ steps.metadata.outputs.artifact_name }}", path: progress/, retention-days: 14}
+
+  validate-suggestions:
+    name: Deterministically validate localized suggestions
+    needs: [validate-ai, deterministic]
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    outputs: {artifact_name: "${{ steps.metadata.outputs.artifact_name }}"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          path: review-target
+          persist-credentials: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.validate-ai.outputs.artifact_name }}", path: ai-evidence}
+      - name: Prepare exact-head suggestion candidate
+        id: prepare
+        env: {PYTHONPATH: reviewer/scripts, EXPECTED_HEAD: "${{ inputs.expected_head }}"}
+        run: |
+          test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
+          python3 -B reviewer/scripts/live_ai_pr_review.py validate-suggestion \
+            --panel ai-evidence/ai-review-panel.json --source-root review-target --output prepared.json
+          echo "outcome=$(jq -r .outcome prepared.json)" >> "$GITHUB_OUTPUT"
+      - name: Install elan for suggestion validation
+        if: ${{ steps.prepare.outputs.outcome == 'prepared' }}
+        run: |
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.2/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build each localized suggestion independently
+        env:
+          BUILD_TARGET: "${{ inputs.build_target }}"
+          EXPECTED_HEAD: "${{ inputs.expected_head }}"
+          PYTHONPATH: reviewer/scripts
+        run: |
+          mkdir -p suggestion-results suggestion-logs
+          if [[ "${{ steps.prepare.outputs.outcome }}" == prepared ]]; then
+            (cd review-target && lake exe cache get)
+          fi
+          while IFS= read -r key; do
+            git -C review-target restore --source="$EXPECTED_HEAD" --worktree --staged -- .
+            python3 -B reviewer/scripts/live_ai_pr_review.py apply-suggestion \
+              --prepared prepared.json --key "$key" --source-root review-target
+            set +e
+            timeout 8m bash -c 'cd review-target && lake --wfail build "$BUILD_TARGET"' > "suggestion-logs/${key}-build.log" 2>&1
+            build_exit=$?
+            git -C review-target diff --check > "suggestion-logs/${key}-diff-check.log" 2>&1
+            diff_exit=$?
+            set -e
+            python3 -B reviewer/scripts/live_ai_pr_review.py record-suggestion \
+              --prepared prepared.json --key "$key" --build-exit "$build_exit" --diff-exit "$diff_exit" \
+              --output "suggestion-results/${key}.json"
+          done < <(jq -r '.candidates[] | select(.status == "prepared") | .key' prepared.json)
+          python3 -B reviewer/scripts/live_ai_pr_review.py aggregate-suggestions \
+            --prepared prepared.json --results-dir suggestion-results --output suggestion-validation.json
+      - id: metadata
+        env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}"}
+        run: echo "artifact_name=fc-live-ai-suggestions-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: |
+            prepared.json
+            suggestion-validation.json
+            suggestion-results/
+            suggestion-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  finalize:
+    name: Final structured artifact and neutral check
+    needs: [prepare, validate-ai, deterministic, validate-suggestions]
+    runs-on: ubuntu-latest
+    outputs: {artifact_name: "${{ steps.metadata.outputs.artifact_name }}"}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.validate-ai.outputs.artifact_name }}", path: final/ai-evidence}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.deterministic.outputs.artifact_name }}", path: final/deterministic}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.validate-suggestions.outputs.artifact_name }}", path: final/suggestions}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: final/input}
+      - id: metadata
+        env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}", PYTHONPATH: reviewer/scripts}
+        run: |
+          artifact="fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}"
+          echo "artifact_name=${artifact}" >> "$GITHUB_OUTPUT"
+          python3 -B reviewer/scripts/live_ai_pr_review.py render \
+            --panel final/ai-evidence/ai-review-panel.json \
+            --deterministic final/deterministic/runtime-deterministic.json \
+            --suggestion-validation final/suggestions/suggestion-validation.json --phase complete \
+            --expected-head "$EXPECTED_HEAD" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --artifact-name "$artifact" --summary final/summary.md --summary-payload final/summary.json \
+            --inline-dir final/inline --metadata final/metadata.json
+      - name: Publish neutral exact-head check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          jq -n --arg head "$EXPECTED_HEAD" --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{name:"FC live AI advisory review",head_sha:$head,status:"completed",conclusion:"neutral",details_url:$url,output:{title:"Live AI advisory review finalized",summary:"Fresh model evidence and deterministic checks are attached. This is advisory only and has no acceptance effect."}}' > check.json
+          gh api --method POST "repos/${OWNER}/${REPOSITORY}/check-runs" --input check.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with: {name: "${{ steps.metadata.outputs.artifact_name }}", path: final/, retention-days: 14}
+
+  publish-progress:
+    name: Upsert one stable review-in-progress summary
+    needs: render-progress
+    if: ${{ inputs.publish_comment }}
+    runs-on: ubuntu-latest
+    permissions: {contents: read, pull-requests: read}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.render-progress.outputs.artifact_name }}", path: progress}
+      - id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.FC_REVIEW_APP_ID }}
+          private-key: ${{ secrets.FC_REVIEW_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.owner }}
+          repositories: ${{ inputs.repository }}
+          permission-contents: read
+          permission-pull-requests: write
+      - name: Recheck head and upsert summary
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          PYTHONPATH: reviewer/scripts
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > live-pr.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head --live-pr live-pr.json \
+            --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
+            --expected-head "$EXPECTED_HEAD" --output binding.json
+          gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > comments.json
+          python3 -B reviewer/scripts/live_ai_pr_review.py select-summary --comments comments.json --app-slug "$APP_SLUG" --output selection.json
+          action=$(jq -r .action selection.json); id=$(jq -r '.comment_id // ""' selection.json)
+          if [[ "$action" == create ]]; then
+            gh api --method POST "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" --input progress/summary.json
+          else
+            gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/issues/comments/${id}" --input progress/summary.json
+          fi
+
+  publish-final:
+    name: Finalize stable summary and validated inline findings
+    needs: [finalize, publish-progress]
+    if: ${{ always() && inputs.publish_comment && needs.finalize.result == 'success' && needs.publish-progress.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions: {contents: read, pull-requests: read}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.finalize.outputs.artifact_name }}", path: final}
+      - id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.FC_REVIEW_APP_ID }}
+          private-key: ${{ secrets.FC_REVIEW_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.owner }}
+          repositories: ${{ inputs.repository }}
+          permission-contents: read
+          permission-pull-requests: write
+      - name: Recheck head and update exactly one summary
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          PYTHONPATH: reviewer/scripts
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > live-pr.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head --live-pr live-pr.json \
+            --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
+            --expected-head "$EXPECTED_HEAD" --output binding.json
+          gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > summary-comments.json
+          python3 -B reviewer/scripts/live_ai_pr_review.py select-summary --comments summary-comments.json --app-slug "$APP_SLUG" --output summary-selection.json
+          test "$(jq -r .action summary-selection.json)" = update
+          summary_id=$(jq -r .comment_id summary-selection.json)
+          gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/issues/comments/${summary_id}" --input final/summary.json
+          if [[ "$(jq -r .inline_count final/metadata.json)" -gt 0 ]]; then
+            gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" > inline-comments.json
+            for request in final/inline/*.json; do
+              key=$(basename "$request" .json)
+              python3 -B reviewer/scripts/live_ai_pr_review.py select-inline --comments inline-comments.json \
+                --request "$request" --app-slug "$APP_SLUG" --output "inline-selection-${key}.json"
+              if [[ "$(jq -r .action "inline-selection-${key}.json")" == create ]]; then
+                gh api --method POST "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" --input "$request"
+              else
+                inline_id=$(jq -r .comment_id "inline-selection-${key}.json")
+                jq '{body}' "$request" > "inline-update-${key}.json"
+                gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/pulls/comments/${inline_id}" --input "inline-update-${key}.json"
+              fi
+            done
+          fi

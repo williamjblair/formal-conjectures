@@ -1,0 +1,6 @@
+Source: P. Erdos and R. Graham, Old and new problems and results in combinatorial number theory (1980), page 85.
+Retained OCR transcription of the relevant paragraph:
+
+Suppose for a fixed integer n we define a sequence a_1, a_2, ..., a_r by letting a_1 = 1 and for k >= 2, defining a_k to be the least integer exceeding a_{k-1} for which all prime factors of n - a_k > 0 are greater than a_k. Is it true that for n sufficiently large, not all the quantities n - a_k can be prime? Preliminary calculations made by Selfridge indicate that this is the case but no proof is in sight.
+
+Note: This is an OCR transcription retained for review. Reviewers must compare the increasing original formulation with the modern decreasing reformulation; the OCR is not a cryptographic publication signature.

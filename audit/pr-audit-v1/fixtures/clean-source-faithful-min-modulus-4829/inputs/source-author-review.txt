@@ -1,0 +1,22 @@
+Author of the paper here — thanks for picking this up, and for catching the `ZMod 0` degeneracy. `0 < N` is exactly the right guard: without it the statement is false at n = 2, N = 0, A = {1, 2} ⊂ ℤ (p = 3, and 1+1 = 2, 2+2 = 4, so the all-ones multiset is the only size-2 multiset summing to 3). Worth noting N = 1 needs no guard — `ZMod 1` is trivial, so `#A = n ≥ 2` is already impossible there.
+
+The statement reads faithfully to Conjecture 1, including dropping the sketch's `∀ a ∉ A, m a = 0` clause (sound: `m` off `A` enters neither sum nor the conclusion). A few smaller points:
+
+1. `exists_isValidMod_minModulus` is `research solved` and does have a Lean proof, so it could carry the `formal_proof` attribute:
+
+   ```lean
+   @[category research solved, AMS 5 11,
+     formal_proof using lean4 at "https://github.com/jarfo/min-modulus"]
+   ```
+
+   The relevant declaration is `theoremA` in `MinModulus/UniqueSums.lean` (`Valid n (2 ^ n - 2 ^ Nat.log 2 n)` for `2 ≤ n`), sorry-free and kernel-checked.
+
+2. Its docstring says "the bound is attained, so no smaller modulus can be claimed for `n` residues in general" — attainment only bounds the least valid modulus from *above*; ruling out smaller moduli is precisely the open half.
+
+3. `AGENTS.md` asks for formalisation notes and caveats to live in the PR description rather than the Lean file, so the paragraphs on the CP-SAT certificates, on `0 < N` being "not decoration", and on the soundness of the index-to-residue translation may want to move there (the `0 < N` counterexample is worth keeping somewhere — it is the reason the guard is there).
+
+4. The issue is labelled ams-05; `@[AMS 5 11]` covers both.
+
+5. Minor, on the issue text in #4811: "the super-increasing set … is *conjectured* to achieve the minimal valid modulus" — for that set it is proved, N_min(n) = 2^n − 2^⌊log₂ n⌋ for all n ≥ 2 (Theorems A and B, kernel-checked as `nmin_eq`). Only minimality across all size-n sets is conjectural, as the PR docstring correctly says.
+
+For calibration on the open half: exhaustive search over all size-n residue sets gives least valid modulus 6, 12, 28 at n = 3, 4, 5, matching the formula, and the CP-SAT infeasibility certificates cover n ≤ 7.

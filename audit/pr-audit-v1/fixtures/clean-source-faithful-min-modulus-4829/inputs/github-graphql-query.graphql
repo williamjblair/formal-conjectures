@@ -1,0 +1,1 @@
+query PullRequestAuditObservation($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){number url state isDraft mergeStateStatus reviewDecision updatedAt baseRefOid headRefOid reviews(first:100){nodes{id author{login} state submittedAt commit{oid}} pageInfo{hasNextPage endCursor}}}}}

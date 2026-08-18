@@ -1,0 +1,9 @@
+Locator: https://www.erdosproblems.com/430/history
+Retained: 2026-08-18
+
+Current version:
+Fix some integer n and define a decreasing sequence in [1,n) by a_1=n-1 and, for k>=2, letting a_k be the greatest integer in [1,a_{k-1}) such that all of the prime factors of a_k are >n-a_k.
+
+Is it true that, for sufficiently large n, not all of this sequence can be prime?
+
+The only displayed prior version is dated 2025-10-20. Its mathematical problem text is identical to the current version; the history page marks paragraph boundaries only. The additional text includes the n=8 sequence 7,5 and says it must then stop.

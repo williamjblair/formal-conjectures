@@ -1,0 +1,34 @@
+{
+  "schema_version": "formal-conjectures.pr-audit-clean-room-input.v1",
+  "authority": "advisory_pilot_only",
+  "repository": {
+    "host": "github.com",
+    "owner": "Paul-Lez",
+    "name": "formal-conjectures",
+    "url": "https://github.com/Paul-Lez/formal-conjectures"
+  },
+  "pull_request": {
+    "number": 7,
+    "url": "https://github.com/Paul-Lez/formal-conjectures/pull/7",
+    "base_commit_oid": "398958d3964d738886bd24433918c365df4a2aab",
+    "base_tree_oid": "9c45eb302ab24c7d4fc949ce5a34bc499bfa8da5",
+    "head_commit_oid": "075c42c999c0c19224fd116d272637d7868df42a",
+    "head_tree_oid": "fef90d7f2d905c4d95b75e96d19e01f200c64835"
+  },
+  "scope": {
+    "path": "FormalConjectures/ErdosProblems/430.lean",
+    "declaration": "Erdos430.erdos_430",
+    "head_blob_oid": "093e45b558293abf3f587a68a164b603d143fa88",
+    "head_source_root": "sha256:3b3f938bdcfe5fc01a53bf3721b46e6c0e35ac1be394437d156a7ce5aab3c78d"
+  },
+  "inputs": [
+    {"path": "inputs/head-source.lean", "sha256": "sha256:3b3f938bdcfe5fc01a53bf3721b46e6c0e35ac1be394437d156a7ce5aab3c78d"},
+    {"path": "inputs/source-current.txt", "sha256": "sha256:16044c43f474a66f0f649bd808844257f1b0a75eb4e75ff2616f30eabdc02703"},
+    {"path": "inputs/source-history.txt", "sha256": "sha256:a798f0eae5b70cfa1b449c7adf902a6e229c7b5898ed7bced4d0465a07f9e7c6"},
+    {"path": "inputs/source-original.txt", "sha256": "sha256:5e066c117f0ea6f43f714f837b6c18b64f09bb72dab82e3eb4a71f18efc240ac"},
+    {"path": "inputs/source-fidelity-method.json", "sha256": "sha256:1b073cb83794b88e041b39857bd2796fb8b9e21503e5c85f51812b1c4a219052"}
+  ],
+  "required_edge_cases": ["empty_or_vacuous_predicates", "smallest_inputs", "stated_interval_endpoints"],
+  "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+  "external_writes_allowed": false
+}

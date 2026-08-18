@@ -1,0 +1,1 @@
+{"executes_tool":false,"name":"comparator-packet-inspection","operation":"inspect_retained_packet_inventory_only","required_identities":["exact executable bytes","exact invocation","package or toolchain lock","raw execution result"],"schema_version":"formal-conjectures.pr-audit-packet-inspection-procedure.v1","version":"1"}

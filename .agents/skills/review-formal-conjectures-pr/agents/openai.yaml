@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Formal Conjectures PR"
+  short_description: "Generate a rooted advisory FC PR audit"
+  default_prompt: "Use $review-formal-conjectures-pr to validate retained inputs and produce an advisory audit summary."

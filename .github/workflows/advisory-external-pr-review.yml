@@ -1,0 +1,209 @@
+# Copyright 2026 The Formal Conjectures Authors.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Advisory external PR review (dry run)
+run-name: >-
+  Advisory review of ${{ inputs.owner }}/${{ inputs.repository }}#${{ inputs.pull_request }}
+  at ${{ inputs.expected_head }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: GitHub owner of the pull request's base repository
+        required: true
+        type: string
+      repository:
+        description: GitHub base repository name
+        required: true
+        type: string
+      pull_request:
+        description: Pull request number
+        required: true
+        type: string
+      expected_head:
+        description: Exact 40-character pull request head commit OID
+        required: true
+        type: string
+      request_path:
+        description: Retained review-request path on this trusted branch
+        required: true
+        default: audit/pr-audit-v1/fixtures/fork-dogfood-erdos-430-2/review-request.json
+        type: string
+      build_target:
+        description: Exact Lean module target for lake --wfail build
+        required: true
+        default: FormalConjectures.ErdosProblems.«430»
+        type: string
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: advisory-external-pr-${{ inputs.owner }}-${{ inputs.repository }}-${{ inputs.pull_request }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    name: Bind, verify, and render advisory artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out trusted review implementation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+
+      - name: Read current pull request state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          mkdir -p action-evidence
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}" \
+            > action-evidence/live-pr.json
+
+      - name: Check out the exact untrusted pull request head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          path: review-target
+          persist-credentials: false
+
+      - name: Refuse a changed head or mismatched request
+        env:
+          PYTHONPATH: reviewer/scripts
+          REVIEW_REQUEST: ${{ inputs.request_path }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          checked_out_head=$(git -C review-target rev-parse HEAD)
+          python3 -B reviewer/scripts/prepare_external_pr_action.py bind \
+            --request "reviewer/${REVIEW_REQUEST}" \
+            --live-pr action-evidence/live-pr.json \
+            --owner "$REVIEW_OWNER" \
+            --repository "$REVIEW_REPOSITORY" \
+            --pull-request "$REVIEW_PULL_REQUEST" \
+            --expected-head "$REVIEW_EXPECTED_HEAD" \
+            --checked-out-head "$checked_out_head" \
+            --output action-evidence/workflow-binding.json
+
+      - name: Install elan
+        run: |
+          set -o pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.2/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Run typed deterministic checks
+        env:
+          PYTHONPATH: reviewer/scripts
+          REVIEW_REQUEST: ${{ inputs.request_path }}
+          REVIEW_BUILD_TARGET: ${{ inputs.build_target }}
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          set +e
+          (
+            cd review-target
+            lake exe cache get
+            lake --wfail build "$REVIEW_BUILD_TARGET"
+          ) > action-evidence/lean-build.log 2>&1
+          build_exit=$?
+          base_oid=$(python3 -c 'import json; print(json.load(open("action-evidence/live-pr.json"))["base"]["sha"])')
+          git -C review-target diff --check "$base_oid...$REVIEW_EXPECTED_HEAD" \
+            > action-evidence/diff-check.log 2>&1
+          style_exit=$?
+          set -e
+          python3 -B reviewer/scripts/prepare_external_pr_action.py capture \
+            --request "reviewer/${REVIEW_REQUEST}" \
+            --build-target "$REVIEW_BUILD_TARGET" \
+            --build-exit "$build_exit" \
+            --style-exit "$style_exit" \
+            --output action-evidence/runtime-deterministic-verification.json
+
+      - name: Validate isolated evidence and render outputs
+        env:
+          PYTHONPATH: reviewer/scripts
+          REVIEW_REQUEST: ${{ inputs.request_path }}
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          python3 -B reviewer/scripts/run_external_pr_review.py \
+            --request "reviewer/${REVIEW_REQUEST}" \
+            --observed-head "$REVIEW_EXPECTED_HEAD" \
+            --output-dir action-output
+
+      - name: Publish a neutral PR-visible advisory check
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          REVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REVIEW_JOB_STATUS: ${{ job.status }}
+        run: |
+          python3 - <<'PY' > action-evidence/check-run-request.json
+          import json
+          import os
+
+          status = os.environ["REVIEW_JOB_STATUS"]
+          title = "Advisory artifacts ready" if status == "success" else "Advisory workflow needs inspection"
+          summary = (
+              f"Artifact-only FC advisory review finished with workflow status {status}. "
+              "This neutral check is not maintainer disposition, acceptance, a merge decision, "
+              "or a claim of mathematical truth. No PR comment was posted."
+          )
+          print(json.dumps({
+              "name": "FC advisory review",
+              "head_sha": os.environ["REVIEW_EXPECTED_HEAD"],
+              "status": "completed",
+              "conclusion": "neutral",
+              "details_url": os.environ["REVIEW_RUN_URL"],
+              "external_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "output": {"title": title, "summary": summary},
+          }))
+          PY
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/check-runs" \
+            --input action-evidence/check-run-request.json \
+            > action-evidence/check-run-response.json
+
+      - name: Upload advisory evidence and drafts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: advisory-external-pr-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: |
+            action-evidence/
+            action-output/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: State the authority boundary
+        if: always()
+        run: |
+          echo 'This dry run creates artifacts only.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'It does not post a comment, approve, merge, or establish maintainer disposition or mathematical truth.' >> "$GITHUB_STEP_SUMMARY"

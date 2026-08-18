@@ -97,9 +97,20 @@ def render(args: argparse.Namespace) -> None:
     count = len(failed)
     disposition = core["disposition"]["advisory"]
     suffix = " A localized inline suggestion is available." if config["inline_suggestion"] else ""
+    if args.phase == "in-progress":
+        verification = "**Status:** Review in progress — deterministic Lean verification is pending.\n\n"
+    else:
+        if args.runtime_deterministic is None:
+            raise AuditError("complete summary requires runtime deterministic evidence")
+        runtime = load(args.runtime_deterministic)
+        outcome = runtime.get("outcome") if isinstance(runtime, dict) else None
+        if outcome not in {"pass", "fail", "error"}:
+            raise AuditError("runtime deterministic evidence has an unsupported outcome")
+        verification = f"**Lean verification:** `{outcome}` at the pinned head.\n\n"
     summary = (
         f"{SUMMARY_MARKER}\n\n## FC Review Pilot — advisory\n\n"
         f"**Verdict:** `{disposition}` · **Findings:** {count}\n\n"
+        f"{verification}"
         f"**Next action:** {next_action}{suffix}\n\n"
         f"Pinned head: `{args.expected_head}`\n\n"
         f"[Workflow evidence]({args.run_url}) · artifact `{args.artifact_name}`\n\n"
@@ -213,6 +224,8 @@ def parser() -> argparse.ArgumentParser:
                  "inline-create-payload", "inline-update-payload", "metadata-output"):
         p.add_argument(f"--{name}", type=Path, required=True)
     p.add_argument("--expected-head", required=True); p.add_argument("--run-url", required=True); p.add_argument("--artifact-name", required=True)
+    p.add_argument("--phase", choices=("in-progress", "complete"), required=True)
+    p.add_argument("--runtime-deterministic", type=Path)
     p = sub.add_parser("select-summary"); p.add_argument("--comments", type=Path, required=True); p.add_argument("--app-slug", required=True); p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("select-inline"); p.add_argument("--comments", type=Path, required=True); p.add_argument("--request", type=Path, required=True); p.add_argument("--app-slug", required=True); p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("verify-head"); p.add_argument("--live-pr", type=Path, required=True); p.add_argument("--owner", required=True); p.add_argument("--repository", required=True); p.add_argument("--pull-request", type=int, required=True); p.add_argument("--expected-head", required=True); p.add_argument("--output", type=Path, required=True)

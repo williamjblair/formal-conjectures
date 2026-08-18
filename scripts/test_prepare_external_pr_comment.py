@@ -20,7 +20,7 @@ class ActionableCommentTest(unittest.TestCase):
     def execute(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run([sys.executable, "-B", str(SCRIPT), *args], text=True, capture_output=True)
 
-    def rendered(self, mutate=None):
+    def rendered(self, mutate=None, phase="in-progress"):
         temporary = tempfile.TemporaryDirectory()
         root = Path(temporary.name)
         source = root / "source" / "FormalConjectures" / "ErdosProblems"
@@ -39,7 +39,10 @@ class ActionableCommentTest(unittest.TestCase):
             "--inline-update-payload", str(root / "inline-update.json"), "--metadata-output", str(root / "metadata.json"),
             "--expected-head", HEAD, "--run-url", "https://github.com/williamjblair/formal-conjectures/actions/runs/123",
             "--artifact-name", f"advisory-external-pr-2-{HEAD}",
+            "--phase", phase,
         ]
+        if phase == "complete":
+            args.extend(["--runtime-deterministic", str(FIXTURE / "inputs" / "clean-room-deterministic-verification.json")])
         return temporary, root, self.execute(*args)
 
     def test_renders_concise_summary_and_localized_suggestion(self):
@@ -52,6 +55,7 @@ class ActionableCommentTest(unittest.TestCase):
             self.assertTrue(summary.startswith(SUMMARY))
             self.assertIn("**Verdict:** `needs_revision` · **Findings:** 1", summary)
             self.assertIn("**Next action:** Guard the existential", summary)
+            self.assertIn("**Status:** Review in progress", summary)
             self.assertLess(len(summary), 1000)
             self.assertTrue(inline.startswith(INLINE))
             self.assertIn("```suggestion\n    answer(sorry)", inline)
@@ -65,6 +69,12 @@ class ActionableCommentTest(unittest.TestCase):
         with temporary:
             self.assertEqual(result.returncode, 2)
             self.assertIn("does not match", result.stderr)
+
+    def test_complete_summary_projects_typed_lean_outcome(self):
+        temporary, root, result = self.rendered(phase="complete")
+        with temporary:
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("**Lean verification:** `error` at the pinned head.", (root / "summary.md").read_text())
 
     def select(self, command: str, comments, request=None):
         with tempfile.TemporaryDirectory() as temporary:

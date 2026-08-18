@@ -1,21 +1,8 @@
 # Copyright 2026 The Formal Conjectures Authors.
-
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     https://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 name: Advisory external PR review
-run-name: >-
-  Advisory review of ${{ inputs.owner }}/${{ inputs.repository }}#${{ inputs.pull_request }}
-  at ${{ inputs.expected_head }}
+run-name: Advisory review of ${{ inputs.owner }}/${{ inputs.repository }}#${{ inputs.pull_request }} at ${{ inputs.expected_head }}
 
 on:
   workflow_dispatch:
@@ -52,7 +39,7 @@ on:
         default: FormalConjectures.ErdosProblems.«430»
         type: string
       publish_comment:
-        description: Post or update the single App-authored advisory comment after a successful review
+        description: Publish the opt-in App summary and high-confidence inline suggestion
         required: true
         default: false
         type: boolean
@@ -67,32 +54,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  review:
-    name: Bind, verify, and render advisory artifacts
+  fast-review:
+    name: Fast source, semantic, and suggestion lane
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
     outputs:
-      artifact_name: ${{ steps.review-metadata.outputs.artifact_name }}
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
     steps:
       - name: Check out trusted review implementation
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: reviewer
           persist-credentials: false
-
       - name: Read current pull request state
         env:
           GH_TOKEN: ${{ github.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
         run: |
-          mkdir -p action-evidence
-          gh api \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}" \
-            > action-evidence/live-pr.json
-
+          mkdir -p fast-evidence
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > fast-evidence/live-pr.json
       - name: Check out the exact untrusted pull request head
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -101,179 +84,160 @@ jobs:
           fetch-depth: 0
           path: review-target
           persist-credentials: false
-
       - name: Refuse a changed head or mismatched request
         env:
           PYTHONPATH: reviewer/scripts
-          REVIEW_REQUEST: ${{ inputs.request_path }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          REQUEST: ${{ inputs.request_path }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: |
-          checked_out_head=$(git -C review-target rev-parse HEAD)
           python3 -B reviewer/scripts/prepare_external_pr_action.py bind \
-            --request "reviewer/${REVIEW_REQUEST}" \
-            --live-pr action-evidence/live-pr.json \
-            --owner "$REVIEW_OWNER" \
-            --repository "$REVIEW_REPOSITORY" \
-            --pull-request "$REVIEW_PULL_REQUEST" \
-            --expected-head "$REVIEW_EXPECTED_HEAD" \
-            --checked-out-head "$checked_out_head" \
-            --output action-evidence/workflow-binding.json
+            --request "reviewer/${REQUEST}" --live-pr fast-evidence/live-pr.json \
+            --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
+            --expected-head "$EXPECTED_HEAD" --checked-out-head "$(git -C review-target rev-parse HEAD)" \
+            --output fast-evidence/workflow-binding.json
+      - name: Validate isolated semantic evidence
+        env:
+          PYTHONPATH: reviewer/scripts
+          REQUEST: ${{ inputs.request_path }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          python3 -B reviewer/scripts/run_external_pr_review.py \
+            --request "reviewer/${REQUEST}" --observed-head "$EXPECTED_HEAD" --output-dir action-output
+      - name: Render review-in-progress summary and suggestion
+        id: metadata
+        env:
+          PYTHONPATH: reviewer/scripts
+          ACTIONABLE: ${{ inputs.actionable_review_path }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          artifact_name="advisory-fast-pr-${PULL_REQUEST}-${EXPECTED_HEAD}"
+          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py render \
+            --core action-output/audit-core.json --actionable "reviewer/${ACTIONABLE}" --source-root review-target \
+            --summary-output action-output/pr-comment-ready.md --summary-payload action-output/pr-comment-request.json \
+            --inline-output action-output/inline-review-comment-ready.md \
+            --inline-create-payload action-output/inline-review-create-request.json \
+            --inline-update-payload action-output/inline-review-update-request.json \
+            --metadata-output action-output/actionable-review-metadata.json \
+            --expected-head "$EXPECTED_HEAD" --run-url "$RUN_URL" --artifact-name "$artifact_name" \
+            --phase in-progress
+      - name: Upload fast advisory artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: |
+            fast-evidence/
+            action-output/
+          retention-days: 14
 
+  deterministic:
+    name: Slow deterministic Lean lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
+    steps:
+      - name: Check out trusted review implementation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+      - name: Read current pull request state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          mkdir -p deterministic-evidence
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > deterministic-evidence/live-pr.json
+      - name: Check out the exact untrusted pull request head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          path: review-target
+          persist-credentials: false
+      - name: Refuse a changed head or mismatched request
+        env:
+          PYTHONPATH: reviewer/scripts
+          REQUEST: ${{ inputs.request_path }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          python3 -B reviewer/scripts/prepare_external_pr_action.py bind \
+            --request "reviewer/${REQUEST}" --live-pr deterministic-evidence/live-pr.json \
+            --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
+            --expected-head "$EXPECTED_HEAD" --checked-out-head "$(git -C review-target rev-parse HEAD)" \
+            --output deterministic-evidence/workflow-binding.json
       - name: Install elan
         run: |
           set -o pipefail
           curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.2/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
           ./elan-init -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-
       - name: Run typed deterministic checks
         env:
           PYTHONPATH: reviewer/scripts
-          REVIEW_REQUEST: ${{ inputs.request_path }}
-          REVIEW_BUILD_TARGET: ${{ inputs.build_target }}
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          REQUEST: ${{ inputs.request_path }}
+          BUILD_TARGET: ${{ inputs.build_target }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: |
           set +e
-          (
-            cd review-target
-            lake exe cache get
-            lake --wfail build "$REVIEW_BUILD_TARGET"
-          ) > action-evidence/lean-build.log 2>&1
+          (cd review-target && lake exe cache get && lake --wfail build "$BUILD_TARGET") \
+            > deterministic-evidence/lean-build.log 2>&1
           build_exit=$?
-          base_oid=$(python3 -c 'import json; print(json.load(open("action-evidence/live-pr.json"))["base"]["sha"])')
-          git -C review-target diff --check "$base_oid...$REVIEW_EXPECTED_HEAD" \
-            > action-evidence/diff-check.log 2>&1
+          base_oid=$(python3 -c 'import json; print(json.load(open("deterministic-evidence/live-pr.json"))["base"]["sha"])')
+          git -C review-target diff --check "$base_oid...$EXPECTED_HEAD" \
+            > deterministic-evidence/diff-check.log 2>&1
           style_exit=$?
           set -e
           python3 -B reviewer/scripts/prepare_external_pr_action.py capture \
-            --request "reviewer/${REVIEW_REQUEST}" \
-            --build-target "$REVIEW_BUILD_TARGET" \
-            --build-exit "$build_exit" \
-            --style-exit "$style_exit" \
-            --output action-evidence/runtime-deterministic-verification.json
-
-      - name: Validate isolated evidence and render outputs
+            --request "reviewer/${REQUEST}" --build-target "$BUILD_TARGET" \
+            --build-exit "$build_exit" --style-exit "$style_exit" \
+            --output deterministic-evidence/runtime-deterministic-verification.json
+      - name: Name deterministic artifact
+        id: metadata
         env:
-          PYTHONPATH: reviewer/scripts
-          REVIEW_REQUEST: ${{ inputs.request_path }}
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: |
-          python3 -B reviewer/scripts/run_external_pr_review.py \
-            --request "reviewer/${REVIEW_REQUEST}" \
-            --observed-head "$REVIEW_EXPECTED_HEAD" \
-            --output-dir action-output \
-            --runtime-deterministic action-evidence/runtime-deterministic-verification.json
-
-      - name: Render the stable advisory comment projection
-        id: review-metadata
-        env:
-          PYTHONPATH: reviewer/scripts
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
-          REVIEW_ACTIONABLE: ${{ inputs.actionable_review_path }}
-          REVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          artifact_name="advisory-external-pr-${REVIEW_PULL_REQUEST}-${REVIEW_EXPECTED_HEAD}"
-          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
-          python3 -B reviewer/scripts/prepare_external_pr_comment.py render \
-            --core action-output/audit-core.json \
-            --actionable "reviewer/${REVIEW_ACTIONABLE}" \
-            --source-root review-target \
-            --summary-output action-output/pr-comment-ready.md \
-            --summary-payload action-output/pr-comment-request.json \
-            --inline-output action-output/inline-review-comment-ready.md \
-            --inline-create-payload action-output/inline-review-create-request.json \
-            --inline-update-payload action-output/inline-review-update-request.json \
-            --metadata-output action-output/actionable-review-metadata.json \
-            --expected-head "$REVIEW_EXPECTED_HEAD" \
-            --run-url "$REVIEW_RUN_URL" \
-            --artifact-name "$artifact_name"
-
-      - name: Publish a neutral PR-visible advisory check
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
-          REVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REVIEW_JOB_STATUS: ${{ job.status }}
-        run: |
-          python3 - <<'PY' > action-evidence/check-run-request.json
-          import json
-          import os
-
-          status = os.environ["REVIEW_JOB_STATUS"]
-          title = "Advisory artifacts ready" if status == "success" else "Advisory workflow needs inspection"
-          summary = (
-              f"FC advisory review artifacts finished with workflow status {status}. "
-              "This neutral check is not maintainer disposition, acceptance, a merge decision, "
-              "or a claim of mathematical truth. Comment publication, when explicitly requested, "
-              "uses a separate GitHub App job."
-          )
-          print(json.dumps({
-              "name": "FC advisory review",
-              "head_sha": os.environ["REVIEW_EXPECTED_HEAD"],
-              "status": "completed",
-              "conclusion": "neutral",
-              "details_url": os.environ["REVIEW_RUN_URL"],
-              "external_id": os.environ.get("GITHUB_RUN_ID", ""),
-              "output": {"title": title, "summary": summary},
-          }))
-          PY
-          gh api --method POST \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/check-runs" \
-            --input action-evidence/check-run-request.json \
-            > action-evidence/check-run-response.json
-
-      - name: Upload advisory evidence and drafts
-        id: review-artifact
-        if: always()
+          echo "artifact_name=advisory-deterministic-pr-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - name: Upload deterministic evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: advisory-external-pr-${{ inputs.pull_request }}-${{ inputs.expected_head }}
-          path: |
-            action-evidence/
-            action-output/
-          if-no-files-found: warn
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: deterministic-evidence/
           retention-days: 14
 
-      - name: State the authority boundary
-        if: always()
-        env:
-          REVIEW_PUBLISH_COMMENT: ${{ inputs.publish_comment }}
-        run: |
-          echo 'The structured report and Markdown projections are advisory only.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'They do not approve, merge, or establish maintainer disposition or mathematical truth.' >> "$GITHUB_STEP_SUMMARY"
-          echo "App comment publication requested: ${REVIEW_PUBLISH_COMMENT}." >> "$GITHUB_STEP_SUMMARY"
-
-  publish-comment:
-    name: Publish one App-authored advisory comment
-    needs: review
-    if: ${{ needs.review.result == 'success' && inputs.publish_comment }}
+  publish-fast:
+    name: Publish review-in-progress advisory output
+    needs: fast-review
+    if: ${{ needs.fast-review.result == 'success' && inputs.publish_comment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
     steps:
-      - name: Check out trusted publication implementation
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: reviewer
           persist-credentials: false
-
-      - name: Download the completed advisory artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
-          name: ${{ needs.review.outputs.artifact_name }}
+          name: ${{ needs.fast-review.outputs.artifact_name }}
           path: review-artifact
-
-      - name: Mint a short-lived FC Review Pilot installation token
+      - name: Mint short-lived App token
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
@@ -283,112 +247,216 @@ jobs:
           repositories: ${{ inputs.repository }}
           permission-contents: read
           permission-pull-requests: write
-
-      - name: Recheck the exact head and select stable App comments
-        id: comment-selection
+      - name: Recheck head and select stable comments
+        id: selection
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PYTHONPATH: reviewer/scripts
-          REVIEW_APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
-          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: |
           mkdir -p publication-evidence
-          gh api \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}" \
-            > publication-evidence/live-pr.json
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > publication-evidence/live-pr.json
           python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head \
-            --live-pr publication-evidence/live-pr.json \
-            --owner "$REVIEW_OWNER" \
-            --repository "$REVIEW_REPOSITORY" \
-            --pull-request "$REVIEW_PULL_REQUEST" \
-            --expected-head "$REVIEW_EXPECTED_HEAD" \
+            --live-pr publication-evidence/live-pr.json --owner "$OWNER" --repository "$REPOSITORY" \
+            --pull-request "$PULL_REQUEST" --expected-head "$EXPECTED_HEAD" \
             --output publication-evidence/comment-binding.json
-          gh api --paginate --slurp \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/${REVIEW_PULL_REQUEST}/comments" \
-            > publication-evidence/summary-comments.json
-          gh api --paginate --slurp \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}/comments" \
-            > publication-evidence/inline-comments.json
+          gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > publication-evidence/summary-comments.json
+          gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" > publication-evidence/inline-comments.json
           python3 -B reviewer/scripts/prepare_external_pr_comment.py select-summary \
-            --comments publication-evidence/summary-comments.json \
-            --app-slug "$REVIEW_APP_SLUG" \
+            --comments publication-evidence/summary-comments.json --app-slug "$APP_SLUG" \
             --output publication-evidence/summary-selection.json
           python3 -B reviewer/scripts/prepare_external_pr_comment.py select-inline \
-            --comments publication-evidence/inline-comments.json \
+            --comments publication-evidence/inline-comments.json --app-slug "$APP_SLUG" \
             --request review-artifact/action-output/inline-review-create-request.json \
-            --app-slug "$REVIEW_APP_SLUG" \
             --output publication-evidence/inline-selection.json
-          echo "summary_action=$(python3 -c 'import json; print(json.load(open("publication-evidence/summary-selection.json"))["action"])')" >> "$GITHUB_OUTPUT"
-          echo "summary_id=$(python3 -c 'import json; print(json.load(open("publication-evidence/summary-selection.json"))["comment_id"] or "")')" >> "$GITHUB_OUTPUT"
-          echo "inline_action=$(python3 -c 'import json; print(json.load(open("publication-evidence/inline-selection.json"))["action"])')" >> "$GITHUB_OUTPUT"
-          echo "inline_id=$(python3 -c 'import json; print(json.load(open("publication-evidence/inline-selection.json"))["comment_id"] or "")')" >> "$GITHUB_OUTPUT"
-
-      - name: Create the inline advisory suggestion
-        if: ${{ steps.comment-selection.outputs.inline_action == 'create' }}
+          echo "summary_action=$(jq -r .action publication-evidence/summary-selection.json)" >> "$GITHUB_OUTPUT"
+          echo "summary_id=$(jq -r '.comment_id // ""' publication-evidence/summary-selection.json)" >> "$GITHUB_OUTPUT"
+          echo "inline_action=$(jq -r .action publication-evidence/inline-selection.json)" >> "$GITHUB_OUTPUT"
+          echo "inline_id=$(jq -r '.comment_id // ""' publication-evidence/inline-selection.json)" >> "$GITHUB_OUTPUT"
+      - name: Create inline suggestion
+        if: ${{ steps.selection.outputs.inline_action == 'create' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
-        run: |
-          gh api --method POST -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}/comments" \
-            --input review-artifact/action-output/inline-review-create-request.json \
-            > publication-evidence/inline-comment-response.json
-
-      - name: Update the inline advisory suggestion
-        if: ${{ steps.comment-selection.outputs.inline_action == 'update' }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: gh api --method POST "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" --input review-artifact/action-output/inline-review-create-request.json
+      - name: Update inline suggestion
+        if: ${{ steps.selection.outputs.inline_action == 'update' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_INLINE_ID: ${{ steps.comment-selection.outputs.inline_id }}
-        run: |
-          gh api --method PATCH -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/comments/${REVIEW_INLINE_ID}" \
-            --input review-artifact/action-output/inline-review-update-request.json \
-            > publication-evidence/inline-comment-response.json
-
-      - name: Create the advisory summary
-        if: ${{ steps.comment-selection.outputs.summary_action == 'create' }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          COMMENT_ID: ${{ steps.selection.outputs.inline_id }}
+        run: gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/pulls/comments/${COMMENT_ID}" --input review-artifact/action-output/inline-review-update-request.json
+      - name: Create review-in-progress summary
+        if: ${{ steps.selection.outputs.summary_action == 'create' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
-        run: |
-          gh api --method POST \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/${REVIEW_PULL_REQUEST}/comments" \
-            --input review-artifact/action-output/pr-comment-request.json \
-            > publication-evidence/comment-response.json
-
-      - name: Update the advisory summary
-        if: ${{ steps.comment-selection.outputs.summary_action == 'update' }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: gh api --method POST "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" --input review-artifact/action-output/pr-comment-request.json
+      - name: Update review-in-progress summary
+        if: ${{ steps.selection.outputs.summary_action == 'update' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REVIEW_OWNER: ${{ inputs.owner }}
-          REVIEW_REPOSITORY: ${{ inputs.repository }}
-          REVIEW_COMMENT_ID: ${{ steps.comment-selection.outputs.summary_id }}
-        run: |
-          gh api --method PATCH \
-            -H 'Accept: application/vnd.github+json' \
-            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/comments/${REVIEW_COMMENT_ID}" \
-            --input review-artifact/action-output/pr-comment-request.json \
-            > publication-evidence/comment-response.json
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          COMMENT_ID: ${{ steps.selection.outputs.summary_id }}
+        run: gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/issues/comments/${COMMENT_ID}" --input review-artifact/action-output/pr-comment-request.json
 
-      - name: State the publication boundary
+  finalize:
+    name: Finalize advisory report with deterministic evidence
+    needs: [fast-review, deterministic]
+    if: ${{ needs.fast-review.result == 'success' && needs.deterministic.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          path: review-target
+          persist-credentials: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.fast-review.outputs.artifact_name }}
+          path: fast-artifact
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.deterministic.outputs.artifact_name }}
+          path: deterministic-artifact
+      - name: Refuse head drift before finalization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: reviewer/scripts
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > final-live-pr.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head \
+            --live-pr final-live-pr.json --owner "$OWNER" --repository "$REPOSITORY" \
+            --pull-request "$PULL_REQUEST" --expected-head "$EXPECTED_HEAD" --output final-binding.json
+          test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Generate final structured output and summary
+        id: metadata
+        env:
+          PYTHONPATH: reviewer/scripts
+          REQUEST: ${{ inputs.request_path }}
+          ACTIONABLE: ${{ inputs.actionable_review_path }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          artifact_name="advisory-external-pr-${PULL_REQUEST}-${EXPECTED_HEAD}"
+          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
+          python3 -B reviewer/scripts/run_external_pr_review.py \
+            --request "reviewer/${REQUEST}" --observed-head "$EXPECTED_HEAD" --output-dir action-output \
+            --runtime-deterministic deterministic-artifact/runtime-deterministic-verification.json
+          cmp fast-artifact/action-output/audit-core.json action-output/audit-core.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py render \
+            --core action-output/audit-core.json --actionable "reviewer/${ACTIONABLE}" --source-root review-target \
+            --summary-output action-output/pr-comment-ready.md --summary-payload action-output/pr-comment-request.json \
+            --inline-output action-output/inline-review-comment-ready.md \
+            --inline-create-payload action-output/inline-review-create-request.json \
+            --inline-update-payload action-output/inline-review-update-request.json \
+            --metadata-output action-output/actionable-review-metadata.json \
+            --expected-head "$EXPECTED_HEAD" --run-url "$RUN_URL" --artifact-name "$artifact_name" \
+            --phase complete --runtime-deterministic deterministic-artifact/runtime-deterministic-verification.json
+      - name: Publish neutral final check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg head "$EXPECTED_HEAD" --arg url "$RUN_URL" '{name:"FC advisory review",head_sha:$head,status:"completed",conclusion:"neutral",details_url:$url,output:{title:"Advisory report finalized",summary:"Deterministic evidence is attached. This neutral advisory check is not acceptance, maintainer disposition, a merge decision, or mathematical truth."}}' > check.json
+          gh api --method POST "repos/${OWNER}/${REPOSITORY}/check-runs" --input check.json
+      - name: Upload final advisory artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: |
+            action-output/
+            deterministic-artifact/
+            final-binding.json
+          retention-days: 14
+
+  publish-final:
+    name: Update advisory summary with verified Lean result
+    needs: [finalize, publish-fast]
+    if: ${{ always() && needs.finalize.result == 'success' && needs.publish-fast.result == 'success' && inputs.publish_comment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.finalize.outputs.artifact_name }}
+          path: review-artifact
+      - name: Mint short-lived App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.FC_REVIEW_APP_ID }}
+          private-key: ${{ secrets.FC_REVIEW_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.owner }}
+          repositories: ${{ inputs.repository }}
+          permission-contents: read
+          permission-pull-requests: write
+      - name: Recheck head and select the same summary
+        id: selection
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PYTHONPATH: reviewer/scripts
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > live-pr.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head \
+            --live-pr live-pr.json --owner "$OWNER" --repository "$REPOSITORY" \
+            --pull-request "$PULL_REQUEST" --expected-head "$EXPECTED_HEAD" --output final-comment-binding.json
+          gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > summary-comments.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py select-summary \
+            --comments summary-comments.json --app-slug "$APP_SLUG" --output summary-selection.json
+          echo "action=$(jq -r .action summary-selection.json)" >> "$GITHUB_OUTPUT"
+          echo "comment_id=$(jq -r '.comment_id // ""' summary-selection.json)" >> "$GITHUB_OUTPUT"
+      - name: Update finalized summary
+        if: ${{ steps.selection.outputs.action == 'update' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OWNER: ${{ inputs.owner }}
+          REPOSITORY: ${{ inputs.repository }}
+          COMMENT_ID: ${{ steps.selection.outputs.comment_id }}
+        run: gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/issues/comments/${COMMENT_ID}" --input review-artifact/action-output/pr-comment-request.json
+      - name: Refuse a missing review-in-progress summary
+        if: ${{ steps.selection.outputs.action != 'update' }}
+        run: |
+          echo 'The finalizer will not create a second summary; the review-in-progress summary is missing.' >&2
+          exit 1
+      - name: State authority boundary
         if: always()
-        env:
-          REVIEW_COMMENT_ACTION: ${{ steps.comment-selection.outputs.summary_action }}
-          REVIEW_INLINE_ACTION: ${{ steps.comment-selection.outputs.inline_action }}
-        run: |
-          echo "FC Review Pilot comment action: ${REVIEW_COMMENT_ACTION:-not-run}." >> "$GITHUB_STEP_SUMMARY"
-          echo "FC Review Pilot inline action: ${REVIEW_INLINE_ACTION:-not-run}." >> "$GITHUB_STEP_SUMMARY"
-          echo 'The comment is an advisory projection only. It has no acceptance or maintainer-authority effect.' >> "$GITHUB_STEP_SUMMARY"
+        run: echo 'Both summary phases and the inline suggestion are advisory only; no acceptance, apply, approval, label, or merge effect.' >> "$GITHUB_STEP_SUMMARY"

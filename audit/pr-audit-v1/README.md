@@ -54,22 +54,26 @@ The library and CLI do not call Git, GitHub, Lean, a model, the network, or a su
 `.github/workflows/advisory-external-pr-review.yml` is the GitHub-native
 operator layer around the offline review contract. A manual dispatch supplies
 the base repository owner and name, pull request number, exact expected head,
-retained request path, and Lean build target. It checks out the trusted
-reviewer and the exact PR head separately, refuses a changed head, runs the
-targeted Lean build and `git diff --check`, validates the retained isolated
-role evidence, and uploads the JSON core, `ReviewReport.md`, comment draft,
-ready-to-publish comment, and command evidence. It also creates a neutral
-`FC advisory review` check on the exact PR head. The check and artifacts do not
+retained request path, and Lean build target. Two secretless jobs bind and
+refuse head drift independently, then run in parallel. The fast lane validates
+the retained source/semantic evidence and renders the actionable projection.
+The slow lane runs the targeted Lean build and `git diff --check`. A finalizer
+joins their artifacts, projects the typed live Lean result without rewriting
+the core, and creates a neutral `FC advisory review` check on the exact PR
+head. The check and artifacts do not
 approve, merge, or establish maintainer disposition or mathematical truth.
 
 The `publish_comment` input defaults to `false`. With that default, the run is
 artifact-only. Its draft output includes a concise marker-bound summary and,
 only when exact-head configuration binds a high-confidence localized repair,
-an inline review comment with a GitHub suggested-change block. When an operator explicitly dispatches with `publish_comment`
-set to `true`, a separate publication job runs only after the secretless review
-job succeeds. The publication job does not check out or execute contributor
-code. It downloads the completed artifact as data, re-reads the PR, refuses a
-changed head, and then creates or updates exactly one comment carrying the
+an inline review comment with a GitHub suggested-change block. When an operator
+explicitly dispatches with `publish_comment` set to `true`, the fast publication
+job may create or update that suggestion and the one summary while Lean is
+still running. The summary is explicitly marked `Review in progress` and says
+that deterministic verification is pending. After both secretless lanes
+finish, the final publication job rechecks the head and updates that same
+summary with the typed Lean outcome and final artifact. Neither publication
+job executes contributor code. They create or update exactly one comment carrying the
 stable marker `<!-- formal-conjectures:advisory-review:v1 -->`. Selection
 requires both the marker and the App's own `[bot]` login. Multiple matching App
 comments are an error, so a rerun cannot silently add another comment. Inline

@@ -15,7 +15,10 @@ does not introduce a standing service or a mandatory review panel.
 
 The manual workflow `.github/workflows/live-ai-advisory-pr-review.yml` accepts a base repository,
 pull request number, exact 40-character head, conclusion-free retained input configuration, and
-bounded Lean build target. `run_ai_review` and `publish_comment` both default to `false`.
+bounded Lean build target. In the user-fork dogfood workflow, `run_ai_review` and `publish_comment`
+default to `true`; a credential-free or nonpublishing run must opt out explicitly. The App token is
+still requested only for the named repository, so a Paul/upstream installation remains a separate
+account-side authorization and is not implied by this default.
 The local adapter pins `anthropics/claude-code-action` to commit
 `d40ddef4c030e508327d6e35a9c45f3368482c50`, defaults to the fixed model ID
 `claude-sonnet-5`, and caps the primary or optional escalation review at USD 5 each by default.
@@ -61,6 +64,10 @@ publication path.
 - `summary.md` and `summary.json`: the single concise marker-bound review state.
 - `inline/*.json`: zero or more apply-ready GitHub suggestions. These exist only after exact-line,
   diff, and Lean validation.
+- `cost-ledger.json`: provider-reported cost and usage when available, configured per-pass and total
+  caps, model and turn count, phase wall-clock durations, and typed cache/retry availability. Missing
+  provider fields remain `unknown/not reported by provider`; raw prompts, model messages, and secrets
+  are excluded.
 
 Artifacts are retained for 14 days by the sample workflow. A neutral check links to the workflow
 run. Neutral is deliberate: model review and deterministic checks are evidence, not acceptance.
@@ -74,11 +81,10 @@ or chat. The existing
 App variables remain `FC_REVIEW_APP_ID` and `FC_REVIEW_APP_PRIVATE_KEY` and are used only by
 publication jobs.
 
-The first credentialed run should set `run_ai_review=true`, `escalation_mode=auto`, and
-`publish_comment=false`. It should demonstrate one fresh primary receipt, typed mechanical gates,
-patch suppression
-or validation, and the final artifact without changing the PR. Publication needs a separate run
-with `publish_comment=true` after a human inspects that artifact.
+For the installed user-fork pilot, the normal manual dispatch sets `run_ai_review=true`,
+`escalation_mode=auto`, and `publish_comment=true`. It produces one fresh primary receipt, typed
+mechanical gates, patch suppression or validation, the cost ledger, and the stable App summary.
+Set `publish_comment=false` explicitly when a later target needs a nonpublishing inspection gate.
 
 ## Design rationale
 

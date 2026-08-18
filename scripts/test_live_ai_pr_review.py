@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -72,6 +73,30 @@ class LiveAIReviewTest(unittest.TestCase):
             "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
         }
 
+    def usage(self, role: str, cost: str = "0.25"):
+        return {
+            "schema_version": "formal-conjectures.live-ai-provider-usage.v1",
+            "role": role,
+            "provider": "anthropic",
+            "model": "claude-sonnet-5",
+            "configured_cap_usd": "5.00",
+            "actual_cost_usd": {"status": "reported", "value": cost, "reason": None},
+            "turn_count": {"status": "reported", "value": 7, "reason": None},
+            "timing": {
+                "started_at_epoch_ms": 2_000, "finished_at_epoch_ms": 5_000, "wall_clock_ms": 3_000,
+                "provider_duration_ms": {"status": "reported", "value": 2_500, "reason": None},
+                "api_duration_ms": {"status": "unknown", "value": None, "reason": "unknown/not reported by provider"},
+            },
+            "tokens": {
+                "status": "reported", "input": 100, "output": 20, "cache_read_input": 50,
+                "cache_creation_input": 10, "reason": None,
+            },
+            "cache": {"status": "reported", "read_input_tokens": 50, "creation_input_tokens": 10, "reason": None},
+            "retry": {"status": "unknown", "count": None, "reason": "unknown/not reported by provider"},
+            "execution_file": {"status": "parsed", "reason": None},
+            "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+        }
+
     def test_action_facing_schema_omits_unsupported_meta_schema_declaration(self):
         schema = json.loads(SCHEMA.read_text())
         self.assertNotIn("$schema", schema)
@@ -115,6 +140,7 @@ class LiveAIReviewTest(unittest.TestCase):
         output = root / "panel"
         env = {f"FC_AI_{role.upper()}_OUTPUT": json.dumps(value) for role, value in roles.items()}
         env.update({f"FC_AI_{role.upper()}_SESSION_ID": f"session-{role}" for role in roles})
+        env.update({f"FC_AI_{role.upper()}_USAGE": json.dumps(self.usage(role)) for role in roles})
         result = self.execute(
             "validate-panel", "--input-manifest", str(input_dir / "input-manifest.json"), "--output-dir", str(output),
             "--action-commit", "d40ddef4c030e508327d6e35a9c45f3368482c50",
@@ -142,6 +168,80 @@ class LiveAIReviewTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 2)
             self.assertIn("requires a real AI review", result.stderr)
+
+    def test_pr2_packet_retains_exact_composite_api_and_mathlib_lock(self):
+        config = json.loads(CONFIG.read_text())
+        sources = {item["id"]: item for item in config["sources"]}
+        self.assertEqual(
+            set(sources),
+            {"current", "history", "original", "dependency-api-nat-composite", "dependency-lock-mathlib"},
+        )
+        api = FIXTURE / sources["dependency-api-nat-composite"]["path"]
+        self.assertIn("abbrev Nat.Composite (n : ℕ) : Prop := 1 < n ∧ ¬n.Prime", api.read_text())
+        self.assertEqual("sha256:" + hashlib.sha256(api.read_bytes()).hexdigest(), sources["dependency-api-nat-composite"]["sha256"])
+        lock = json.loads((FIXTURE / sources["dependency-lock-mathlib"]["path"]).read_text())
+        manifest = (REPO / "lake-manifest.json").read_bytes()
+        self.assertEqual(lock["manifest_sha256"], "sha256:" + hashlib.sha256(manifest).hexdigest())
+        mathlib = next(item for item in json.loads(manifest)["packages"] if item["name"] == "mathlib")
+        self.assertEqual(lock["mathlib"], {
+            "input_rev": mathlib["inputRev"], "rev": mathlib["rev"], "url": mathlib["url"],
+        })
+
+    def test_provider_usage_is_sanitized_and_cost_ledger_is_aggregated(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            execution = root / "execution.json"
+            execution.write_text(json.dumps([
+                {"type": "assistant", "message": {"content": "must not be retained"}},
+                {
+                    "type": "result", "total_cost_usd": 0.375, "num_turns": 6,
+                    "duration_ms": 2_400, "duration_api_ms": 1_900,
+                    "usage": {"input_tokens": 120, "output_tokens": 30, "cache_read_input_tokens": 80},
+                },
+            ]))
+            usage_path = root / "usage.json"
+            result = self.execute(
+                "capture-provider-usage", "--role", "primary_review", "--execution-file", str(execution),
+                "--model", "claude-sonnet-5", "--max-budget-usd-per-role", "5.00",
+                "--started-at-epoch-ms", "1000", "--finished-at-epoch-ms", "4000", "--output", str(usage_path),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            usage = json.loads(usage_path.read_text())
+            self.assertEqual(usage["actual_cost_usd"]["value"], "0.375")
+            self.assertEqual(usage["turn_count"]["value"], 6)
+            self.assertEqual(usage["retry"]["reason"], "unknown/not reported by provider")
+            self.assertNotIn("must not be retained", usage_path.read_text())
+            unknown_path = root / "unknown.json"
+            result = self.execute(
+                "capture-provider-usage", "--role", "primary_review", "--execution-file", "",
+                "--model", "claude-sonnet-5", "--max-budget-usd-per-role", "5.00",
+                "--started-at-epoch-ms", "1000", "--finished-at-epoch-ms", "4000", "--output", str(unknown_path),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(unknown_path.read_text())["actual_cost_usd"], {
+                "reason": "unknown/not reported by provider", "status": "unknown", "value": None,
+            })
+
+            panel = self.panel(root / "panel-root")
+            for phase, started, finished in (("prepare", 100, 200), ("deterministic", 250, 600), ("finalize", 650, 800)):
+                result = self.execute(
+                    "record-phase", "--phase", phase, "--started-at-epoch-ms", str(started),
+                    "--finished-at-epoch-ms", str(finished), "--output", str(root / f"{phase}.json"),
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+            ledger = root / "cost-ledger.json"
+            result = self.execute(
+                "aggregate-cost-ledger", "--panel", str(panel), "--prepare-timing", str(root / "prepare.json"),
+                "--deterministic-timing", str(root / "deterministic.json"),
+                "--finalize-timing", str(root / "finalize.json"), "--output", str(ledger),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            value = json.loads(ledger.read_text())
+            self.assertEqual(value["actual_cost_usd"], {
+                "reason": None, "reported_subtotal_usd": "0.50", "status": "reported", "value": "0.50",
+            })
+            self.assertEqual(value["configured_caps_usd"], {"per_pass": "5.00", "role_limit": 2, "total": "10.00"})
+            self.assertEqual(value["end_to_end_wall_clock_ms"], 700)
 
     def test_validate_panel_requires_an_actual_primary_model_output(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -266,6 +366,7 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertEqual(metadata["inline_count"], 2)
             self.assertEqual(len(list(inline.glob("*.json"))), 2)
             self.assertTrue((root / "summary.md").read_text().startswith(SUMMARY))
+            self.assertIn("**Cost/time:** `$0.5000` actual", (root / "summary.md").read_text())
             self.assertLess(len((root / "summary.md").read_text()), 1_200)
 
     def test_failed_patch_validation_is_suppressed(self):
@@ -344,7 +445,7 @@ class LiveAIReviewTest(unittest.TestCase):
         workflow = (REPO / ".github" / "workflows" / "live-ai-advisory-pr-review.yml").read_text()
         action = "anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50"
         self.assertEqual(workflow.count(action), 2)
-        self.assertIn("default: false\n        type: boolean", workflow)
+        self.assertEqual(workflow.count("default: true\n        type: boolean"), 2)
         self.assertIn("actual primary output", workflow)
         self.assertIn("stored role evidence is not a fallback", (REPO / "scripts" / "live_ai_pr_review.py").read_text())
         self.assertNotIn("clean-room-source-fidelity.json", workflow)
@@ -360,6 +461,9 @@ class LiveAIReviewTest(unittest.TestCase):
         self.assertNotIn("--max-turns 4", workflow)
         self.assertEqual(workflow.count("structured_output"), 2)
         self.assertEqual(workflow.count("steps.claude.outputs.session_id"), 2)
+        self.assertEqual(workflow.count("steps.claude.outputs.execution_file"), 2)
+        self.assertIn("cost-ledger.json", workflow)
+        self.assertIn("aggregate-cost-ledger", workflow)
         self.assertIn("escalation_mode", workflow)
         self.assertIn("needs.inspect-primary.outputs.escalation_required", workflow)
         self.assertIn("check-imports", workflow)
@@ -369,7 +473,10 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertNotIn("FC_REVIEW_APP_PRIVATE_KEY", block)
             self.assertNotIn("pull-requests: write", block)
             self.assertIn("permissions", block)
-            self.assertNotIn("\n      - ", block.split("- id: claude", 1)[1])
+            before_model, after_model = block.split("- id: claude", 1)
+            self.assertNotIn("path: reviewer", before_model)
+            self.assertIn("Load trusted usage sanitizer after model execution", after_model)
+            self.assertIn("capture-provider-usage", after_model)
         self.assertEqual(workflow.count("FC_REVIEW_APP_PRIVATE_KEY"), 2)
 
 

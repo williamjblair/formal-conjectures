@@ -7,10 +7,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
 import sys
+from decimal import Decimal
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -22,6 +24,9 @@ INPUT_VERSION = "formal-conjectures.live-ai-review-input.v1"
 ROLE_VERSION = "formal-conjectures.live-ai-review-role-result.v1"
 PANEL_VERSION = "formal-conjectures.live-ai-review-panel.v1"
 SUGGESTION_VERSION = "formal-conjectures.live-ai-suggestion-validation.v1"
+COST_ROLE_VERSION = "formal-conjectures.live-ai-provider-usage.v1"
+COST_LEDGER_VERSION = "formal-conjectures.live-ai-cost-ledger.v1"
+PHASE_TIMING_VERSION = "formal-conjectures.live-ai-phase-timing.v1"
 OID = re.compile(r"^[0-9a-f]{40}$")
 SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
 PRIMARY_ROLE = "primary_review"
@@ -30,6 +35,7 @@ ROLES = (PRIMARY_ROLE, ESCALATION_ROLE)
 NONCLAIMS = ["maintainer_disposition", "mathematical_truth", "merge_decision"]
 SUMMARY_MARKER = "<!-- formal-conjectures:live-ai-review:v1 -->"
 INLINE_PREFIX = "formal-conjectures:live-ai-inline:v1:"
+NOT_REPORTED = "unknown/not reported by provider"
 
 
 def obj(value: Any, location: str) -> dict[str, Any]:
@@ -270,6 +276,179 @@ def model_output(role: str, input_root: str, *, required: bool) -> tuple[dict[st
     return validated, string(session_id, session_name, 200)
 
 
+def nonnegative_number(value: Any) -> int | float | Decimal | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)) or value < 0:
+        return None
+    return value
+
+
+def nonnegative_integer(value: Any) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def typed_metric(value: int | float | str | None, reason: str = NOT_REPORTED) -> dict[str, Any]:
+    return (
+        {"status": "reported", "value": value, "reason": None}
+        if value is not None else {"status": "unknown", "value": None, "reason": reason}
+    )
+
+
+def decimal_text(value: int | float | Decimal | None) -> str | None:
+    return None if value is None else format(Decimal(str(value)), "f")
+
+
+def execution_result(path_text: str) -> tuple[dict[str, Any] | None, str, str | None]:
+    if not path_text:
+        return None, "unavailable", NOT_REPORTED
+    path = Path(path_text)
+    if not path.is_file():
+        return None, "unavailable", NOT_REPORTED
+    if path.stat().st_size > 32 * 1024 * 1024:
+        return None, "rejected", "provider execution file exceeds the 32 MiB observation bound"
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in items:
+            if key in result:
+                raise AuditError("provider execution file contains a duplicate JSON key")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            path.read_text(encoding="utf-8"), parse_float=Decimal, object_pairs_hook=pairs,
+            parse_constant=lambda token: (_ for _ in ()).throw(AuditError(f"unsupported JSON constant {token}")),
+        )
+    except (json.JSONDecodeError, UnicodeError) as error:
+        raise AuditError(f"provider execution file is invalid JSON: {error}") from error
+    items = value if isinstance(value, list) else [value]
+    results = [item for item in items if isinstance(item, dict) and item.get("type") == "result"]
+    if not results:
+        return None, "parsed_without_result", NOT_REPORTED
+    return results[-1], "parsed", None
+
+
+def capture_provider_usage(args: argparse.Namespace) -> None:
+    if args.role not in ROLES:
+        raise AuditError("provider usage role is unsupported")
+    if args.max_budget_usd_per_role not in {"1.00", "2.50", "5.00", "10.00"}:
+        raise AuditError("provider usage budget is unsupported")
+    started = int(args.started_at_epoch_ms)
+    finished = int(args.finished_at_epoch_ms)
+    if started < 0 or finished < started:
+        raise AuditError("provider usage wall-clock bounds are malformed")
+    result, file_status, file_reason = execution_result(args.execution_file)
+    result = result or {}
+    usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+    model_usage = result.get("modelUsage") if isinstance(result.get("modelUsage"), dict) else {}
+
+    def aggregate(keys: tuple[str, ...]) -> int | None:
+        direct = next((nonnegative_integer(usage.get(key)) for key in keys if nonnegative_integer(usage.get(key)) is not None), None)
+        if direct is not None:
+            return direct
+        values = []
+        for item in model_usage.values():
+            if not isinstance(item, dict):
+                continue
+            found = next((nonnegative_integer(item.get(key)) for key in keys if nonnegative_integer(item.get(key)) is not None), None)
+            if found is not None:
+                values.append(found)
+        return sum(values) if values else None
+
+    cost = nonnegative_number(result.get("total_cost_usd"))
+    if cost is None:
+        model_costs = [
+            nonnegative_number(item.get("costUSD")) for item in model_usage.values() if isinstance(item, dict)
+        ]
+        known_costs = [item for item in model_costs if item is not None]
+        cost = sum((Decimal(str(item)) for item in known_costs), Decimal("0")) if known_costs else None
+    input_tokens = aggregate(("input_tokens", "inputTokens"))
+    output_tokens = aggregate(("output_tokens", "outputTokens"))
+    cache_read = aggregate(("cache_read_input_tokens", "cacheReadInputTokens"))
+    cache_creation = aggregate(("cache_creation_input_tokens", "cacheCreationInputTokens"))
+    retry_count = next(
+        (nonnegative_integer(result.get(key)) for key in ("retry_count", "retries")
+         if nonnegative_integer(result.get(key)) is not None),
+        None,
+    )
+    write_canonical(Path(args.output), {
+        "schema_version": COST_ROLE_VERSION,
+        "role": args.role,
+        "provider": "anthropic",
+        "model": string(args.model, "model", 100),
+        "configured_cap_usd": args.max_budget_usd_per_role,
+        "actual_cost_usd": typed_metric(decimal_text(cost)),
+        "turn_count": typed_metric(nonnegative_integer(result.get("num_turns"))),
+        "timing": {
+            "started_at_epoch_ms": started,
+            "finished_at_epoch_ms": finished,
+            "wall_clock_ms": finished - started,
+            "provider_duration_ms": typed_metric(nonnegative_integer(result.get("duration_ms"))),
+            "api_duration_ms": typed_metric(nonnegative_integer(result.get("duration_api_ms"))),
+        },
+        "tokens": {
+            "status": "reported" if input_tokens is not None or output_tokens is not None else "unknown",
+            "input": input_tokens,
+            "output": output_tokens,
+            "cache_read_input": cache_read,
+            "cache_creation_input": cache_creation,
+            "reason": None if input_tokens is not None or output_tokens is not None else NOT_REPORTED,
+        },
+        "cache": {
+            "status": "reported" if cache_read is not None or cache_creation is not None else "unknown",
+            "read_input_tokens": cache_read,
+            "creation_input_tokens": cache_creation,
+            "reason": None if cache_read is not None or cache_creation is not None else NOT_REPORTED,
+        },
+        "retry": {
+            "status": "reported" if retry_count is not None else "unknown",
+            "count": retry_count,
+            "reason": None if retry_count is not None else NOT_REPORTED,
+        },
+        "execution_file": {"status": file_status, "reason": file_reason},
+        "nonclaims": NONCLAIMS,
+    })
+
+
+def unknown_provider_usage(role: str, model: str, cap: str) -> dict[str, Any]:
+    return {
+        "schema_version": COST_ROLE_VERSION, "role": role, "provider": "anthropic", "model": model,
+        "configured_cap_usd": cap, "actual_cost_usd": typed_metric(None), "turn_count": typed_metric(None),
+        "timing": {
+            "started_at_epoch_ms": None, "finished_at_epoch_ms": None, "wall_clock_ms": None,
+            "provider_duration_ms": typed_metric(None), "api_duration_ms": typed_metric(None),
+        },
+        "tokens": {"status": "unknown", "input": None, "output": None, "cache_read_input": None,
+                   "cache_creation_input": None, "reason": NOT_REPORTED},
+        "cache": {"status": "unknown", "read_input_tokens": None, "creation_input_tokens": None,
+                  "reason": NOT_REPORTED},
+        "retry": {"status": "unknown", "count": None, "reason": NOT_REPORTED},
+        "execution_file": {"status": "unavailable", "reason": NOT_REPORTED},
+        "nonclaims": NONCLAIMS,
+    }
+
+
+def provider_usage_from_env(role: str, model: str, cap: str) -> dict[str, Any]:
+    raw = os.environ.get(f"FC_AI_{role.upper()}_USAGE")
+    if raw is None or not raw.strip():
+        return unknown_provider_usage(role, model, cap)
+    value = obj(parse_json_bytes(raw.encode(), label=f"FC_AI_{role.upper()}_USAGE"), "provider usage")
+    if (
+        value.get("schema_version") != COST_ROLE_VERSION or value.get("role") != role
+        or value.get("provider") != "anthropic" or value.get("model") != model
+        or value.get("configured_cap_usd") != cap or value.get("nonclaims") != NONCLAIMS
+    ):
+        raise AuditError(f"provider usage receipt is stale or malformed for {role}")
+    allowed = {
+        "schema_version", "role", "provider", "model", "configured_cap_usd", "actual_cost_usd",
+        "turn_count", "timing", "tokens", "cache", "retry", "execution_file", "nonclaims",
+    }
+    if set(value) != allowed:
+        raise AuditError(f"provider usage receipt contains unsupported fields for {role}")
+    return value
+
+
 def inspect_primary(args: argparse.Namespace) -> None:
     manifest = validated_manifest(Path(args.input_manifest))
     try:
@@ -307,6 +486,8 @@ def validate_panel(args: argparse.Namespace) -> None:
         raise AuditError("model effort is unsupported")
     if args.max_budget_usd_per_role not in {"1.00", "2.50", "5.00", "10.00"}:
         raise AuditError("model per-role budget is unsupported")
+    if args.configured_role_limit not in {1, 2}:
+        raise AuditError("configured model role limit is unsupported")
     if not args.github_run_id.isdigit() or not args.github_run_attempt.isdigit():
         raise AuditError("GitHub execution receipt is malformed")
     string(args.model, "model", 100)
@@ -327,7 +508,11 @@ def validate_panel(args: argparse.Namespace) -> None:
         if result is None:
             continue
         roles[role], session_id = result
-        receipts[role] = {"session_id": session_id, "structured_output_root": content_root(roles[role])}
+        receipts[role] = {
+            "session_id": session_id,
+            "structured_output_root": content_root(roles[role]),
+            "provider_usage": provider_usage_from_env(role, args.model, args.max_budget_usd_per_role),
+        }
         write_canonical(raw_outputs / f"{role}.json", roles[role])
     if PRIMARY_ROLE not in roles and ESCALATION_ROLE not in roles:
         raise AuditError("no valid model review receipt is available; review remains fail-closed")
@@ -342,6 +527,7 @@ def validate_panel(args: argparse.Namespace) -> None:
         for finding in value["findings"]
         if finding["severity"] in {"nit", "meaning"}
     ]
+    total_cap = Decimal(args.max_budget_usd_per_role) * args.configured_role_limit
     panel_without_root = {
         "schema_version": PANEL_VERSION,
         "repository": manifest["repository"],
@@ -350,7 +536,10 @@ def validate_panel(args: argparse.Namespace) -> None:
         "execution": {
             "provider": "anthropic", "runner": "claude-code-action", "action_commit": args.action_commit,
             "model": args.model, "effort": args.effort,
-            "max_budget_usd_per_role": args.max_budget_usd_per_role, "role_receipts": receipts,
+            "max_budget_usd_per_role": args.max_budget_usd_per_role,
+            "configured_role_limit": args.configured_role_limit,
+            "max_budget_usd_total": f"{total_cap:.2f}",
+            "role_receipts": receipts,
             "role_errors": role_errors, "escalation_trigger": args.escalation_trigger,
             "github_run_id": args.github_run_id, "github_run_attempt": args.github_run_attempt,
             "prompt_roots": {role: digest(Path(args.input_manifest).parent / f"prompt-{role}.md") for role in roles},
@@ -534,6 +723,129 @@ def check_imports(args: argparse.Namespace) -> None:
         raise AuditError("problem module import policy failed")
 
 
+def record_phase(args: argparse.Namespace) -> None:
+    started = int(args.started_at_epoch_ms)
+    finished = int(args.finished_at_epoch_ms)
+    if started < 0 or finished < started:
+        raise AuditError("phase timing bounds are malformed")
+    write_canonical(Path(args.output), {
+        "schema_version": PHASE_TIMING_VERSION,
+        "phase": string(args.phase, "phase", 100),
+        "started_at_epoch_ms": started,
+        "finished_at_epoch_ms": finished,
+        "wall_clock_ms": finished - started,
+    })
+
+
+def validated_phase(path: Path, expected: str) -> dict[str, Any]:
+    value = exact(
+        load(path),
+        {"schema_version", "phase", "started_at_epoch_ms", "finished_at_epoch_ms", "wall_clock_ms"},
+        f"phase timing {expected}",
+    )
+    if value["schema_version"] != PHASE_TIMING_VERSION or value["phase"] != expected:
+        raise AuditError(f"phase timing identity mismatch for {expected}")
+    started = nonnegative_integer(value["started_at_epoch_ms"])
+    finished = nonnegative_integer(value["finished_at_epoch_ms"])
+    duration = nonnegative_integer(value["wall_clock_ms"])
+    if started is None or finished is None or duration is None or finished - started != duration:
+        raise AuditError(f"phase timing is malformed for {expected}")
+    return value
+
+
+def aggregate_cost_ledger(args: argparse.Namespace) -> None:
+    panel = load(Path(args.panel))
+    if panel.get("schema_version") != PANEL_VERSION:
+        raise AuditError("cost ledger panel is unsupported")
+    prepare_timing = validated_phase(Path(args.prepare_timing), "prepare")
+    deterministic_timing = validated_phase(Path(args.deterministic_timing), "deterministic")
+    finalize_timing = validated_phase(Path(args.finalize_timing), "finalize")
+    role_usage = {
+        role: receipt["provider_usage"] for role, receipt in panel["execution"]["role_receipts"].items()
+    }
+    reported_costs = [
+        Decimal(usage["actual_cost_usd"]["value"]) for usage in role_usage.values()
+        if usage["actual_cost_usd"].get("status") == "reported"
+    ]
+    if len(reported_costs) == len(role_usage):
+        cost_status = "reported"
+    elif reported_costs:
+        cost_status = "partial"
+    else:
+        cost_status = "unknown"
+    actual_cost = {
+        "status": cost_status,
+        "value": decimal_text(sum(reported_costs, Decimal("0"))) if cost_status == "reported" else None,
+        "reported_subtotal_usd": decimal_text(sum(reported_costs, Decimal("0"))),
+        "reason": None if cost_status == "reported" else NOT_REPORTED,
+    }
+    phases: dict[str, Any] = {
+        "prepare": prepare_timing,
+        "deterministic": deterministic_timing,
+        "finalize": finalize_timing,
+    }
+    for role, usage in role_usage.items():
+        phases[role] = {
+            "schema_version": PHASE_TIMING_VERSION,
+            "phase": role,
+            "started_at_epoch_ms": usage["timing"].get("started_at_epoch_ms"),
+            "finished_at_epoch_ms": usage["timing"].get("finished_at_epoch_ms"),
+            "wall_clock_ms": usage["timing"].get("wall_clock_ms"),
+        }
+    ledger_without_root = {
+        "schema_version": COST_LEDGER_VERSION,
+        "input_panel_root": panel["root"],
+        "github_run_id": panel["execution"]["github_run_id"],
+        "github_run_attempt": panel["execution"]["github_run_attempt"],
+        "provider": panel["execution"]["provider"],
+        "model": panel["execution"]["model"],
+        "configured_caps_usd": {
+            "per_pass": panel["execution"]["max_budget_usd_per_role"],
+            "role_limit": panel["execution"]["configured_role_limit"],
+            "total": panel["execution"]["max_budget_usd_total"],
+        },
+        "actual_cost_usd": actual_cost,
+        "roles": role_usage,
+        "phase_timings": phases,
+        "end_to_end_wall_clock_ms": finalize_timing["finished_at_epoch_ms"] - prepare_timing["started_at_epoch_ms"],
+        "data_policy": {
+            "retains": ["aggregate provider usage", "configured caps", "phase durations", "cache and retry status"],
+            "excludes": ["raw prompts", "raw model messages", "secret values"],
+        },
+        "authority": "advisory_cost_observation_only",
+        "nonclaims": NONCLAIMS,
+    }
+    write_canonical(Path(args.output), {**ledger_without_root, "root": content_root(ledger_without_root)})
+
+
+def formatted_duration(milliseconds: Any) -> str:
+    if nonnegative_integer(milliseconds) is None:
+        return "pending"
+    seconds = round(milliseconds / 1000)
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes}m {seconds}s" if minutes else f"{seconds}s"
+
+
+def cost_time_line(panel: dict[str, Any], ledger: dict[str, Any] | None) -> str:
+    execution = panel["execution"]
+    if ledger is not None:
+        cost = ledger["actual_cost_usd"]
+        elapsed = formatted_duration(ledger.get("end_to_end_wall_clock_ms"))
+    else:
+        usage = [receipt["provider_usage"] for receipt in execution["role_receipts"].values()]
+        reported = [Decimal(item["actual_cost_usd"]["value"]) for item in usage if item["actual_cost_usd"]["status"] == "reported"]
+        cost = {
+            "status": "reported" if len(reported) == len(usage) else "unknown",
+            "value": decimal_text(sum(reported, Decimal("0"))) if len(reported) == len(usage) else None,
+        }
+        elapsed = "deterministic lane pending"
+    actual = f"${Decimal(cost['value']):.4f}" if cost["status"] == "reported" else NOT_REPORTED
+    return (
+        f"**Cost/time:** `{actual}` actual · `${execution['max_budget_usd_per_role']}`/pass, "
+        f"`${execution['max_budget_usd_total']}` total cap · {elapsed}; full ledger in the workflow artifact."
+    )
+
+
 def markdown_text(value: Any, limit: int = 500) -> str:
     text = string(value, "rendered text", limit).replace("\r", " ").replace("\n", " ")
     return text.replace("<", "&lt;").replace(">", "&gt;")
@@ -543,6 +855,9 @@ def render(args: argparse.Namespace) -> None:
     panel = load(Path(args.panel))
     deterministic = load(Path(args.deterministic)) if args.deterministic else None
     suggestion = load(Path(args.suggestion_validation)) if args.suggestion_validation else None
+    cost_ledger = load(Path(args.cost_ledger)) if args.cost_ledger else None
+    if cost_ledger is not None and cost_ledger.get("input_panel_root") != panel.get("root"):
+        raise AuditError("cost ledger is not bound to the rendered panel")
     head = panel["repository"]["head_commit_oid"]
     if args.expected_head != head:
         raise AuditError("render head differs from live AI panel")
@@ -562,6 +877,7 @@ def render(args: argparse.Namespace) -> None:
         f"{SUMMARY_MARKER}\n\n## FC Review Pilot — live AI advisory\n\n"
         f"**Verdict:** `{panel['disposition']['advisory']}` · **Findings:** {failed}\n\n"
         f"{verification}\n\n"
+        f"{cost_time_line(panel, cost_ledger)}\n\n"
         f"**Next action:** {markdown_text(next_action)}{inline_note}\n\nPinned head: `{head}`\n\n"
         f"[Workflow evidence]({args.run_url}) · artifact `{args.artifact_name}`\n\n"
         "This review was produced by fresh isolated model executions and validated deterministically. "
@@ -654,6 +970,13 @@ def parser() -> argparse.ArgumentParser:
     ):
         p.add_argument(f"--{name}", required=True)
     p.add_argument("--escalation-trigger", default="none")
+    p.add_argument("--configured-role-limit", type=int, default=2)
+    p = sub.add_parser("capture-provider-usage")
+    for name in (
+        "role", "execution-file", "model", "max-budget-usd-per-role", "started-at-epoch-ms",
+        "finished-at-epoch-ms", "output",
+    ):
+        p.add_argument(f"--{name}", required=True)
     p = sub.add_parser("inspect-primary")
     for name in ("input-manifest", "output"):
         p.add_argument(f"--{name}", required=True)
@@ -679,12 +1002,19 @@ def parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check-imports")
     for name in ("config", "source-root", "output"):
         p.add_argument(f"--{name}", required=True)
+    p = sub.add_parser("record-phase")
+    for name in ("phase", "started-at-epoch-ms", "finished-at-epoch-ms", "output"):
+        p.add_argument(f"--{name}", required=True)
+    p = sub.add_parser("aggregate-cost-ledger")
+    for name in ("panel", "prepare-timing", "deterministic-timing", "finalize-timing", "output"):
+        p.add_argument(f"--{name}", required=True)
     p = sub.add_parser("render")
     for name in ("panel", "expected-head", "run-url", "artifact-name", "summary", "summary-payload", "inline-dir", "metadata"):
         p.add_argument(f"--{name}", required=True)
     p.add_argument("--phase", choices=("in-progress", "complete"), required=True)
     p.add_argument("--deterministic")
     p.add_argument("--suggestion-validation")
+    p.add_argument("--cost-ledger")
     p = sub.add_parser("select-summary")
     for name in ("comments", "app-slug", "output"):
         p.add_argument(f"--{name}", required=True)
@@ -698,10 +1028,12 @@ def main() -> int:
     args = parser().parse_args()
     try:
         {"prepare": prepare, "inspect-primary": inspect_primary, "validate-panel": validate_panel,
+         "capture-provider-usage": capture_provider_usage,
          "validate-suggestion": validate_suggestion,
          "apply-suggestion": apply_suggestion, "record-suggestion": record_suggestion,
          "aggregate-suggestions": aggregate_suggestions, "capture-deterministic": capture_deterministic,
-         "check-imports": check_imports,
+         "check-imports": check_imports, "record-phase": record_phase,
+         "aggregate-cost-ledger": aggregate_cost_ledger,
          "render": render, "select-summary": select_summary, "select-inline": select_inline}[args.command](args)
     except (AuditError, OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
         print(f"live-ai-review: {error}", file=sys.stderr)

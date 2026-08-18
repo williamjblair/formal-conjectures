@@ -36,7 +36,7 @@ on:
       run_ai_review:
         description: Invoke one fresh primary Claude review; false is a credential-free deterministic pilot
         required: true
-        default: false
+        default: true
         type: boolean
       escalation_mode:
         description: Auto-escalate ambiguity/invalid output, force a manual escalation, or disable escalation
@@ -47,7 +47,7 @@ on:
       publish_comment:
         description: Upsert the App summary and independently validated inline findings
         required: true
-        default: false
+        default: true
         type: boolean
       model:
         description: Exact Claude API model identifier retained in the execution receipt
@@ -84,6 +84,9 @@ jobs:
     outputs:
       artifact_name: ${{ steps.metadata.outputs.artifact_name }}
     steps:
+      - id: phase-start
+        name: Record prepare start
+        run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: reviewer
@@ -128,6 +131,13 @@ jobs:
           PULL_REQUEST: ${{ inputs.pull_request }}
           EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: echo "artifact_name=fc-live-ai-input-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - name: Retain prepare duration
+        env:
+          STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
+        run: |
+          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+            --phase prepare --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
+            --finished-at-epoch-ms "$(date +%s%3N)" --output live-ai-input/phase-prepare.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ steps.metadata.outputs.artifact_name }}
@@ -142,6 +152,9 @@ jobs:
     outputs:
       artifact_name: ${{ steps.metadata.outputs.artifact_name }}
     steps:
+      - id: phase-start
+        name: Record deterministic start
+        run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: reviewer
@@ -206,6 +219,13 @@ jobs:
           PULL_REQUEST: ${{ inputs.pull_request }}
           EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: echo "artifact_name=fc-live-ai-deterministic-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
+      - name: Retain deterministic duration
+        env:
+          STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
+        run: |
+          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+            --phase deterministic --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
+            --finished-at-epoch-ms "$(date +%s%3N)" --output deterministic-evidence/phase-deterministic.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ steps.metadata.outputs.artifact_name }}
@@ -237,7 +257,11 @@ jobs:
     outputs:
       result: ${{ steps.claude.outputs.structured_output }}
       session_id: ${{ steps.claude.outputs.session_id }}
+      usage: ${{ steps.usage.outputs.receipt }}
     steps:
+      - id: phase-start
+        name: Record primary review start
+        run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
       - id: contract
@@ -269,6 +293,23 @@ jobs:
             --permission-mode plan --safe-mode --disable-slash-commands
             --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+      - name: Load trusted usage sanitizer after model execution
+        if: ${{ always() }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - id: usage
+        name: Retain bounded provider usage without raw model content
+        if: ${{ always() }}
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
+        run: |
+          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py capture-provider-usage \
+            --role primary_review --execution-file "$EXECUTION_FILE" --model "${{ inputs.model }}" \
+            --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
+            --output provider-usage.json
+          echo "receipt=$(jq -c . provider-usage.json)" >> "$GITHUB_OUTPUT"
 
   inspect-primary:
     name: Validate primary receipt and decide escalation
@@ -316,7 +357,11 @@ jobs:
     outputs:
       result: ${{ steps.claude.outputs.structured_output }}
       session_id: ${{ steps.claude.outputs.session_id }}
+      usage: ${{ steps.usage.outputs.receipt }}
     steps:
+      - id: phase-start
+        name: Record escalation review start
+        run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
       - id: contract
@@ -348,6 +393,23 @@ jobs:
             --permission-mode plan --safe-mode --disable-slash-commands
             --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+      - name: Load trusted usage sanitizer after model execution
+        if: ${{ always() }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - id: usage
+        name: Retain bounded provider usage without raw model content
+        if: ${{ always() }}
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
+        run: |
+          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py capture-provider-usage \
+            --role escalation_review --execution-file "$EXECUTION_FILE" --model "${{ inputs.model }}" \
+            --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
+            --output provider-usage.json
+          echo "receipt=$(jq -c . provider-usage.json)" >> "$GITHUB_OUTPUT"
 
   validate-ai:
     name: Validate primary and optional escalation receipts
@@ -370,8 +432,10 @@ jobs:
           PYTHONPATH: reviewer/scripts
           FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
           FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
+          FC_AI_PRIMARY_REVIEW_USAGE: ${{ needs.ai-primary.outputs.usage }}
           FC_AI_ESCALATION_REVIEW_OUTPUT: ${{ needs.ai-escalation.outputs.result }}
           FC_AI_ESCALATION_REVIEW_SESSION_ID: ${{ needs.ai-escalation.outputs.session_id }}
+          FC_AI_ESCALATION_REVIEW_USAGE: ${{ needs.ai-escalation.outputs.usage }}
           PRIMARY_STATUS: ${{ needs.inspect-primary.outputs.status }}
           PRIMARY_REASON: ${{ needs.inspect-primary.outputs.reason }}
           ESCALATION_MODE: ${{ inputs.escalation_mode }}
@@ -379,6 +443,8 @@ jobs:
           EFFORT: ${{ inputs.effort }}
         run: |
           escalation_trigger=none
+          configured_role_limit=2
+          [[ "$ESCALATION_MODE" == off ]] && configured_role_limit=1
           if [[ "$ESCALATION_MODE" == force ]]; then
             escalation_trigger=manual
           elif [[ "$PRIMARY_STATUS" == error ]]; then
@@ -391,6 +457,7 @@ jobs:
             --action-commit d40ddef4c030e508327d6e35a9c45f3368482c50 \
             --model "$MODEL" --effort "$EFFORT" \
             --escalation-trigger "$escalation_trigger" \
+            --configured-role-limit "$configured_role_limit" \
             --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
             --github-run-id "${{ github.run_id }}" --github-run-attempt "${{ github.run_attempt }}"
       - id: metadata
@@ -504,6 +571,9 @@ jobs:
       contents: read
     outputs: {artifact_name: "${{ steps.metadata.outputs.artifact_name }}"}
     steps:
+      - id: phase-start
+        name: Record finalize start
+        run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with: {path: reviewer, persist-credentials: false}
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
@@ -514,18 +584,6 @@ jobs:
         with: {name: "${{ needs.validate-suggestions.outputs.artifact_name }}", path: final/suggestions}
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: final/input}
-      - id: metadata
-        env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}", PYTHONPATH: reviewer/scripts}
-        run: |
-          artifact="fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}"
-          echo "artifact_name=${artifact}" >> "$GITHUB_OUTPUT"
-          python3 -B reviewer/scripts/live_ai_pr_review.py render \
-            --panel final/ai-evidence/ai-review-panel.json \
-            --deterministic final/deterministic/runtime-deterministic.json \
-            --suggestion-validation final/suggestions/suggestion-validation.json --phase complete \
-            --expected-head "$EXPECTED_HEAD" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --artifact-name "$artifact" --summary final/summary.md --summary-payload final/summary.json \
-            --inline-dir final/inline --metadata final/metadata.json
       - name: Publish neutral exact-head check
         env:
           GH_TOKEN: ${{ github.token }}
@@ -536,6 +594,31 @@ jobs:
           jq -n --arg head "$EXPECTED_HEAD" --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             '{name:"FC live AI advisory review",head_sha:$head,status:"completed",conclusion:"neutral",details_url:$url,output:{title:"Live AI advisory review finalized",summary:"Fresh model evidence and deterministic checks are attached. This is advisory only and has no acceptance effect."}}' > check.json
           gh api --method POST "repos/${OWNER}/${REPOSITORY}/check-runs" --input check.json
+      - id: metadata
+        env:
+          PULL_REQUEST: "${{ inputs.pull_request }}"
+          EXPECTED_HEAD: "${{ inputs.expected_head }}"
+          PYTHONPATH: reviewer/scripts
+          STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
+        run: |
+          artifact="fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}"
+          echo "artifact_name=${artifact}" >> "$GITHUB_OUTPUT"
+          python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+            --phase finalize --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
+            --finished-at-epoch-ms "$(date +%s%3N)" --output final/phase-finalize.json
+          python3 -B reviewer/scripts/live_ai_pr_review.py aggregate-cost-ledger \
+            --panel final/ai-evidence/ai-review-panel.json \
+            --prepare-timing final/input/phase-prepare.json \
+            --deterministic-timing final/deterministic/phase-deterministic.json \
+            --finalize-timing final/phase-finalize.json --output final/cost-ledger.json
+          python3 -B reviewer/scripts/live_ai_pr_review.py render \
+            --panel final/ai-evidence/ai-review-panel.json \
+            --deterministic final/deterministic/runtime-deterministic.json \
+            --suggestion-validation final/suggestions/suggestion-validation.json \
+            --cost-ledger final/cost-ledger.json --phase complete \
+            --expected-head "$EXPECTED_HEAD" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --artifact-name "$artifact" --summary final/summary.md --summary-payload final/summary.json \
+            --inline-dir final/inline --metadata final/metadata.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with: {name: "${{ steps.metadata.outputs.artifact_name }}", path: final/, retention-days: 14}
 

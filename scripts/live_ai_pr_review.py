@@ -24,7 +24,9 @@ PANEL_VERSION = "formal-conjectures.live-ai-review-panel.v1"
 SUGGESTION_VERSION = "formal-conjectures.live-ai-suggestion-validation.v1"
 OID = re.compile(r"^[0-9a-f]{40}$")
 SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
-ROLES = ("source_fidelity", "lean_semantics", "adversarial_edge_cases")
+PRIMARY_ROLE = "primary_review"
+ESCALATION_ROLE = "escalation_review"
+ROLES = (PRIMARY_ROLE, ESCALATION_ROLE)
 NONCLAIMS = ["maintainer_disposition", "mathematical_truth", "merge_decision"]
 SUMMARY_MARKER = "<!-- formal-conjectures:live-ai-review:v1 -->"
 INLINE_PREFIX = "formal-conjectures:live-ai-inline:v1:"
@@ -211,13 +213,19 @@ def validate_role(value: dict[str, Any], expected_role: str, input_root: str) ->
         raise AuditError("model role outcome is unsupported")
     if value["severity"] not in {"none", "nit", "meaning"}:
         raise AuditError("model role severity is unsupported")
-    if (value["outcome"] == "fail") != (value["severity"] != "none"):
-        raise AuditError("model role outcome and severity disagree")
     if not isinstance(value["findings"], list) or not value["findings"]:
         raise AuditError("model role must return bounded structured findings")
     if len(value["findings"]) > 8:
         raise AuditError("model role returned more than eight findings")
     value["findings"] = [validate_finding(item, expected_role, index) for index, item in enumerate(value["findings"])]
+    finding_severities = {item["severity"] for item in value["findings"]}
+    expected_severity = "meaning" if "meaning" in finding_severities else "nit" if "nit" in finding_severities else "none"
+    if value["severity"] != expected_severity:
+        raise AuditError("model review severity does not match its findings")
+    if value["outcome"] == "fail" and value["severity"] == "none":
+        raise AuditError("failed model review must contain a nit or meaning finding")
+    if value["outcome"] != "fail" and value["severity"] != "none":
+        raise AuditError("pass or inconclusive model review cannot contain a non-none finding")
     if not isinstance(value["limitations"], list) or not value["limitations"]:
         raise AuditError("model role limitations must be nonempty")
     return value
@@ -233,7 +241,63 @@ def disposition(roles: dict[str, dict[str, Any]]) -> tuple[str, list[str]]:
         return "nits_found", sorted(nits)
     if inconclusive:
         return "inconclusive", sorted(inconclusive)
-    return "inconclusive", sorted(roles)
+    return "no_findings", sorted(roles)
+
+
+def validated_manifest(path: Path) -> dict[str, Any]:
+    manifest = load(path)
+    if manifest.get("schema_version") != INPUT_VERSION or SHA.fullmatch(str(manifest.get("root"))) is None:
+        raise AuditError("input manifest is unsupported")
+    unrooted = {key: value for key, value in manifest.items() if key != "root"}
+    if content_root(unrooted) != manifest["root"]:
+        raise AuditError("input manifest root mismatch")
+    return manifest
+
+
+def model_output(role: str, input_root: str, *, required: bool) -> tuple[dict[str, Any], str] | None:
+    env_name = f"FC_AI_{role.upper()}_OUTPUT"
+    raw = os.environ.get(env_name)
+    if raw is None or not raw.strip():
+        if required:
+            raise AuditError(f"actual model output is missing for {role}; stored role evidence is not a fallback")
+        return None
+    value = obj(parse_json_bytes(raw.encode(), label=env_name), env_name)
+    validated = validate_role(value, role, input_root)
+    session_name = f"FC_AI_{role.upper()}_SESSION_ID"
+    session_id = os.environ.get(session_name)
+    if session_id is None or not session_id.strip():
+        raise AuditError(f"actual Claude session receipt is missing for {role}")
+    return validated, string(session_id, session_name, 200)
+
+
+def inspect_primary(args: argparse.Namespace) -> None:
+    manifest = validated_manifest(Path(args.input_manifest))
+    try:
+        result = model_output(PRIMARY_ROLE, manifest["root"], required=True)
+        assert result is not None
+        review, session_id = result
+        status = "valid"
+        escalation_required = review["outcome"] == "inconclusive"
+        reason = "primary_inconclusive" if escalation_required else "not_required"
+        receipt = {"session_id": session_id, "structured_output_root": content_root(review)}
+    except (AuditError, UnicodeError, ValueError, KeyError, TypeError) as error:
+        status = "error"
+        escalation_required = True
+        reason = "primary_validation_error"
+        receipt = None
+        error_text = str(error)[:500]
+    value = {
+        "schema_version": "formal-conjectures.live-ai-primary-inspection.v1",
+        "input_root": manifest["root"],
+        "status": status,
+        "escalation_required": escalation_required,
+        "reason": reason,
+        "receipt": receipt,
+        "nonclaims": NONCLAIMS,
+    }
+    if status == "error":
+        value["error"] = error_text
+    write_canonical(Path(args.output), value)
 
 
 def validate_panel(args: argparse.Namespace) -> None:
@@ -246,32 +310,31 @@ def validate_panel(args: argparse.Namespace) -> None:
     if not args.github_run_id.isdigit() or not args.github_run_attempt.isdigit():
         raise AuditError("GitHub execution receipt is malformed")
     string(args.model, "model", 100)
-    manifest = load(Path(args.input_manifest))
-    if manifest.get("schema_version") != INPUT_VERSION or SHA.fullmatch(str(manifest.get("root"))) is None:
-        raise AuditError("input manifest is unsupported")
-    unrooted = {key: value for key, value in manifest.items() if key != "root"}
-    if content_root(unrooted) != manifest["root"]:
-        raise AuditError("input manifest root mismatch")
+    if args.escalation_trigger not in {"none", "ambiguity", "validation_error", "manual"}:
+        raise AuditError("escalation trigger is unsupported")
+    manifest = validated_manifest(Path(args.input_manifest))
     roles: dict[str, dict[str, Any]] = {}
     receipts: dict[str, dict[str, Any]] = {}
+    role_errors: dict[str, str] = {}
     raw_outputs = Path(args.output_dir) / "raw-model-outputs"
     raw_outputs.mkdir(parents=True, exist_ok=True)
     for role in ROLES:
-        env_name = f"FC_AI_{role.upper()}_OUTPUT"
-        raw = os.environ.get(env_name)
-        if raw is None or not raw.strip():
-            raise AuditError(f"actual model output is missing for {role}; stored role evidence is not a fallback")
-        value = obj(parse_json_bytes(raw.encode(), label=env_name), env_name)
-        roles[role] = validate_role(value, role, manifest["root"])
-        session_name = f"FC_AI_{role.upper()}_SESSION_ID"
-        session_id = os.environ.get(session_name)
-        if session_id is None or not session_id.strip():
-            raise AuditError(f"actual Claude session receipt is missing for {role}")
-        receipts[role] = {
-            "session_id": string(session_id, session_name, 200),
-            "structured_output_root": content_root(roles[role]),
-        }
+        try:
+            result = model_output(role, manifest["root"], required=role == PRIMARY_ROLE)
+        except (AuditError, UnicodeError, ValueError, KeyError, TypeError) as error:
+            role_errors[role] = str(error)[:500]
+            continue
+        if result is None:
+            continue
+        roles[role], session_id = result
+        receipts[role] = {"session_id": session_id, "structured_output_root": content_root(roles[role])}
         write_canonical(raw_outputs / f"{role}.json", roles[role])
+    if PRIMARY_ROLE not in roles and ESCALATION_ROLE not in roles:
+        raise AuditError("no valid model review receipt is available; review remains fail-closed")
+    if PRIMARY_ROLE not in roles and args.escalation_trigger != "validation_error":
+        raise AuditError("invalid primary review may only be replaced by a validation-error escalation")
+    if ESCALATION_ROLE in roles and args.escalation_trigger == "none":
+        raise AuditError("escalation review lacks an allowed trigger")
     advisory, basis = disposition(roles)
     findings = [
         {"role": role, **finding}
@@ -288,8 +351,9 @@ def validate_panel(args: argparse.Namespace) -> None:
             "provider": "anthropic", "runner": "claude-code-action", "action_commit": args.action_commit,
             "model": args.model, "effort": args.effort,
             "max_budget_usd_per_role": args.max_budget_usd_per_role, "role_receipts": receipts,
+            "role_errors": role_errors, "escalation_trigger": args.escalation_trigger,
             "github_run_id": args.github_run_id, "github_run_attempt": args.github_run_attempt,
-            "prompt_roots": {role: digest(Path(args.input_manifest).parent / f"prompt-{role}.md") for role in ROLES},
+            "prompt_roots": {role: digest(Path(args.input_manifest).parent / f"prompt-{role}.md") for role in roles},
             "output_schema_root": digest(Path(args.input_manifest).parent / "role-output.schema.json"),
         },
         "roles": roles,
@@ -429,8 +493,10 @@ def aggregate_suggestions(args: argparse.Namespace) -> None:
 def capture_deterministic(args: argparse.Namespace) -> None:
     config = validated_config(Path(args.config))
     statuses = {
-        "lean_build": "pass" if args.build_exit == 0 else "error" if args.build_exit in {124, 126, 127} else "fail",
+        "lean_build": "pass" if args.lean_exit == 0 else "error" if args.lean_exit in {124, 126, 127} else "fail",
         "diff_check": "pass" if args.diff_exit == 0 else "error" if args.diff_exit in {124, 126, 127} else "fail",
+        "style_lint": "pass" if args.style_exit == 0 else "error" if args.style_exit in {124, 126, 127} else "fail",
+        "import_policy": "pass" if args.import_exit == 0 else "error" if args.import_exit in {124, 126, 127} else "fail",
     }
     outcome = "error" if "error" in statuses.values() else "fail" if "fail" in statuses.values() else "pass"
     write_canonical(Path(args.output), {
@@ -441,10 +507,31 @@ def capture_deterministic(args: argparse.Namespace) -> None:
         "build_target": args.build_target,
         "outcome": outcome,
         "checks": statuses,
-        "exit_codes": {"lean_build": args.build_exit, "diff_check": args.diff_exit},
-        "limitations": ["Build and diff checks do not establish source fidelity or mathematical truth."],
+        "exit_codes": {
+            "lean_build": args.lean_exit, "diff_check": args.diff_exit,
+            "style_lint": args.style_exit, "import_policy": args.import_exit,
+        },
+        "limitations": ["Lean, diff, style, and import gates do not establish source fidelity or mathematical truth."],
         "nonclaims": NONCLAIMS,
     })
+
+
+def check_imports(args: argparse.Namespace) -> None:
+    config = validated_config(Path(args.config))
+    source = safe_relative(Path(args.source_root).resolve(), config["scope"]["path"], "scope.path")
+    imports = [
+        match.group(1) for line in source.read_text(encoding="utf-8").splitlines()
+        if (match := re.fullmatch(r"import\s+([^\s]+)\s*", line)) is not None
+    ]
+    expected = ["FormalConjecturesUtil"]
+    outcome = "pass" if imports == expected else "fail"
+    write_canonical(Path(args.output), {
+        "schema_version": "formal-conjectures.live-ai-import-policy.v1",
+        "path": config["scope"]["path"], "imports": imports, "expected": expected,
+        "outcome": outcome, "nonclaims": NONCLAIMS,
+    })
+    if outcome != "pass":
+        raise AuditError("problem module import policy failed")
 
 
 def markdown_text(value: Any, limit: int = 500) -> str:
@@ -566,6 +653,10 @@ def parser() -> argparse.ArgumentParser:
         "github-run-id", "github-run-attempt",
     ):
         p.add_argument(f"--{name}", required=True)
+    p.add_argument("--escalation-trigger", default="none")
+    p = sub.add_parser("inspect-primary")
+    for name in ("input-manifest", "output"):
+        p.add_argument(f"--{name}", required=True)
     p = sub.add_parser("validate-suggestion")
     for name in ("panel", "source-root", "output"):
         p.add_argument(f"--{name}", required=True)
@@ -583,8 +674,11 @@ def parser() -> argparse.ArgumentParser:
     p = sub.add_parser("capture-deterministic")
     for name in ("config", "build-target", "output"):
         p.add_argument(f"--{name}", required=True)
-    p.add_argument("--build-exit", type=int, required=True)
-    p.add_argument("--diff-exit", type=int, required=True)
+    for name in ("lean-exit", "diff-exit", "style-exit", "import-exit"):
+        p.add_argument(f"--{name}", type=int, required=True)
+    p = sub.add_parser("check-imports")
+    for name in ("config", "source-root", "output"):
+        p.add_argument(f"--{name}", required=True)
     p = sub.add_parser("render")
     for name in ("panel", "expected-head", "run-url", "artifact-name", "summary", "summary-payload", "inline-dir", "metadata"):
         p.add_argument(f"--{name}", required=True)
@@ -603,9 +697,11 @@ def parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = parser().parse_args()
     try:
-        {"prepare": prepare, "validate-panel": validate_panel, "validate-suggestion": validate_suggestion,
+        {"prepare": prepare, "inspect-primary": inspect_primary, "validate-panel": validate_panel,
+         "validate-suggestion": validate_suggestion,
          "apply-suggestion": apply_suggestion, "record-suggestion": record_suggestion,
          "aggregate-suggestions": aggregate_suggestions, "capture-deterministic": capture_deterministic,
+         "check-imports": check_imports,
          "render": render, "select-summary": select_summary, "select-inline": select_inline}[args.command](args)
     except (AuditError, OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
         print(f"live-ai-review: {error}", file=sys.stderr)

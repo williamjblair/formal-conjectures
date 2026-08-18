@@ -1,0 +1,23 @@
+{
+  "schema_version": "formal-conjectures.live-ai-review-role-result.v1",
+  "role": "primary_review",
+  "authority": "advisory_model_review_only",
+  "independent": true,
+  "exact_input_root": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "outcome": "pass",
+  "severity": "none",
+  "findings": [
+    {
+      "id": "no-localized-finding",
+      "summary": "No localized source-fidelity defect identified.",
+      "explanation": "The fixed source-fidelity and Lean-semantic checklist found no localized defect in this synthetic test receipt.",
+      "severity": "none",
+      "path": null,
+      "line": null,
+      "witnesses": ["Synthetic validator fixture only."],
+      "suggestion": null
+    }
+  ],
+  "limitations": ["This synthetic fixture is not evidence about a pull request."],
+  "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"]
+}

@@ -16,6 +16,7 @@ FIXTURE = REPO / "audit" / "pr-audit-v1" / "fixtures" / "fork-dogfood-erdos-430-
 CONFIG = FIXTURE / "live-ai-review-config.json"
 PROMPT = REPO / ".agents" / "prompts" / "live-ai-review-role.md"
 SCHEMA = REPO / ".agents" / "schemas" / "live-ai-review-role-output.schema.json"
+PRIMARY_FIXTURE = REPO / "audit" / "pr-audit-v1" / "fixtures" / "live-ai-contract" / "primary-pass.json"
 HEAD = "84804da2e04a307be223f7dc067704619ca759c1"
 SUMMARY = "<!-- formal-conjectures:live-ai-review:v1 -->"
 
@@ -83,6 +84,8 @@ class LiveAIReviewTest(unittest.TestCase):
                 "outcome", "severity", "findings", "limitations", "nonclaims",
             ],
         )
+        from jsonschema import Draft202012Validator
+        Draft202012Validator(schema).validate(json.loads(PRIMARY_FIXTURE.read_text()))
 
     def panel(self, root: Path, two_suggestions=True):
         _, input_dir = self.prepare(root)
@@ -103,11 +106,12 @@ class LiveAIReviewTest(unittest.TestCase):
             "witnesses": ["The recursion retains zero after termination."], "suggestion": suggestion,
         }
         roles = {
-            role: self.role(role, manifest["root"], [finding] if (role == "lean_semantics" or two_suggestions and role == "adversarial_edge_cases") else None,
-                            "fail" if (role == "lean_semantics" or two_suggestions and role == "adversarial_edge_cases") else "pass",
-                            "meaning" if (role == "lean_semantics" or two_suggestions and role == "adversarial_edge_cases") else "none")
-            for role in ("source_fidelity", "lean_semantics", "adversarial_edge_cases")
+            "primary_review": self.role("primary_review", manifest["root"], [finding], "fail", "meaning"),
         }
+        if two_suggestions:
+            roles["escalation_review"] = self.role(
+                "escalation_review", manifest["root"], [finding], "fail", "meaning",
+            )
         output = root / "panel"
         env = {f"FC_AI_{role.upper()}_OUTPUT": json.dumps(value) for role, value in roles.items()}
         env.update({f"FC_AI_{role.upper()}_SESSION_ID": f"session-{role}" for role in roles})
@@ -115,7 +119,8 @@ class LiveAIReviewTest(unittest.TestCase):
             "validate-panel", "--input-manifest", str(input_dir / "input-manifest.json"), "--output-dir", str(output),
             "--action-commit", "d40ddef4c030e508327d6e35a9c45f3368482c50",
             "--model", "claude-sonnet-5", "--effort", "high", "--max-budget-usd-per-role", "5.00",
-            "--github-run-id", "123", "--github-run-attempt", "1", env=env,
+            "--github-run-id", "123", "--github-run-attempt", "1",
+            "--escalation-trigger", "manual" if two_suggestions else "none", env=env,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         return output / "ai-review-panel.json"
@@ -127,7 +132,7 @@ class LiveAIReviewTest(unittest.TestCase):
             manifest = json.loads((output / "input-manifest.json").read_text())
             self.assertEqual(manifest["repository"]["head_commit_oid"], HEAD)
             self.assertEqual(set(path.name for path in output.glob("prompt-*.md")), {
-                "prompt-source_fidelity.md", "prompt-lean_semantics.md", "prompt-adversarial_edge_cases.md",
+                "prompt-primary_review.md", "prompt-escalation_review.md",
             })
             result = self.execute(
                 "prepare", "--config", str(CONFIG), "--live-pr", str(root / "live.json"),
@@ -138,7 +143,7 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("requires a real AI review", result.stderr)
 
-    def test_validate_panel_requires_three_actual_model_outputs(self):
+    def test_validate_panel_requires_an_actual_primary_model_output(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, input_dir = self.prepare(root)
@@ -149,19 +154,18 @@ class LiveAIReviewTest(unittest.TestCase):
                 "--github-run-id", "123", "--github-run-attempt", "1",
             )
             self.assertEqual(result.returncode, 2)
-            self.assertIn("stored role evidence is not a fallback", result.stderr)
+            self.assertIn("no valid model review receipt", result.stderr)
 
     def test_validate_panel_requires_and_retains_claude_session_receipts(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, input_dir = self.prepare(root)
             manifest = json.loads((input_dir / "input-manifest.json").read_text())
-            roles = ("source_fidelity", "lean_semantics", "adversarial_edge_cases")
-            env = {
-                f"FC_AI_{role.upper()}_OUTPUT": json.dumps(self.role(role, manifest["root"]))
-                for role in roles
-            }
-            env.update({f"FC_AI_{role.upper()}_SESSION_ID": f"session-{role}" for role in roles[:-1]})
+            roles = ("primary_review",)
+            primary = json.loads(PRIMARY_FIXTURE.read_text())
+            primary["exact_input_root"] = manifest["root"]
+            env = {"FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(primary)}
+            env.update({})
             output = root / "panel"
             args = (
                 "validate-panel", "--input-manifest", str(input_dir / "input-manifest.json"),
@@ -171,14 +175,52 @@ class LiveAIReviewTest(unittest.TestCase):
             )
             result = self.execute(*args, env=env)
             self.assertEqual(result.returncode, 2)
-            self.assertIn("Claude session receipt is missing", result.stderr)
-            env["FC_AI_ADVERSARIAL_EDGE_CASES_SESSION_ID"] = "session-adversarial"
+            self.assertIn("no valid model review receipt", result.stderr)
+            env["FC_AI_PRIMARY_REVIEW_SESSION_ID"] = "session-primary"
             result = self.execute(*args, env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
             panel = json.loads((output / "ai-review-panel.json").read_text())
             self.assertEqual(panel["execution"]["provider"], "anthropic")
             self.assertEqual(panel["execution"]["runner"], "claude-code-action")
             self.assertEqual(set(panel["execution"]["role_receipts"]), set(roles))
+
+    def test_primary_classification_error_requests_escalation_and_valid_escalation_recovers(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, input_dir = self.prepare(root)
+            manifest = json.loads((input_dir / "input-manifest.json").read_text())
+            nit = self.role("primary_review", manifest["root"])
+            nit["findings"][0]["severity"] = "nit"
+            env = {
+                "FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(nit),
+                "FC_AI_PRIMARY_REVIEW_SESSION_ID": "session-primary",
+            }
+            inspection = root / "inspection.json"
+            result = self.execute(
+                "inspect-primary", "--input-manifest", str(input_dir / "input-manifest.json"),
+                "--output", str(inspection), env=env,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            inspected = json.loads(inspection.read_text())
+            self.assertEqual(inspected["status"], "error")
+            self.assertTrue(inspected["escalation_required"])
+            escalation = self.role("escalation_review", manifest["root"])
+            env.update({
+                "FC_AI_ESCALATION_REVIEW_OUTPUT": json.dumps(escalation),
+                "FC_AI_ESCALATION_REVIEW_SESSION_ID": "session-escalation",
+            })
+            output = root / "panel"
+            result = self.execute(
+                "validate-panel", "--input-manifest", str(input_dir / "input-manifest.json"),
+                "--output-dir", str(output), "--action-commit", "d40ddef4c030e508327d6e35a9c45f3368482c50",
+                "--model", "claude-sonnet-5", "--effort", "high", "--max-budget-usd-per-role", "5.00",
+                "--github-run-id", "123", "--github-run-attempt", "1",
+                "--escalation-trigger", "validation_error", env=env,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            panel = json.loads((output / "ai-review-panel.json").read_text())
+            self.assertEqual(set(panel["roles"]), {"escalation_review"})
+            self.assertIn("primary_review", panel["execution"]["role_errors"])
 
     def test_multiple_suggestions_are_validated_and_rendered_independently(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -250,6 +292,30 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertEqual(value["validated"], [])
             self.assertEqual(value["suppressed"][0]["outcome"], "fail")
 
+    def test_mechanical_import_and_typed_gate_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.prepare(root)
+            import_result = root / "imports.json"
+            result = self.execute(
+                "check-imports", "--config", str(CONFIG), "--source-root", str(root / "source"),
+                "--output", str(import_result),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(import_result.read_text())["outcome"], "pass")
+            deterministic = root / "deterministic.json"
+            result = self.execute(
+                "capture-deterministic", "--config", str(CONFIG), "--build-target", "Example.Target",
+                "--lean-exit", "0", "--diff-exit", "0", "--style-exit", "1", "--import-exit", "127",
+                "--output", str(deterministic),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            value = json.loads(deterministic.read_text())
+            self.assertEqual(value["checks"], {
+                "diff_check": "pass", "import_policy": "error", "lean_build": "pass", "style_lint": "fail",
+            })
+            self.assertEqual(value["outcome"], "error")
+
     def test_summary_and_inline_selectors_are_app_scoped_and_stale_safe(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -277,25 +343,28 @@ class LiveAIReviewTest(unittest.TestCase):
     def test_workflow_is_generic_pinned_and_separates_model_from_publisher(self):
         workflow = (REPO / ".github" / "workflows" / "live-ai-advisory-pr-review.yml").read_text()
         action = "anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50"
-        self.assertEqual(workflow.count(action), 3)
+        self.assertEqual(workflow.count(action), 2)
         self.assertIn("default: false\n        type: boolean", workflow)
-        self.assertIn("actual model receipts", workflow)
+        self.assertIn("actual primary output", workflow)
         self.assertIn("stored role evidence is not a fallback", (REPO / "scripts" / "live_ai_pr_review.py").read_text())
         self.assertNotIn("clean-room-source-fidelity.json", workflow)
         self.assertNotIn("clean-room-lean-semantics.json", workflow)
         self.assertNotIn("clean-room-adversarial-edge-cases.json", workflow)
         self.assertNotIn("openai/codex-action", workflow)
         self.assertNotIn("FC_REVIEW_OPENAI_API_KEY", workflow)
-        self.assertEqual(workflow.count("secrets.FC_REVIEW_ANTHROPIC_API_KEY"), 4)
-        self.assertEqual(workflow.count('show_full_output: "false"'), 3)
-        self.assertEqual(workflow.count('--tools "Read,Glob,Grep"'), 3)
-        self.assertEqual(workflow.count('--disallowedTools "mcp__*"'), 3)
-        self.assertEqual(workflow.count("--max-turns 20"), 3)
+        self.assertEqual(workflow.count("secrets.FC_REVIEW_ANTHROPIC_API_KEY"), 3)
+        self.assertEqual(workflow.count('show_full_output: "false"'), 2)
+        self.assertEqual(workflow.count('--tools "Read,Glob,Grep"'), 2)
+        self.assertEqual(workflow.count('--disallowedTools "mcp__*"'), 2)
+        self.assertEqual(workflow.count("--max-turns 20"), 2)
         self.assertNotIn("--max-turns 4", workflow)
-        self.assertEqual(workflow.count("structured_output"), 3)
-        self.assertEqual(workflow.count("steps.claude.outputs.session_id"), 3)
-        self.assertEqual(workflow.count("_SESSION_ID:"), 3)
-        for job in ("ai-source-fidelity", "ai-lean-semantics", "ai-adversarial"):
+        self.assertEqual(workflow.count("structured_output"), 2)
+        self.assertEqual(workflow.count("steps.claude.outputs.session_id"), 2)
+        self.assertIn("escalation_mode", workflow)
+        self.assertIn("needs.inspect-primary.outputs.escalation_required", workflow)
+        self.assertIn("check-imports", workflow)
+        self.assertEqual(workflow.count("checks: write"), 1)
+        for job in ("ai-primary", "ai-escalation"):
             block = workflow.split(f"  {job}:", 1)[1].split("\n\n  ", 1)[0]
             self.assertNotIn("FC_REVIEW_APP_PRIVATE_KEY", block)
             self.assertNotIn("pull-requests: write", block)

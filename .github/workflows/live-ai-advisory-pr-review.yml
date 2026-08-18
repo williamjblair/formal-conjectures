@@ -34,10 +34,16 @@ on:
         default: FormalConjectures.ErdosProblems.«430»
         type: string
       run_ai_review:
-        description: Invoke three fresh Claude roles; false is a credential-free deterministic pilot
+        description: Invoke one fresh primary Claude review; false is a credential-free deterministic pilot
         required: true
         default: false
         type: boolean
+      escalation_mode:
+        description: Auto-escalate ambiguity/invalid output, force a manual escalation, or disable escalation
+        required: true
+        default: auto
+        type: choice
+        options: [auto, force, "off"]
       publish_comment:
         description: Upsert the App summary and independently validated inline findings
         required: true
@@ -56,14 +62,13 @@ on:
         type: choice
         options: [low, medium, high, xhigh]
       max_budget_usd_per_role:
-        description: Hard Claude API budget cap for each isolated role
+        description: Hard Claude API budget cap for the primary or optional escalation review
         required: true
         default: "5.00"
         type: choice
         options: ["1.00", "2.50", "5.00", "10.00"]
 
 permissions:
-  checks: write
   contents: read
   pull-requests: read
 
@@ -130,7 +135,7 @@ jobs:
           retention-days: 14
 
   deterministic:
-    name: Deterministic Lean and diff lane
+    name: Deterministic Lean, diff, style, and import gates
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -178,15 +183,23 @@ jobs:
           EXPECTED_HEAD: ${{ inputs.expected_head }}
         run: |
           set +e
-          timeout 40m bash -c 'cd review-target && lake exe cache get && lake --wfail build "$BUILD_TARGET"' > deterministic-evidence/lean-build.log 2>&1
-          build_exit=$?
+          (cd review-target && lake exe cache get) > deterministic-evidence/cache.log 2>&1
+          timeout 35m bash -c 'cd review-target && lake --wfail build "$BUILD_TARGET"' > deterministic-evidence/style-lint.log 2>&1
+          style_exit=$?
+          timeout 5m bash -c 'cd review-target && lake build "$BUILD_TARGET"' > deterministic-evidence/lean-build.log 2>&1
+          lean_exit=$?
           base_oid=$(python3 -c 'import json; print(json.load(open("deterministic-evidence/live-pr.json"))["base"]["sha"])')
           git -C review-target diff --check "$base_oid...$EXPECTED_HEAD" > deterministic-evidence/diff-check.log 2>&1
           diff_exit=$?
+          python3 -B reviewer/scripts/live_ai_pr_review.py check-imports \
+            --config "reviewer/${CONFIG}" --source-root review-target \
+            --output deterministic-evidence/import-policy.json > deterministic-evidence/import-policy.log 2>&1
+          import_exit=$?
           set -e
           python3 -B reviewer/scripts/live_ai_pr_review.py capture-deterministic \
             --config "reviewer/${CONFIG}" --build-target "$BUILD_TARGET" \
-            --build-exit "$build_exit" --diff-exit "$diff_exit" \
+            --lean-exit "$lean_exit" --diff-exit "$diff_exit" \
+            --style-exit "$style_exit" --import-exit "$import_exit" \
             --output deterministic-evidence/runtime-deterministic.json
       - id: metadata
         env:
@@ -213,8 +226,8 @@ jobs:
           FC_REVIEW_ANTHROPIC_API_KEY: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
         run: test -n "$FC_REVIEW_ANTHROPIC_API_KEY"
 
-  ai-source-fidelity:
-    name: Isolated Claude source-fidelity role
+  ai-primary:
+    name: Primary clean-room Claude review
     needs: [prepare, ai-preflight]
     if: ${{ inputs.run_ai_review }}
     runs-on: ubuntu-latest
@@ -235,7 +248,7 @@ jobs:
           git config user.email fc-review-input@invalid.example
           git add --all && git commit -q -m 'Bind sanitized review input'
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          cat prompt-source_fidelity.md >> "$GITHUB_OUTPUT"
+          cat prompt-primary_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
@@ -257,53 +270,46 @@ jobs:
             --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
 
-  ai-lean-semantics:
-    name: Isolated Claude Lean-semantics role
-    needs: [prepare, ai-preflight]
+  inspect-primary:
+    name: Validate primary receipt and decide escalation
+    needs: [prepare, ai-primary]
     if: ${{ inputs.run_ai_review }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions: {contents: read}
+    timeout-minutes: 5
     outputs:
-      result: ${{ steps.claude.outputs.structured_output }}
-      session_id: ${{ steps.claude.outputs.session_id }}
+      status: ${{ steps.inspect.outputs.status }}
+      escalation_required: ${{ steps.inspect.outputs.escalation_required }}
+      reason: ${{ steps.inspect.outputs.reason }}
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
-        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
-      - id: contract
-        name: Load trusted prompt and output schema
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: live-ai-input}
+      - id: inspect
+        name: Inspect actual primary output; retain typed validation error
+        env:
+          PYTHONPATH: reviewer/scripts
+          FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
+          FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
         run: |
-          git init -q .
-          git config user.name fc-review-input
-          git config user.email fc-review-input@invalid.example
-          git add --all && git commit -q -m 'Bind sanitized review input'
-          echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          cat prompt-lean_semantics.md >> "$GITHUB_OUTPUT"
-          echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
-      - id: claude
-        uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
+          python3 -B reviewer/scripts/live_ai_pr_review.py inspect-primary \
+            --input-manifest live-ai-input/input-manifest.json --output primary-inspection.json
+          echo "status=$(jq -r .status primary-inspection.json)" >> "$GITHUB_OUTPUT"
+          echo "escalation_required=$(jq -r .escalation_required primary-inspection.json)" >> "$GITHUB_OUTPUT"
+          echo "reason=$(jq -r .reason primary-inspection.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
-          prompt: ${{ steps.contract.outputs.prompt }}
-          display_report: "false"
-          show_full_output: "false"
-          track_progress: "false"
-          use_sticky_comment: "false"
-          include_fix_links: "false"
-          claude_args: >-
-            --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
-            --json-schema '${{ steps.contract.outputs.schema }}'
-            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
-            --permission-mode plan --safe-mode --disable-slash-commands
-            --no-session-persistence --max-turns 20
-            --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
+          name: fc-live-ai-primary-inspection-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: primary-inspection.json
+          retention-days: 14
 
-  ai-adversarial:
-    name: Isolated Claude adversarial role
-    needs: [prepare, ai-preflight]
-    if: ${{ inputs.run_ai_review }}
+  ai-escalation:
+    name: Optional clean-room Claude escalation
+    needs: [prepare, ai-preflight, inspect-primary]
+    if: >-
+      ${{ inputs.run_ai_review &&
+          (inputs.escalation_mode == 'force' ||
+           (inputs.escalation_mode == 'auto' && needs.inspect-primary.outputs.escalation_required == 'true')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions: {contents: read}
@@ -314,14 +320,14 @@ jobs:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
       - id: contract
-        name: Load trusted prompt and output schema
+        name: Load trusted escalation prompt and output schema
         run: |
           git init -q .
           git config user.name fc-review-input
           git config user.email fc-review-input@invalid.example
           git add --all && git commit -q -m 'Bind sanitized review input'
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          cat prompt-adversarial_edge_cases.md >> "$GITHUB_OUTPUT"
+          cat prompt-escalation_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
@@ -344,9 +350,12 @@ jobs:
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
 
   validate-ai:
-    name: Validate and aggregate actual model receipts
-    needs: [prepare, ai-source-fidelity, ai-lean-semantics, ai-adversarial]
-    if: ${{ inputs.run_ai_review }}
+    name: Validate primary and optional escalation receipts
+    needs: [prepare, ai-primary, inspect-primary, ai-escalation]
+    if: >-
+      ${{ always() && inputs.run_ai_review && needs.prepare.result == 'success' &&
+          needs.ai-primary.result == 'success' && needs.inspect-primary.result == 'success' &&
+          (needs.ai-escalation.result == 'success' || needs.ai-escalation.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -359,19 +368,29 @@ jobs:
       - name: Validate exact structured outputs; no stored fallback
         env:
           PYTHONPATH: reviewer/scripts
-          FC_AI_SOURCE_FIDELITY_OUTPUT: ${{ needs.ai-source-fidelity.outputs.result }}
-          FC_AI_SOURCE_FIDELITY_SESSION_ID: ${{ needs.ai-source-fidelity.outputs.session_id }}
-          FC_AI_LEAN_SEMANTICS_OUTPUT: ${{ needs.ai-lean-semantics.outputs.result }}
-          FC_AI_LEAN_SEMANTICS_SESSION_ID: ${{ needs.ai-lean-semantics.outputs.session_id }}
-          FC_AI_ADVERSARIAL_EDGE_CASES_OUTPUT: ${{ needs.ai-adversarial.outputs.result }}
-          FC_AI_ADVERSARIAL_EDGE_CASES_SESSION_ID: ${{ needs.ai-adversarial.outputs.session_id }}
+          FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
+          FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
+          FC_AI_ESCALATION_REVIEW_OUTPUT: ${{ needs.ai-escalation.outputs.result }}
+          FC_AI_ESCALATION_REVIEW_SESSION_ID: ${{ needs.ai-escalation.outputs.session_id }}
+          PRIMARY_STATUS: ${{ needs.inspect-primary.outputs.status }}
+          PRIMARY_REASON: ${{ needs.inspect-primary.outputs.reason }}
+          ESCALATION_MODE: ${{ inputs.escalation_mode }}
           MODEL: ${{ inputs.model }}
           EFFORT: ${{ inputs.effort }}
         run: |
+          escalation_trigger=none
+          if [[ "$ESCALATION_MODE" == force ]]; then
+            escalation_trigger=manual
+          elif [[ "$PRIMARY_STATUS" == error ]]; then
+            escalation_trigger=validation_error
+          elif [[ "$PRIMARY_REASON" == primary_inconclusive ]]; then
+            escalation_trigger=ambiguity
+          fi
           python3 -B reviewer/scripts/live_ai_pr_review.py validate-panel \
             --input-manifest live-ai-input/input-manifest.json --output-dir ai-evidence \
             --action-commit d40ddef4c030e508327d6e35a9c45f3368482c50 \
             --model "$MODEL" --effort "$EFFORT" \
+            --escalation-trigger "$escalation_trigger" \
             --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
             --github-run-id "${{ github.run_id }}" --github-run-attempt "${{ github.run_attempt }}"
       - id: metadata
@@ -480,6 +499,9 @@ jobs:
     name: Final structured artifact and neutral check
     needs: [prepare, validate-ai, deterministic, validate-suggestions]
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
     outputs: {artifact_name: "${{ steps.metadata.outputs.artifact_name }}"}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

@@ -152,7 +152,8 @@ jobs:
           python3 -B reviewer/scripts/run_external_pr_review.py \
             --request "reviewer/${REVIEW_REQUEST}" \
             --observed-head "$REVIEW_EXPECTED_HEAD" \
-            --output-dir action-output
+            --output-dir action-output \
+            --runtime-deterministic action-evidence/runtime-deterministic-verification.json
 
       - name: Publish a neutral PR-visible advisory check
         if: always()

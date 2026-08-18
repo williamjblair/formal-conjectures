@@ -96,6 +96,35 @@ class ExternalPrReviewEntrypointTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("publication must remain local_draft_only", result.stderr)
 
+    def test_fresh_runtime_replay_is_projected_without_rerooting_core(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "out"
+            runtime = Path(temporary) / "runtime.json"
+            retained = parse_json_bytes(
+                (FIXTURE / "inputs" / "clean-room-deterministic-verification.json").read_bytes()
+            )
+            retained["outcome"] = "pass"
+            retained["severity"] = "none"
+            retained["findings"] = [
+                "lake --wfail build FormalConjectures.ErdosProblems.«430»: pass (exit 0).",
+                "git diff --check at the pinned base and head: pass (exit 0).",
+            ]
+            write_canonical(runtime, retained)
+            result = subprocess.run([
+                sys.executable, "-B", str(SCRIPT),
+                "--request", str(FIXTURE / "review-request.json"),
+                "--observed-head", HEAD,
+                "--output-dir", str(output),
+                "--runtime-deterministic", str(runtime),
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            core = parse_json_bytes((output / "audit-core.json").read_bytes())
+            self.assertEqual(core["root"], parse_json_bytes((FIXTURE / "expected-core.json").read_bytes())["root"])
+            report = (output / "ReviewReport.md").read_text()
+            self.assertIn("Current workflow replay", report)
+            self.assertIn("Fresh deterministic outcome at the pinned head: **pass**", report)
+            self.assertIn("does not rewrite the retained core", report)
+
 
 if __name__ == "__main__":
     unittest.main()

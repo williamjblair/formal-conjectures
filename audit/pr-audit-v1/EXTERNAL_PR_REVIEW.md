@@ -62,6 +62,8 @@ The workflow at `.github/workflows/advisory-external-pr-review.yml` has `content
 
 The deterministic job records the targeted Lean build and `git diff --check` as typed `pass`, `fail`, or `error`. Exit `126` or `127` is an invocation error, not a formalization failure. Logs and the workflow binding are retained separately from the advisory core.
 
+The clean-room core stays immutable. A fresh workflow replay is retained as a separate canonical deterministic role result and projected into the human report and comment draft under **Current workflow replay**. A new runtime result therefore cannot silently reroot or reclassify the clean-room core.
+
 The uploaded artifact is named `advisory-external-pr-<number>-<head>` and contains:
 
 - `action-evidence/live-pr.json` and `workflow-binding.json`;

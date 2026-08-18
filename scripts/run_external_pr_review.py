@@ -169,7 +169,31 @@ def render_comment(core: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def finalize(request_path: Path, observed_head: str, output_dir: Path) -> dict[str, Path]:
+def render_runtime_replay(value: dict[str, Any]) -> str:
+    lines = [
+        "",
+        "## Current workflow replay",
+        "",
+        f"Fresh deterministic outcome at the pinned head: **{_safe(value['outcome'])}**.",
+        "",
+    ]
+    for finding in value["findings"]:
+        if isinstance(finding, str):
+            lines.append(f"- {_safe(finding)}")
+    lines.extend([
+        "",
+        "This producer evidence is a fresh workflow observation. It does not rewrite the retained core or establish source fidelity, mathematical truth, acceptance, or maintainer disposition.",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def finalize(
+    request_path: Path,
+    observed_head: str,
+    output_dir: Path,
+    runtime_deterministic_path: Path | None = None,
+) -> dict[str, Path]:
     if OID_RE.fullmatch(observed_head) is None:
         raise AuditError("--observed-head must be a 40-character lowercase Git OID")
     request, _ = _load(request_path, canonical=False)
@@ -215,6 +239,11 @@ def finalize(request_path: Path, observed_head: str, output_dir: Path) -> dict[s
         _validate_role(role_value, role, source_root)
         role_artifacts[role] = (_string(binding["artifact_id"], "role artifact id"), sha256_digest(role_raw))
 
+    runtime_replay: dict[str, Any] | None = None
+    if runtime_deterministic_path is not None:
+        runtime_replay, _ = _load(runtime_deterministic_path, canonical=True)
+        _validate_role(runtime_replay, "deterministic_verification", source_root)
+
     core_input = _path(root, request["core_input"], "review request.core_input")
     core = generate_core(core_input)
     core_repository = core["repository"]
@@ -258,8 +287,15 @@ def finalize(request_path: Path, observed_head: str, output_dir: Path) -> dict[s
         for key, value in outputs.items()
     }
     write_canonical(destinations["core"], core, sidecar=True)
-    destinations["review_report"].write_text(render_markdown(core), encoding="utf-8")
-    destinations["pr_comment"].write_text(render_comment(core), encoding="utf-8")
+    runtime_projection = "" if runtime_replay is None else render_runtime_replay(runtime_replay)
+    destinations["review_report"].write_text(
+        render_markdown(core) + runtime_projection,
+        encoding="utf-8",
+    )
+    destinations["pr_comment"].write_text(
+        render_comment(core) + runtime_projection,
+        encoding="utf-8",
+    )
     return destinations
 
 
@@ -268,13 +304,22 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--request", required=True, help="pinned external review request JSON")
     result.add_argument("--observed-head", required=True, help="freshly observed PR head Git OID")
     result.add_argument("--output-dir", required=True, help="local output directory")
+    result.add_argument(
+        "--runtime-deterministic",
+        help="optional canonical fresh deterministic role result to project without rerooting the core",
+    )
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
-        destinations = finalize(Path(args.request), args.observed_head, Path(args.output_dir))
+        destinations = finalize(
+            Path(args.request),
+            args.observed_head,
+            Path(args.output_dir),
+            None if args.runtime_deterministic is None else Path(args.runtime_deterministic),
+        )
     except StaleReviewError as error:
         print(f"external-pr-review: {error}", file=sys.stderr)
         return 3

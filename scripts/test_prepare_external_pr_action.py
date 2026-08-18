@@ -118,20 +118,35 @@ class ExternalPrActionTest(unittest.TestCase):
             self.assertEqual(retained.read_bytes(), before)
             self.assertEqual(parse_json_bytes(runtime.read_bytes())["outcome"], "pass")
 
-    def test_workflow_has_no_publication_path_or_write_permission(self):
+    def test_workflow_uses_separate_opt_in_app_publication_job(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
+        workflow_token_permissions = workflow.split("permissions:", 1)[1].split("concurrency:", 1)[0]
         self.assertIn("workflow_dispatch:", workflow)
-        self.assertIn("pull-requests: read", workflow)
-        self.assertIn("checks: write", workflow)
-        self.assertNotIn("pull-requests: write", workflow)
-        self.assertNotIn("issues: write", workflow)
+        self.assertIn("pull-requests: read", workflow_token_permissions)
+        self.assertIn("checks: write", workflow_token_permissions)
+        self.assertNotIn("pull-requests: write", workflow_token_permissions)
+        self.assertNotIn("issues: write", workflow_token_permissions)
         self.assertNotIn("gh pr comment", workflow)
         self.assertNotIn("pull_request_target:", workflow)
+        self.assertIn("publish_comment:", workflow)
+        self.assertIn("default: false", workflow)
         self.assertIn("prepare_external_pr_action.py bind", workflow)
         self.assertIn("run_external_pr_review.py", workflow)
+        self.assertIn("prepare_external_pr_comment.py render", workflow)
+        self.assertIn("prepare_external_pr_comment.py verify-head", workflow)
+        self.assertIn("prepare_external_pr_comment.py select", workflow)
         self.assertIn("FC advisory review", workflow)
         self.assertIn("check-runs", workflow)
         self.assertIn("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", workflow)
+        self.assertIn("actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53", workflow)
+        self.assertIn("actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349", workflow)
+        self.assertIn("app-id: ${{ vars.FC_REVIEW_APP_ID }}", workflow)
+        self.assertIn("private-key: ${{ secrets.FC_REVIEW_APP_PRIVATE_KEY }}", workflow)
+        self.assertIn("permission-pull-requests: write", workflow)
+        self.assertIn("needs: review", workflow)
+        self.assertIn("steps.app-token.outputs.app-slug", workflow)
+        self.assertIn("issues/${REVIEW_PULL_REQUEST}/comments", workflow)
+        self.assertIn("issues/comments/${REVIEW_COMMENT_ID}", workflow)
 
 
 if __name__ == "__main__":

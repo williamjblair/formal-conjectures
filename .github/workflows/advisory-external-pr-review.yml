@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Advisory external PR review (dry run)
+name: Advisory external PR review
 run-name: >-
   Advisory review of ${{ inputs.owner }}/${{ inputs.repository }}#${{ inputs.pull_request }}
   at ${{ inputs.expected_head }}
@@ -46,6 +46,11 @@ on:
         required: true
         default: FormalConjectures.ErdosProblems.«430»
         type: string
+      publish_comment:
+        description: Post or update the single App-authored advisory comment after a successful review
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   checks: write
@@ -61,6 +66,8 @@ jobs:
     name: Bind, verify, and render advisory artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      artifact_name: ${{ steps.review-metadata.outputs.artifact_name }}
     steps:
       - name: Check out trusted review implementation
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -155,6 +162,24 @@ jobs:
             --output-dir action-output \
             --runtime-deterministic action-evidence/runtime-deterministic-verification.json
 
+      - name: Render the stable advisory comment projection
+        id: review-metadata
+        env:
+          PYTHONPATH: reviewer/scripts
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+          REVIEW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          artifact_name="advisory-external-pr-${REVIEW_PULL_REQUEST}-${REVIEW_EXPECTED_HEAD}"
+          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py render \
+            --draft action-output/pr-comment-draft.md \
+            --output action-output/pr-comment-ready.md \
+            --payload-output action-output/pr-comment-request.json \
+            --expected-head "$REVIEW_EXPECTED_HEAD" \
+            --run-url "$REVIEW_RUN_URL" \
+            --artifact-name "$artifact_name"
+
       - name: Publish a neutral PR-visible advisory check
         if: always()
         env:
@@ -172,9 +197,10 @@ jobs:
           status = os.environ["REVIEW_JOB_STATUS"]
           title = "Advisory artifacts ready" if status == "success" else "Advisory workflow needs inspection"
           summary = (
-              f"Artifact-only FC advisory review finished with workflow status {status}. "
+              f"FC advisory review artifacts finished with workflow status {status}. "
               "This neutral check is not maintainer disposition, acceptance, a merge decision, "
-              "or a claim of mathematical truth. No PR comment was posted."
+              "or a claim of mathematical truth. Comment publication, when explicitly requested, "
+              "uses a separate GitHub App job."
           )
           print(json.dumps({
               "name": "FC advisory review",
@@ -193,6 +219,7 @@ jobs:
             > action-evidence/check-run-response.json
 
       - name: Upload advisory evidence and drafts
+        id: review-artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -205,6 +232,114 @@ jobs:
 
       - name: State the authority boundary
         if: always()
+        env:
+          REVIEW_PUBLISH_COMMENT: ${{ inputs.publish_comment }}
         run: |
-          echo 'This dry run creates artifacts only.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'It does not post a comment, approve, merge, or establish maintainer disposition or mathematical truth.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The structured report and Markdown projections are advisory only.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'They do not approve, merge, or establish maintainer disposition or mathematical truth.' >> "$GITHUB_STEP_SUMMARY"
+          echo "App comment publication requested: ${REVIEW_PUBLISH_COMMENT}." >> "$GITHUB_STEP_SUMMARY"
+
+  publish-comment:
+    name: Publish one App-authored advisory comment
+    needs: review
+    if: ${{ needs.review.result == 'success' && inputs.publish_comment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted publication implementation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: reviewer
+          persist-credentials: false
+
+      - name: Download the completed advisory artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.review.outputs.artifact_name }}
+          path: review-artifact
+
+      - name: Mint a short-lived FC Review Pilot installation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.FC_REVIEW_APP_ID }}
+          private-key: ${{ secrets.FC_REVIEW_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.owner }}
+          repositories: ${{ inputs.repository }}
+          permission-contents: read
+          permission-pull-requests: write
+
+      - name: Recheck the exact head and select the stable App comment
+        id: comment-selection
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PYTHONPATH: reviewer/scripts
+          REVIEW_APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+          REVIEW_EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          mkdir -p publication-evidence
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/pulls/${REVIEW_PULL_REQUEST}" \
+            > publication-evidence/live-pr.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py verify-head \
+            --live-pr publication-evidence/live-pr.json \
+            --owner "$REVIEW_OWNER" \
+            --repository "$REVIEW_REPOSITORY" \
+            --pull-request "$REVIEW_PULL_REQUEST" \
+            --expected-head "$REVIEW_EXPECTED_HEAD" \
+            --output publication-evidence/comment-binding.json
+          gh api --paginate --slurp \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/${REVIEW_PULL_REQUEST}/comments" \
+            > publication-evidence/comments.json
+          python3 -B reviewer/scripts/prepare_external_pr_comment.py select \
+            --comments publication-evidence/comments.json \
+            --app-slug "$REVIEW_APP_SLUG" \
+            --output publication-evidence/comment-selection.json
+          action=$(python3 -c 'import json; print(json.load(open("publication-evidence/comment-selection.json"))["action"])')
+          comment_id=$(python3 -c 'import json; value=json.load(open("publication-evidence/comment-selection.json"))["comment_id"]; print(value or "")')
+          echo "action=${action}" >> "$GITHUB_OUTPUT"
+          echo "comment_id=${comment_id}" >> "$GITHUB_OUTPUT"
+
+      - name: Create the advisory comment
+        if: ${{ steps.comment-selection.outputs.action == 'create' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/${REVIEW_PULL_REQUEST}/comments" \
+            --input review-artifact/action-output/pr-comment-request.json \
+            > publication-evidence/comment-response.json
+
+      - name: Update the advisory comment
+        if: ${{ steps.comment-selection.outputs.action == 'update' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REVIEW_OWNER: ${{ inputs.owner }}
+          REVIEW_REPOSITORY: ${{ inputs.repository }}
+          REVIEW_COMMENT_ID: ${{ steps.comment-selection.outputs.comment_id }}
+        run: |
+          gh api --method PATCH \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${REVIEW_OWNER}/${REVIEW_REPOSITORY}/issues/comments/${REVIEW_COMMENT_ID}" \
+            --input review-artifact/action-output/pr-comment-request.json \
+            > publication-evidence/comment-response.json
+
+      - name: State the publication boundary
+        if: always()
+        env:
+          REVIEW_COMMENT_ACTION: ${{ steps.comment-selection.outputs.action }}
+        run: |
+          echo "FC Review Pilot comment action: ${REVIEW_COMMENT_ACTION:-not-run}." >> "$GITHUB_STEP_SUMMARY"
+          echo 'The comment is an advisory projection only. It has no acceptance or maintainer-authority effect.' >> "$GITHUB_STEP_SUMMARY"

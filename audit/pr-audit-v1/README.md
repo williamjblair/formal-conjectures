@@ -49,6 +49,51 @@ it does not add another audit implementation or conclusion.
 
 The library and CLI do not call Git, GitHub, Lean, a model, the network, or a subprocess. Producers run those systems separately. The core manifest retains only exact source/method/configuration identity, exact query and variables, time-free normalized results, typed per-check results, and their roots. Raw host responses, acquisition receipts, request IDs, HTTP metadata, cursors, runner details, timestamps, and preparation events live only in the observation/provenance manifest. Each check input names its core artifact ID; generation rejects both unreferenced evidence artifacts and references whose roots do not match the retained bytes. Generation also refuses absolute paths, traversal, symlinks, missing files, digest mismatches, duplicate identifiers, unknown versions, floats, out-of-range integers, lone surrogates, and duplicate JSON keys.
 
+## Manual GitHub workflow and App publication
+
+`.github/workflows/advisory-external-pr-review.yml` is the GitHub-native
+operator layer around the offline review contract. A manual dispatch supplies
+the base repository owner and name, pull request number, exact expected head,
+retained request path, and Lean build target. It checks out the trusted
+reviewer and the exact PR head separately, refuses a changed head, runs the
+targeted Lean build and `git diff --check`, validates the retained isolated
+role evidence, and uploads the JSON core, `ReviewReport.md`, comment draft,
+ready-to-publish comment, and command evidence. It also creates a neutral
+`FC advisory review` check on the exact PR head. The check and artifacts do not
+approve, merge, or establish maintainer disposition or mathematical truth.
+
+The `publish_comment` input defaults to `false`. With that default, the run is
+artifact-only. When an operator explicitly dispatches with `publish_comment`
+set to `true`, a separate publication job runs only after the secretless review
+job succeeds. The publication job does not check out or execute contributor
+code. It downloads the completed artifact as data, re-reads the PR, refuses a
+changed head, and then creates or updates exactly one comment carrying the
+stable marker `<!-- formal-conjectures:advisory-review:v1 -->`. Selection
+requires both the marker and the App's own `[bot]` login. Multiple matching App
+comments are an error, so a rerun cannot silently add another comment.
+
+Configure these repository-level values before enabling publication:
+
+- Actions variable `FC_REVIEW_APP_ID`: the numeric ID of the installed GitHub
+  App.
+- Actions secret `FC_REVIEW_APP_PRIVATE_KEY`: the complete PEM private key for
+  that App.
+
+The App installation needs only Contents: read and Pull requests: read/write on
+the reviewed repository. Webhooks and OAuth are not used. The workflow passes
+the identifier and private key directly to the commit-pinned official
+`actions/create-github-app-token` action, requests a repository-scoped token
+with Contents: read and Pull requests: write, and lets the action revoke the
+short-lived token at job completion. The private key and token are never put in
+the artifact, report, comment, or workflow summary. Replacing the current App
+installation later does not change review semantics; it changes only these
+account-owned credentials and the public bot identity.
+
+A new PR head invalidates both review and publication. Dispatch again with the
+new exact head and rerun all evidence-producing roles. Publication is a
+Markdown projection of the machine-readable core plus fresh workflow evidence;
+updating that projection has no acceptance effect.
+
 A missing required method/configuration file is a malformed input packet and generation refuses it; it is not silently converted to an `unavailable` check. A producer-level missing tool may be `unavailable` only when the packet retains the exact execution procedure and a real attempted invocation with the requested and resolved command, environment, process-start state, exit status, stdout, and stderr. The Rupert fixture carries both boundaries separately. Its packet-inspection check says the original proof packet lacks an exact Comparator execution identity. Its tool-availability check runs the inert command `comparator --help` under the declared closed `PATH=/usr/bin:/bin`, records that resolution and invocation were attempted, and records `process_started: false`, a null resolved path and exit status, and normalized `executable_not_found` evidence. That is an unavailable tool in that declared environment, not a proof failure or a claim that Comparator is generally unavailable.
 
 Model checks are likewise deferred in v1. The generator rejects `model-*` properties until a profile roots the model/version, provider or local weights, prompt, rubric, exact inputs, request parameters, and raw output. This keeps a copied metadata check from masquerading as a model error or disagreement record.

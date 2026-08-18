@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "problems": [
+    {
+      "category": "research open",
+      "theorem": "Oppermann.oppermann_conjecture.parts.i",
+      "module": "FormalConjectures.Wikipedia.Oppermann"
+    },
+    {
+      "category": "research open",
+      "theorem": "Oppermann.oppermann_conjecture.parts.ii",
+      "module": "FormalConjectures.Wikipedia.Oppermann"
+    },
+    {
+      "category": "research open",
+      "theorem": "Oppermann.oppermann_conjecture",
+      "module": "FormalConjectures.Wikipedia.Oppermann"
+    },
+    {
+      "category": "research open",
+      "theorem": "OeisA103662.conjecture",
+      "module": "FormalConjectures.OEIS.«103662»"
+    },
+    {
+      "category": "research open",
+      "theorem": "OeisA103662.conjecture.variants.a_40",
+      "module": "FormalConjectures.OEIS.«103662»"
+    },
+    {
+      "category": "research open",
+      "theorem": "MathOverflow434111.restricted_prime_number_theorem",
+      "module": "FormalConjectures.Mathoverflow.«434111»"
+    },
+    {
+      "category": "research open",
+      "theorem": "MathOverflow434111.restricted_prime_number_theorem.variants.even_subsequence",
+      "module": "FormalConjectures.Mathoverflow.«434111»"
+    },
+    {
+      "category": "research open",
+      "theorem": "InvariantSubspaceProblem.Invariant_subspace_problem",
+      "module": "FormalConjectures.Wikipedia.InvariantSubspaceProblem"
+    },
+    {
+      "category": "research open",
+      "theorem": "Erdos14.erdos_14.parts.i",
+      "module": "FormalConjectures.ErdosProblems.«14»"
+    },
+    {
+      "category": "research open",
+      "theorem": "Arxiv.«2501.03234».conjecture_1_1",
+      "module": "FormalConjectures.Arxiv.«2501.03234».ArithmeticSumS"
+    },
+    {
+      "category": "research open",
+      "theorem": "VCDimConvex.hasAddVCNDimAtMost_two_one_of_convex_r3",
+      "module": "FormalConjectures.Other.VCDimConvex"
+    },
+    {
+      "category": "research solved",
+      "theorem": "ClaudesCycles.cube_hamiltonian_arc_decomposition",
+      "module": "FormalConjectures.Paper.ClaudesCycles"
+    },
+    {
+      "category": "textbook",
+      "theorem": "Oppermann.oppermann_implies_brocard",
+      "module": "FormalConjectures.Wikipedia.Oppermann"
+    },
+    {
+      "category": "test",
+      "theorem": "OeisA103662.a_0",
+      "module": "FormalConjectures.OEIS.«103662»"
+    }
+  ],
+  "projection": {
+    "fields": [
+      "theorem",
+      "module",
+      "category"
+    ],
+    "format": "extract_names-v2-field-projection",
+    "selection": "reviewed pilot candidates only",
+    "source": "scripts/extract_names.lean"
+  }
+}

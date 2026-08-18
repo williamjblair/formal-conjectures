@@ -1,0 +1,54 @@
+{
+  "authority_effect": "none",
+  "collection_id": "formal-conjectures/research-open-pilot",
+  "history_event_types": [
+    "registered",
+    "renamed",
+    "split",
+    "merged",
+    "superseded"
+  ],
+  "identity_policy": {
+    "family_rule": "A parameterized family keeps its own problem_id. Derived views may relate or group Problems but may not erase an identity.",
+    "immutability": "A problem_id is never reassigned. Rename, split, merge, and supersession are append-only history events.",
+    "namespace": "formal-conjectures:",
+    "owner": "Formal Conjectures source repository"
+  },
+  "inclusion_policy": {
+    "included_categories": [
+      "research open"
+    ],
+    "review_requirement": "Every included declaration and its grouping, question basis, source locator, and rights record is reviewed as one registry change.",
+    "excluded_categories": [
+      "research solved",
+      "textbook",
+      "API",
+      "infrastructure",
+      "test"
+    ]
+  },
+  "nonclaims": [
+    "No verifier output implies Formal Conjectures maintainer acceptance.",
+    "No Problem record creates a Vela Claim, Standing, or protocol object.",
+    "The profile does not assert that a third-party source grants rights beyond the per-item record.",
+    "VibeMathed, TheoremDB, generated Pages, and Vela are not collection authorities.",
+    "AI translations, titles, and status guesses are not canonical Problem text or status.",
+    "Research-open reports the reviewed Formal Conjectures source assertion at the bound revision, not an independent claim that no solution exists."
+  ],
+  "question_policy": "Human-readable questions are exact normalized docstrings of listed research-open declarations; no generated paraphrase is authoritative.",
+  "rights_policy": {
+    "question_text_allowed_licenses": [
+      "CC-BY-4.0",
+      "CC-BY-SA-4.0",
+      "Apache-2.0"
+    ],
+    "question_text_requires_explicit_retention_basis": true,
+    "record_license": "CC-BY-4.0",
+    "software_license": "Apache-2.0",
+    "third_party_bytes_retained": false,
+    "unknown_third_party_rights": "Must be explicit per item; inclusion does not assert permission to retain or redistribute third-party bytes."
+  },
+  "schema_version": 1,
+  "status_policy": "Open status is an explicit reviewed source assertion with declaration evidence and an exact last-checked Git revision; it is not inferred from a missing proof.",
+  "title_policy": "A title is either the exact tracked module heading or a reviewed phrase present in a listed declaration docstring."
+}

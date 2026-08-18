@@ -1,0 +1,656 @@
+{
+  "exclusions": [
+    {
+      "category": "research open",
+      "declaration": "Erdos14.erdos_14.parts.i",
+      "reason": "The cited Erdős Problems source has no tracked rights grant for retaining question text in this pilot.",
+      "reason_code": "question_text_rights_unresolved",
+      "rights_status": "NOASSERTION",
+      "source_locator": "https://www.erdosproblems.com/14",
+      "source_path": "FormalConjectures/ErdosProblems/14.lean"
+    },
+    {
+      "category": "research open",
+      "declaration": "Arxiv.«2501.03234».conjecture_1_1",
+      "reason": "The paper-specific arXiv license is not recorded in tracked source, so this pilot withholds the item pending an explicit rights decision.",
+      "reason_code": "question_text_rights_unresolved",
+      "rights_status": "NOASSERTION",
+      "source_locator": "https://arxiv.org/abs/2501.03234",
+      "source_path": "FormalConjectures/Arxiv/2501.03234/ArithmeticSumS.lean"
+    },
+    {
+      "category": "research open",
+      "declaration": "VCDimConvex.hasAddVCNDimAtMost_two_one_of_convex_r3",
+      "reason": "The tracked module contains no durable human source locator or question-text rights basis.",
+      "reason_code": "source_locator_missing",
+      "rights_status": "NOASSERTION",
+      "source_path": "FormalConjectures/Other/VCDimConvex.lean"
+    },
+    {
+      "category": "research solved",
+      "declaration": "ClaudesCycles.cube_hamiltonian_arc_decomposition",
+      "reason": "The current source categorizes the previously open pilot candidate as research solved.",
+      "reason_code": "excluded_category",
+      "source_path": "FormalConjectures/Paper/ClaudesCycles.lean"
+    },
+    {
+      "category": "textbook",
+      "declaration": "Oppermann.oppermann_implies_brocard",
+      "reason": "A supporting textbook implication is not a research-open Problem.",
+      "reason_code": "excluded_category",
+      "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+    },
+    {
+      "category": "test",
+      "declaration": "OeisA103662.a_0",
+      "reason": "A definition test is not a research-open Problem.",
+      "reason_code": "excluded_category",
+      "source_path": "FormalConjectures/OEIS/103662.lean"
+    },
+    {
+      "category": "research open",
+      "declaration": "MathOverflow434111.restricted_prime_number_theorem.variants.even_subsequence",
+      "reason": "This formulation is attributed to an arXiv paper whose paper-specific question-text license is not recorded in tracked source.",
+      "reason_code": "question_text_rights_unresolved",
+      "rights_status": "NOASSERTION",
+      "source_locator": "https://arxiv.org/abs/1804.04198",
+      "source_path": "FormalConjectures/Mathoverflow/434111.lean"
+    }
+  ],
+  "groups": [
+    {
+      "group_id": "formal-conjectures:group:wikipedia:Oppermann",
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial multipart grouping; member Problem identities remain independent."
+        }
+      ],
+      "kind": "multipart",
+      "member_problem_ids": [
+        "formal-conjectures:wikipedia:Oppermann:part-i",
+        "formal-conjectures:wikipedia:Oppermann:part-ii",
+        "formal-conjectures:wikipedia:Oppermann:conjecture"
+      ],
+      "title": "Oppermann's Conjecture"
+    },
+    {
+      "group_id": "formal-conjectures:group:oeis:A103662",
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial variant grouping; member Problem identities remain independent."
+        }
+      ],
+      "kind": "variant-set",
+      "member_problem_ids": [
+        "formal-conjectures:oeis:A103662:conjecture",
+        "formal-conjectures:oeis:A103662:a-40"
+      ],
+      "title": "OEIS A103662 open questions"
+    }
+  ],
+  "problems": [
+    {
+      "declarations": [
+        {
+          "name": "Oppermann.oppermann_conjecture.parts.i",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "problem_id": "formal-conjectures:wikipedia:Oppermann:part-i",
+      "question_declarations": [
+        "Oppermann.oppermann_conjecture.parts.i"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "source_rights_class": "Wikipedia material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "For every integer $x \\ge 2$ there exists a prime between $x(x-1)$ and $x^2$.",
+      "title_basis": {
+        "declaration": "Oppermann.oppermann_conjecture.parts.i",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "group_ids": [
+        "formal-conjectures:group:wikipedia:Oppermann"
+      ],
+      "relations": [
+        {
+          "kind": "part_of",
+          "problem_id": "formal-conjectures:wikipedia:Oppermann:conjecture"
+        }
+      ],
+      "source_identity": {
+        "component": "part-i",
+        "source_collection": "Wikipedia",
+        "source_key": "Oppermann"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "Oppermann.oppermann_conjecture.parts.ii",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "problem_id": "formal-conjectures:wikipedia:Oppermann:part-ii",
+      "question_declarations": [
+        "Oppermann.oppermann_conjecture.parts.ii"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "source_rights_class": "Wikipedia material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "For every integer $x \\ge 2$ there exists a prime between $x^2$ and $x(x+1)$.",
+      "title_basis": {
+        "declaration": "Oppermann.oppermann_conjecture.parts.ii",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "group_ids": [
+        "formal-conjectures:group:wikipedia:Oppermann"
+      ],
+      "relations": [
+        {
+          "kind": "part_of",
+          "problem_id": "formal-conjectures:wikipedia:Oppermann:conjecture"
+        }
+      ],
+      "source_identity": {
+        "component": "part-ii",
+        "source_collection": "Wikipedia",
+        "source_key": "Oppermann"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "Oppermann.oppermann_conjecture",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "problem_id": "formal-conjectures:wikipedia:Oppermann:conjecture",
+      "question_declarations": [
+        "Oppermann.oppermann_conjecture"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "source_rights_class": "Wikipedia material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "Wikipedia contributors, Oppermann's conjecture",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://en.wikipedia.org/wiki/Oppermann%27s_conjecture",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "Oppermann's Conjecture",
+      "title_basis": {
+        "declaration": "Oppermann.oppermann_conjecture",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/Wikipedia/Oppermann.lean"
+      },
+      "group_ids": [
+        "formal-conjectures:group:wikipedia:Oppermann"
+      ],
+      "relations": [
+        {
+          "kind": "composed_of",
+          "problem_id": "formal-conjectures:wikipedia:Oppermann:part-i"
+        },
+        {
+          "kind": "composed_of",
+          "problem_id": "formal-conjectures:wikipedia:Oppermann:part-ii"
+        }
+      ],
+      "source_identity": {
+        "component": "conjecture",
+        "source_collection": "Wikipedia",
+        "source_key": "Oppermann"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "OeisA103662.conjecture",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/OEIS/103662.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/OEIS/103662.lean"
+      },
+      "problem_id": "formal-conjectures:oeis:A103662:conjecture",
+      "question_declarations": [
+        "OeisA103662.conjecture"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "OEIS Foundation Inc. and contributors, sequence A103662",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://oeis.org/A103662",
+          "source_rights_class": "OEIS material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "OEIS Foundation Inc. and contributors, sequence A103662",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://oeis.org/A103662",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "For statistical reasons it is conjectured that the sequence is finite.",
+      "title_basis": {
+        "declaration": "OeisA103662.conjecture",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/OEIS/103662.lean"
+      },
+      "group_ids": [
+        "formal-conjectures:group:oeis:A103662"
+      ],
+      "source_identity": {
+        "component": "conjecture",
+        "source_collection": "OEIS",
+        "source_key": "A103662"
+      },
+      "upstream_identity": {
+        "id": "A103662",
+        "provider": "OEIS"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "OeisA103662.conjecture.variants.a_40",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/OEIS/103662.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/OEIS/103662.lean"
+      },
+      "problem_id": "formal-conjectures:oeis:A103662:a-40",
+      "question_declarations": [
+        "OeisA103662.conjecture.variants.a_40"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "OEIS Foundation Inc. and contributors, sequence A103662",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://oeis.org/A103662",
+          "source_rights_class": "OEIS material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "OEIS Foundation Inc. and contributors, sequence A103662",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://oeis.org/A103662",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "$a(40)$, if it exists, is not known.",
+      "title_basis": {
+        "declaration": "OeisA103662.conjecture.variants.a_40",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/OEIS/103662.lean"
+      },
+      "group_ids": [
+        "formal-conjectures:group:oeis:A103662"
+      ],
+      "relations": [
+        {
+          "kind": "variant_of",
+          "problem_id": "formal-conjectures:oeis:A103662:conjecture"
+        }
+      ],
+      "source_identity": {
+        "component": "a-40",
+        "source_collection": "OEIS",
+        "source_key": "A103662"
+      },
+      "upstream_identity": {
+        "id": "A103662",
+        "provider": "OEIS"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "MathOverflow434111.restricted_prime_number_theorem",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/Mathoverflow/434111.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/Mathoverflow/434111.lean"
+      },
+      "problem_id": "formal-conjectures:mathoverflow:434111:restricted-prime-number-theorem",
+      "question_declarations": [
+        "MathOverflow434111.restricted_prime_number_theorem"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "MathOverflow question 434111 contributors",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://mathoverflow.net/questions/434111/are-prime-numbers-among-sums-of-prime-numbers-distributed-as-frac-n2-lnn",
+          "source_rights_class": "MathOverflow material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "MathOverflow question 434111 contributors",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://mathoverflow.net/questions/434111/are-prime-numbers-among-sums-of-prime-numbers-distributed-as-frac-n2-lnn",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "The conjecture claims that $\\pi_n\\sim\\frac n{2\\ln(n)}$.",
+      "title_basis": {
+        "declaration": "MathOverflow434111.restricted_prime_number_theorem",
+        "kind": "declaration_docstring",
+        "source_path": "FormalConjectures/Mathoverflow/434111.lean"
+      },
+      "source_identity": {
+        "component": "restricted-prime-number-theorem",
+        "source_collection": "MathOverflow",
+        "source_key": "434111"
+      },
+      "upstream_identity": {
+        "id": "434111",
+        "provider": "MathOverflow"
+      }
+    },
+    {
+      "declarations": [
+        {
+          "name": "InvariantSubspaceProblem.Invariant_subspace_problem",
+          "relationship": "primary",
+          "source_path": "FormalConjectures/Wikipedia/InvariantSubspaceProblem.lean"
+        }
+      ],
+      "history": [
+        {
+          "date": "2026-08-17",
+          "event": "registered",
+          "note": "Initial contributor-fork pilot registration; no earlier rename, split, merge, or supersession is asserted."
+        }
+      ],
+      "identity_basis": {
+        "source_path": "FormalConjectures/Wikipedia/InvariantSubspaceProblem.lean"
+      },
+      "problem_id": "formal-conjectures:wikipedia:InvariantSubspaceProblem:invariant-subspace-problem",
+      "question_declarations": [
+        "InvariantSubspaceProblem.Invariant_subspace_problem"
+      ],
+      "rights": {
+        "formal_conjectures_record": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "CC-BY-4.0",
+          "retention_permission": "redistribution-permitted-with-attribution"
+        },
+        "lean_source": {
+          "attribution": "The Formal Conjectures Authors",
+          "license_spdx": "Apache-2.0",
+          "retention_permission": "redistribution-permitted-under-license"
+        },
+        "question_text": {
+          "attribution": "Wikipedia contributors, Invariant subspace problem",
+          "derivation": "Exact normalized Formal Conjectures declaration docstring from the bound Git revision.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "retained_bytes": true,
+          "retention_permission": "redistribution-permitted-under-license",
+          "source_locator": "https://en.wikipedia.org/wiki/Invariant_subspace_problem",
+          "source_rights_class": "Wikipedia material (CC-BY-SA-4.0)"
+        },
+        "third_party_source": {
+          "attribution": "Wikipedia contributors, Invariant subspace problem",
+          "caveat": "Only the attributed tracked docstring is retained as question text; no source-page or paper bytes are retained.",
+          "license_spdx": "CC-BY-SA-4.0",
+          "locator": "https://en.wikipedia.org/wiki/Invariant_subspace_problem",
+          "retained_bytes": false,
+          "retention_permission": "not-retained"
+        }
+      },
+      "status_assertion": {
+        "asserted_by": "Formal Conjectures tracked category metadata",
+        "metadata_schema_version": 2,
+        "method": "Fresh metadata-v2 extraction after a focused module build, followed by declaration-source and source-locator review.",
+        "reviewed_on": "2026-08-18",
+        "reviewer_kind": "AI",
+        "reviewer_name": "OpenAI Codex contributor-fork audit",
+        "value": "source-asserted-research-open"
+      },
+      "title": "Invariant Subspace Problem",
+      "title_basis": {
+        "kind": "module_heading",
+        "source_path": "FormalConjectures/Wikipedia/InvariantSubspaceProblem.lean"
+      },
+      "source_identity": {
+        "component": "invariant-subspace-problem",
+        "source_collection": "Wikipedia",
+        "source_key": "InvariantSubspaceProblem"
+      }
+    }
+  ],
+  "schema_version": 1
+}

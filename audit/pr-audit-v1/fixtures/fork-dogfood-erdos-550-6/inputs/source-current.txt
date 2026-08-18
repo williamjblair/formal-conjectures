@@ -1,0 +1,7 @@
+Locator: https://www.erdosproblems.com/550
+Retained: 2026-08-18
+Status: OPEN.
+
+Let m_1 <= ... <= m_k and let n be sufficiently large. If T is a tree on n vertices and G is the complete multipartite graph with vertex-class sizes m_1,...,m_k, prove that R(T,G) <= (chi(G)-1)(R(T,K_{m_1,m_2})-1)+m_1.
+
+The page separately records Chvatal's formula for R(T,K_m).

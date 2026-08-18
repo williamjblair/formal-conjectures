@@ -1,0 +1,4 @@
+Locator: https://www.erdosproblems.com/history/461
+Retained: 2026-08-18
+
+The current version is the smooth-component question retained in source-current.txt. The displayed prior version has the same mathematical content; its changes are typographic rather than a change to the quantifiers or interval.

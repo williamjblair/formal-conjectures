@@ -1,0 +1,7 @@
+Locator: https://www.erdosproblems.com/545
+Retained: 2026-08-18
+Status: OPEN.
+
+Let G be a graph with m edges and no isolated vertices. Is R(G) maximised when G is as complete as possible? If m = choose(n,2) + t with 0 <= t < n, is R(G) <= R(H), where H is K_n with one new vertex joined to t vertices?
+
+The page discussion says the literal assertion fails for small m, specifically 2 <= m <= 5 and 7 <= m <= 9. Despite that note, the page's current status remains OPEN.

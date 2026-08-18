@@ -91,9 +91,14 @@ def render(args: argparse.Namespace) -> None:
     next_action = text(finding["next_action"], "next action", 240)
     if "\n" in next_action or "\r" in next_action:
         raise AuditError("next action must be one line")
+    checks = [check for check in core["checks"] if check.get("id") == finding["check_id"]]
+    if len(checks) != 1:
+        raise AuditError("actionable finding must bind one core check")
     failed = [check for check in core["checks"] if check.get("outcome") == "fail"]
-    if len([check for check in failed if check.get("id") == finding["check_id"]]) != 1:
-        raise AuditError("actionable finding must bind one failed core check")
+    if failed and checks[0].get("outcome") != "fail":
+        raise AuditError("actionable finding must bind a failed core check when failures exist")
+    if not failed and config["inline_suggestion"] is not None:
+        raise AuditError("an inline suggestion requires a failed core check")
     count = len(failed)
     disposition = core["disposition"]["advisory"]
     suffix = " A localized inline suggestion is available." if config["inline_suggestion"] else ""

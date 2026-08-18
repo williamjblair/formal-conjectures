@@ -1,0 +1,7 @@
+Locator: https://www.erdosproblems.com/461
+Retained: 2026-08-18
+Status: OPEN.
+
+Let s_t(n) be the t-smooth component of n: the product, with multiplicity, of all primes p dividing n such that p < t. Let f(n,t) count the number of distinct values of s_t(m) for m in [n+1,n+t]. Is f(n,t) bounded below by a positive constant times t, uniformly for all t and n?
+
+The page notes the known weaker lower bound of order t / log t.

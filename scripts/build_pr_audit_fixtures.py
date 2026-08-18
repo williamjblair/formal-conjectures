@@ -57,6 +57,10 @@ GRAPHQL_OPERATION = """query PullRequestAuditObservation($owner:String!,$name:St
 CORE_GRAPHQL_OPERATION = """query PullRequestAuditCoreSnapshot($owner:String!,$name:String!,$number:Int!,$baseOid:GitObjectID!,$headOid:GitObjectID!,$baseExpression:String!,$headExpression:String!){repository(owner:$owner,name:$name){pullRequest(number:$number){number url baseRefOid headRefOid files(first:100){nodes{path changeType} pageInfo{hasNextPage endCursor}}} baseCommit:object(oid:$baseOid){... on Commit{oid tree{oid}}} headCommit:object(oid:$headOid){... on Commit{oid tree{oid}}} baseBlob:object(expression:$baseExpression){... on Blob{oid byteSize isBinary text}} headBlob:object(expression:$headExpression){... on Blob{oid byteSize isBinary text}}}}"""
 CORE_ACQUIRED_AT = "2026-08-12T20:18:00Z"
 OBSERVATION_RECEIPTS = {
+    "fork-dogfood-erdos-380-3": {"acquired_at": "2026-08-18T22:40:00Z", "request_id": "not-retained"},
+    "fork-dogfood-erdos-461-4": {"acquired_at": "2026-08-18T22:41:00Z", "request_id": "not-retained"},
+    "fork-dogfood-erdos-545-5": {"acquired_at": "2026-08-18T22:42:00Z", "request_id": "not-retained"},
+    "fork-dogfood-erdos-550-6": {"acquired_at": "2026-08-18T22:43:00Z", "request_id": "not-retained"},
     "fork-dogfood-erdos-430-2": {"acquired_at": "2026-08-18T18:20:00Z", "request_id": "not-retained"},
     "external-fork-erdos-430-7": {"acquired_at": "2026-08-18T17:10:00Z", "request_id": "not-retained"},
     "clean-source-faithful-min-modulus-4829": {"acquired_at": "2026-08-13T11:50:00Z", "request_id": "not-retained"},
@@ -124,6 +128,66 @@ def base_check(
 
 
 CASES: dict[str, dict[str, Any]] = {
+    "fork-dogfood-erdos-380-3": {
+        "owner": "williamjblair", "name": "formal-conjectures", "pr": 3,
+        "core_acquired_at": "2026-08-18T22:40:00Z",
+        "base": {"commit_oid": "9880b3fc7a085bd0b29b60196f9c1f3b401c38cf", "tree_oid": "a7d0c38604c539e39c5c7578ef940c4cd8f7e1c5"},
+        "head": {"commit_oid": "988a071352caa37a997e3f26bd0965804a5b8855", "tree_oid": "adfb0abf12aa517b451fad69b2c27c49012b8c9e"},
+        "change": {"path": "FormalConjectures/ErdosProblems/380.lean", "status": "added",
+            "base_blob_oid": None, "base_blob_sha256": None, "head_blob_oid": "7d4b2b535af3fc0eb310f2260314b3a66e93d0fe",
+            "head_blob_sha256": "sha256:0714cf5f180f8a43955424ccd34e6ad6950e2dad93b1006d6ff67402b869c3a2"},
+        "checks": "external_advisory", "declaration": "Erdos380.erdos_380", "problem": 380,
+        "source_records": [("source-current", "source-current.txt", "https://www.erdosproblems.com/380"),
+            ("source-history", "source-history.txt", "https://www.erdosproblems.com/380/history")],
+        "required_edge_cases": ["one_and_empty_intervals", "smallest_counting_inputs", "very_bad_powerful_one"],
+        "observation": {"state": "OPEN", "isDraft": True, "mergeStateStatus": "UNSTABLE", "reviewDecision": None,
+            "updatedAt": "2026-08-18T22:40:00Z", "reviews": []},
+    },
+    "fork-dogfood-erdos-461-4": {
+        "owner": "williamjblair", "name": "formal-conjectures", "pr": 4,
+        "core_acquired_at": "2026-08-18T22:41:00Z",
+        "base": {"commit_oid": "9880b3fc7a085bd0b29b60196f9c1f3b401c38cf", "tree_oid": "a7d0c38604c539e39c5c7578ef940c4cd8f7e1c5"},
+        "head": {"commit_oid": "1670a9086c861a3d4aa917d8d4b553e1f441dac1", "tree_oid": "d8b7ddbe845d8ac24ef903e1548afb5df7a44f9e"},
+        "change": {"path": "FormalConjectures/ErdosProblems/461.lean", "status": "added",
+            "base_blob_oid": None, "base_blob_sha256": None, "head_blob_oid": "20c9a9855f275dad87f26d7b13363c35e5cd1fbd",
+            "head_blob_sha256": "sha256:1a50aa9c605c213e573e687bbb23a630297812b8141fb6f59ebc129cf4d0c2e7"},
+        "checks": "external_advisory", "declaration": "Erdos461.erdos_461", "problem": 461,
+        "source_records": [("source-current", "source-current.txt", "https://www.erdosproblems.com/461"),
+            ("source-history", "source-history.txt", "https://www.erdosproblems.com/461/history")],
+        "required_edge_cases": ["t_zero", "t_one", "n_zero", "uniform_constant_scope"],
+        "observation": {"state": "OPEN", "isDraft": True, "mergeStateStatus": "UNSTABLE", "reviewDecision": None,
+            "updatedAt": "2026-08-18T22:41:00Z", "reviews": []},
+    },
+    "fork-dogfood-erdos-545-5": {
+        "owner": "williamjblair", "name": "formal-conjectures", "pr": 5,
+        "core_acquired_at": "2026-08-18T22:42:00Z",
+        "base": {"commit_oid": "9880b3fc7a085bd0b29b60196f9c1f3b401c38cf", "tree_oid": "a7d0c38604c539e39c5c7578ef940c4cd8f7e1c5"},
+        "head": {"commit_oid": "03d7ff35769d4bf1049fa024cf931eca7e5b3be6", "tree_oid": "8e5be6f3269e7a61082e6feb7e01f667407019c1"},
+        "change": {"path": "FormalConjectures/ErdosProblems/545.lean", "status": "added",
+            "base_blob_oid": None, "base_blob_sha256": None, "head_blob_oid": "ea5091e7ccf0a754cfa5796af961a9b6ea35655f",
+            "head_blob_sha256": "sha256:ba3acb77804d1ef3f72954c95847ea927bafbdbe2af656881e0bcf0038af4bea"},
+        "checks": "external_advisory", "declaration": "Erdos545.erdos_545", "problem": 545,
+        "source_records": [("source-current", "source-current.txt", "https://www.erdosproblems.com/545"),
+            ("source-history", "source-history.txt", "https://www.erdosproblems.com/545/history")],
+        "required_edge_cases": ["m_zero", "small_m_counterexamples", "zero_vertex_graph", "source_status"],
+        "observation": {"state": "OPEN", "isDraft": True, "mergeStateStatus": "UNSTABLE", "reviewDecision": None,
+            "updatedAt": "2026-08-18T22:42:00Z", "reviews": []},
+    },
+    "fork-dogfood-erdos-550-6": {
+        "owner": "williamjblair", "name": "formal-conjectures", "pr": 6,
+        "core_acquired_at": "2026-08-18T22:43:00Z",
+        "base": {"commit_oid": "9880b3fc7a085bd0b29b60196f9c1f3b401c38cf", "tree_oid": "a7d0c38604c539e39c5c7578ef940c4cd8f7e1c5"},
+        "head": {"commit_oid": "4be248abac91e0ab25542f798a335f22cf5136e0", "tree_oid": "0946982092bf67cd50c168b24294c394f107cacb"},
+        "change": {"path": "FormalConjectures/ErdosProblems/550.lean", "status": "added",
+            "base_blob_oid": None, "base_blob_sha256": None, "head_blob_oid": "d1ea4c29222fe261a60e169f2fb93b73439470f0",
+            "head_blob_sha256": "sha256:7422f160f6947ea2d31fbc4e1f3dfb0ae96c3f53459880e37e1cde3173027d11"},
+        "checks": "external_advisory", "declaration": "Erdos550.erdos_550", "problem": 550,
+        "source_records": [("source-current", "source-current.txt", "https://www.erdosproblems.com/550"),
+            ("source-history", "source-history.txt", "https://www.erdosproblems.com/550/history")],
+        "required_edge_cases": ["k_two", "positive_part_sizes", "zero_vertex_tree", "threshold_scope"],
+        "observation": {"state": "OPEN", "isDraft": True, "mergeStateStatus": "UNSTABLE", "reviewDecision": None,
+            "updatedAt": "2026-08-18T22:43:00Z", "reviews": []},
+    },
     "fork-dogfood-erdos-430-2": {
         "owner": "williamjblair",
         "name": "formal-conjectures",
@@ -274,6 +338,53 @@ CASES: dict[str, dict[str, Any]] = {
     },
 }
 
+BATCH_REVIEWS: dict[int, dict[str, Any]] = {
+    380: {
+        "outcome": "pass", "severity": "none",
+        "finding": "The retained statement matches the current problem's two asymptotic claims, including the positive interval bounds and the distinction between bad and very bad intervals.",
+        "witness": "IsBadInterval and IsVeryBadInterval require 1 <= u <= v; B and veryBadCount count positive n <= x; both research declarations state the corresponding atTop asymptotic.",
+        "roles": {
+            "source_fidelity": ("pass", "none", "Both displayed asymptotic questions and their solved-affirmative status are represented; the definitions preserve the source's positive closed intervals.", "The retained source and head declaration use B(x), P(n)^2 | n, powerful interval products, and atTop asymptotics."),
+            "lean_semantics": ("pass", "none", "The interval products, containment predicates, ncard counts, and asymptotic relations have the intended Lean meanings.", "The explicit tests cover u=0, [1,1], an empty interval, and source positive examples [24,25] and [8,9]."),
+            "adversarial_edge_cases": ("pass", "none", "No vacuity or endpoint witness was found that changes either asymptotic statement.", "Positive lower bounds exclude zero intervals; empty intervals are rejected; counting predicates require 1 <= n <= x."),
+            "deterministic_verification": ("error", "none", "No retained Lean execution is claimed in the semantic packet; the workflow must produce fresh typed build evidence.", "The runtime lane is bound to the exact replica head and module target."),
+        },
+    },
+    461: {
+        "outcome": "pass", "severity": "none",
+        "finding": "The retained declaration preserves the t-smooth component, the interval [n+1,n+t], and one uniform positive constant for all n and t.",
+        "witness": "smoothComponent filters prime factors p < t with multiplicity; f takes distinct images over Finset.Icc (n+1) (n+t); the constant c precedes both n and t.",
+        "roles": {
+            "source_fidelity": ("pass", "none", "The source's definitions and uniform lower bound are represented with the same quantifier order.", "The theorem states exists c > 0, for all natural n,t, f(n,t) >= c t."),
+            "lean_semantics": ("pass", "none", "The factorization product and image-cardinality definitions implement the intended smooth component and number of distinct values.", "For t=0 the interval is empty; for t=1 it is a singleton, matching the two retained test theorems."),
+            "adversarial_edge_cases": ("pass", "none", "The t=0 and t=1 cases constrain but do not trivialize or contradict the uniform assertion.", "At t=0 both sides are zero; at t=1, f(n,1)=1 only forces c <= 1."),
+            "deterministic_verification": ("error", "none", "No retained Lean execution is claimed in the semantic packet; the workflow must produce fresh typed build evidence.", "The runtime lane is bound to the exact replica head and module target."),
+        },
+    },
+    545: {
+        "outcome": "fail", "severity": "meaning",
+        "finding": "The literal universal inequality is reported false in the page discussion for small m, but the canonical source still labels Problem 545 OPEN; changing the declaration to research solved with answer False therefore exceeds the current source status without a maintainer policy decision.",
+        "witness": "The retained current page says OPEN while also recording failures for 2 <= m <= 5 and 7 <= m <= 9; the head uses category research solved and answer(False).",
+        "roles": {
+            "source_fidelity": ("fail", "meaning", "The formula matches the displayed question, but the solved-negative category and answer do not match the current source's OPEN status.", "source-current.txt retains both OPEN and the small-m counterexample note; head-source.lean declares research solved and answer(False)."),
+            "lean_semantics": ("pass", "none", "The graph construction, edge count, no-isolated-vertices condition, and Ramsey-number comparison express the displayed literal universal.", "asCompleteAsPossible uses K_n plus one vertex adjacent to exactly the first t vertices, and G.edgeSet.ncard is n.choose 2 + t."),
+            "adversarial_edge_cases": ("pass", "none", "Small-m counterexamples make a negative answer mathematically plausible, but they do not resolve which source-status policy this repository should follow.", "The natural-number hypothesis 0 <= t is tautological but t < n retains the effective displayed bound."),
+            "deterministic_verification": ("error", "none", "No retained Lean execution is claimed in the semantic packet; the workflow must produce fresh typed build evidence.", "The runtime lane is bound to the exact replica head and module target."),
+        },
+    },
+    550: {
+        "outcome": "pass", "severity": "none",
+        "finding": "The retained statement matches the complete-multipartite Ramsey inequality and correctly scopes the sufficiently-large threshold after the ordered positive part sizes.",
+        "witness": "For fixed k and monotone positive sizes, the theorem chooses N0 and quantifies every n >= N0 and every tree T on Fin n before stating the displayed bound.",
+        "roles": {
+            "source_fidelity": ("pass", "none", "The source's ordered part sizes, sufficiently large n, tree, multipartite graph, and Ramsey inequality are all represented.", "m1 and m2 are the first two sizes under k >= 2; chromaticNumber.toNat and the bipartite graph instantiate the displayed terms."),
+            "lean_semantics": ("pass", "none", "The off-diagonal Ramsey definition and complete multipartite construction have the intended order and vertex types.", "The theorem's threshold may depend on k and sizes but not on n or T, matching sufficiently large n for fixed part sizes."),
+            "adversarial_edge_cases": ("pass", "none", "The k >= 2 and positive-size hypotheses exclude missing first parts and empty multipartite classes; no vacuous counterexample was found.", "The retained tests cover empty parts separately, while the research theorem requires every size to be positive."),
+            "deterministic_verification": ("error", "none", "No retained Lean execution is claimed in the semantic packet; the workflow must produce fresh typed build evidence.", "The runtime lane is bound to the exact replica head and module target."),
+        },
+    },
+}
+
 
 def repository_identity(case: dict[str, Any]) -> tuple[str, str, str]:
     owner = case.get("owner", "google-deepmind")
@@ -329,21 +440,29 @@ def checks_for(case: dict[str, Any], roots: dict[str, str]) -> dict[str, Any]:
     if kind == "external_advisory":
         case_name = next(name for name, value in CASES.items() if value is case)
         owner, repository_name, _ = repository_identity(case)
+        declaration = case.get("declaration", "Erdos430.erdos_430")
+        problem = case.get("problem", 430)
+        source_records = case.get("source_records", [
+            ("source-current", "source-current.txt", "https://www.erdosproblems.com/430"),
+            ("source-history", "source-history.txt", "https://www.erdosproblems.com/430/history"),
+            ("source-original", "source-original.txt", "ErdosGraham1980:p85"),
+        ])
         review = json.loads((FIXTURES / case_name / "inputs" / "source-fidelity-review.json").read_text())
         checks = [base_check(
             identifier="source-statement-fidelity", kind="semantic", mode="human_review",
             property_name="source-statement-fidelity", role="advisory",
             outcome=review["outcome"], severity=review["severity"],
-            path=path, declarations=["Erdos430.erdos_430"],
+            path=path, declarations=[declaration],
             implementation_value=implementation(
                 "retained-advisory-source-fidelity-review", "human_review_guide",
                 "source-fidelity-method.json", roots["source-fidelity-method"],
             ),
             inputs=[
                 check_input("head-source", "head-source", "git-blob", head_locator, head_root),
-                check_input("source-current", "source-current", "source-reference", "https://www.erdosproblems.com/430", roots["source-current"]),
-                check_input("source-history", "source-history", "source-reference", "https://www.erdosproblems.com/430/history", roots["source-history"]),
-                check_input("source-original", "source-original", "source-reference", "ErdosGraham1980:p85", roots["source-original"]),
+                *[
+                    check_input(identifier, identifier, "source-reference", locator, roots[identifier])
+                    for identifier, _, locator in source_records
+                ],
                 check_input("source-fidelity-method", "source-fidelity-method", "human-review-guide", "source-fidelity-method.json", roots["source-fidelity-method"]),
                 check_input("role-source-fidelity", "role-source-fidelity", "role-output", "clean-room/source-fidelity.json", roots["role-source-fidelity"]),
                 check_input("role-lean-semantics", "role-lean-semantics", "role-output", "clean-room/lean-semantics.json", roots["role-lean-semantics"]),
@@ -363,7 +482,7 @@ def checks_for(case: dict[str, Any], roots: dict[str, str]) -> dict[str, Any]:
         ), base_check(
             identifier="snapshot-identity", kind="mechanical", mode="retained_replay",
             property_name="immutable-input-identity", role="producer", outcome="pass", severity="none",
-            path=path, declarations=["Erdos430.erdos_430"],
+            path=path, declarations=[declaration],
             implementation_value=implementation(
                 "pr-audit-snapshot-validator", "retained_procedure",
                 "scripts/pr_audit.py", roots["method-pr-audit"],
@@ -700,7 +819,7 @@ def retained_core_artifacts(
         if sha256_digest(base_raw) != case["change"]["base_blob_sha256"]:
             raise RuntimeError(f"base source bytes do not match frozen identity: {name}")
 
-    if case["checks"] == "external_advisory":
+    if case.get("problem") in BATCH_REVIEWS:
         authority_capture = {"data": {"repository": {
             "pullRequest": {
                 "number": case["pr"], "url": f"{repository_url}/pull/{case['pr']}",
@@ -814,11 +933,11 @@ def retained_core_artifacts(
         retain("exact-head-approval-body", "tool_output", "exact-head-approval.txt", (inputs / "exact-head-approval.txt").read_bytes(), "text/plain")
     if kind == "external_advisory":
         retain("method-pr-audit", "method", "method-pr-audit.py", (REPO / "scripts/pr_audit.py").read_bytes(), "text/plain")
-        source_records = [
+        source_records = case.get("source_records", [
             ("source-current", "source-current.txt", "https://www.erdosproblems.com/430"),
             ("source-history", "source-history.txt", "https://www.erdosproblems.com/430/history"),
             ("source-original", "source-original.txt", "ErdosGraham1980:p85"),
-        ]
+        ])
         for identifier, filename, _ in source_records:
             retain(identifier, "source_file", filename, (inputs / filename).read_bytes(), "text/plain")
         method_value = {
@@ -833,16 +952,63 @@ def retained_core_artifacts(
                 "base_commit_oid": case["base"]["commit_oid"],
                 "head_commit_oid": case["head"]["commit_oid"],
             },
-            "scope": {"path": case["change"]["path"], "declaration": "Erdos430.erdos_430"},
+            "scope": {"path": case["change"]["path"], "declaration": case.get("declaration", "Erdos430.erdos_430")},
             "source_inputs": [
                 {"id": identifier, "locator": locator, "root": roots[identifier]}
                 for identifier, _, locator in source_records
             ],
-            "required_edge_cases": ["empty_or_vacuous_predicates", "smallest_inputs", "stated_interval_endpoints"],
+            "required_edge_cases": [
+                "empty_or_vacuous_predicates", "smallest_inputs", "stated_interval_endpoints",
+            ],
             "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
         }
         method_raw = write_json(inputs / "source-fidelity-method.json", method_value)
         retain("source-fidelity-method", "method", "source-fidelity-method.json", method_raw, "application/json")
+        if case.get("problem") in BATCH_REVIEWS:
+            batch_review = BATCH_REVIEWS[case["problem"]]
+            role_filenames = {
+                "source_fidelity": "clean-room-source-fidelity.json",
+                "lean_semantics": "clean-room-lean-semantics.json",
+                "deterministic_verification": "clean-room-deterministic-verification.json",
+                "adversarial_edge_cases": "clean-room-adversarial-edge-cases.json",
+            }
+            for role, (outcome, severity, finding, witness) in batch_review["roles"].items():
+                write_json(inputs / role_filenames[role], {
+                    "schema_version": "formal-conjectures.pr-audit-clean-room-role-result.v1",
+                    "role": role,
+                    "authority": (
+                        "producer_evidence_only" if role == "deterministic_verification"
+                        else "advisory_packet_preparation_only"
+                    ),
+                    "independent": False,
+                    "exact_input_root": case["change"]["head_blob_sha256"],
+                    "outcome": outcome,
+                    "severity": severity,
+                    "findings": [finding],
+                    "witnesses": [witness],
+                    "limitations": [
+                        "This retained role result is advisory pilot evidence and is not independent maintainer review.",
+                        "Fresh deterministic execution is recorded separately by the workflow runtime lane.",
+                    ],
+                    "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+                })
+            write_json(inputs / "source-fidelity-review.json", {
+                "schema_version": "formal-conjectures.pr-audit-advisory-source-fidelity-review.v1",
+                "preparer": "codex_ai_packet_preparer",
+                "authority": "advisory_packet_preparation_only",
+                "independent": False,
+                "outcome": batch_review["outcome"],
+                "severity": batch_review["severity"],
+                "finding": batch_review["finding"],
+                "witness": batch_review["witness"],
+                "head_commit_oid": case["head"]["commit_oid"],
+                "head_blob_oid": case["change"]["head_blob_oid"],
+                "source_root": case["change"]["head_blob_sha256"],
+                "scope": {"revision": "head", "paths": [case["change"]["path"]],
+                    "declarations": [case["declaration"]]},
+                "method_root": roots["source-fidelity-method"],
+                "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+            })
         for identifier, filename in (
             ("role-source-fidelity", "clean-room-source-fidelity.json"),
             ("role-lean-semantics", "clean-room-lean-semantics.json"),
@@ -1195,6 +1361,12 @@ def build_case(name: str, case: dict[str, Any], generator: dict[str, Any]) -> No
     attach_typed_results(directory, case, checks_value, retained_artifacts)
     checks_raw = write_json(inputs / "checks.json", checks_value)
     observation_path = inputs / "github-graphql-response.json"
+    if case["checks"] == "external_advisory":
+        observation_path.write_bytes(
+            json.dumps(
+                observation_source(case), ensure_ascii=False, separators=(",", ":"), sort_keys=True,
+            ).encode("utf-8")
+        )
     observation_raw = observation_path.read_bytes().removesuffix(b"\n")
     if observation_path.read_bytes() != observation_raw:
         observation_path.write_bytes(observation_raw)

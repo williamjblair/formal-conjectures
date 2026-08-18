@@ -1,0 +1,4 @@
+Locator: https://www.erdosproblems.com/history/550
+Retained: 2026-08-18
+
+The current version is the sufficiently-large-n multipartite Ramsey inequality retained in source-current.txt. The displayed prior version has the same mathematical statement.

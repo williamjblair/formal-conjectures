@@ -76,6 +76,38 @@ class ActionableCommentTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("**Lean verification:** `error` at the pinned head.", (root / "summary.md").read_text())
 
+    def test_renders_zero_failure_advisory_without_inline_suggestion(self):
+        temporary = tempfile.TemporaryDirectory()
+        root = Path(temporary.name)
+        with temporary:
+            core = json.loads((FIXTURE / "expected-core.json").read_text())
+            for check in core["checks"]:
+                check["outcome"] = "pass"
+                check["severity"] = "none"
+            core["disposition"]["advisory"] = "inconclusive"
+            core_path = root / "core.json"
+            core_path.write_text(json.dumps(core))
+            config = json.loads((FIXTURE / "actionable-review.json").read_text())
+            config["finding"]["next_action"] = "No localized repair was identified; complete human source review."
+            config["inline_suggestion"] = None
+            config_path = root / "actionable.json"
+            config_path.write_text(json.dumps(config))
+            output = root / "summary.md"
+            result = self.execute(
+                "render", "--core", str(core_path), "--actionable", str(config_path),
+                "--source-root", str(root), "--summary-output", str(output),
+                "--summary-payload", str(root / "summary.json"), "--inline-output", str(root / "inline.md"),
+                "--inline-create-payload", str(root / "inline-create.json"),
+                "--inline-update-payload", str(root / "inline-update.json"),
+                "--metadata-output", str(root / "metadata.json"), "--expected-head", HEAD,
+                "--run-url", "https://github.com/williamjblair/formal-conjectures/actions/runs/123",
+                "--artifact-name", "batch-advisory", "--phase", "in-progress",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            summary = output.read_text()
+            self.assertIn("**Verdict:** `inconclusive` · **Findings:** 0", summary)
+            self.assertFalse((root / "inline.md").exists())
+
     def select(self, command: str, comments, request=None):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

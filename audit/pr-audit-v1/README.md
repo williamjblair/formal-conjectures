@@ -146,6 +146,10 @@ Every record carries the exact upstream baseline commit and tree plus a content-
 
 | Fixture | Distinction represented | Advisory result |
 | --- | --- | --- |
+| `fork-dogfood-erdos-380-3` | exact user-fork replica of Paul-Lez PR 6; retained source, semantic, edge-case, and typed runtime bindings | `inconclusive` |
+| `fork-dogfood-erdos-461-4` | exact user-fork replica of Paul-Lez PR 8; uniform-constant and smallest-`t` review | `inconclusive` |
+| `fork-dogfood-erdos-545-5` | exact user-fork replica of Paul-Lez PR 9; canonical OPEN status versus solved-negative declaration | `needs_revision` |
+| `fork-dogfood-erdos-550-6` | exact user-fork replica of Paul-Lez PR 10; threshold scope and multipartite boundary review | `inconclusive` |
 | `external-fork-erdos-430-7` | pinned contributor-fork PR identity plus isolated advisory source, Lean-semantics, deterministic, and adversarial pilot outputs | `needs_revision` |
 | `clean-source-faithful-min-modulus-4829` | the paper author's source-fidelity review, applied correction, unchanged theorem statement, byte-identical applied/final source, and maintainer approval on the exact final head | `clean` |
 | `conditional-erdos-427-4884` | full formal-proof tuple with an explicit Shiu assumption | `inconclusive` |

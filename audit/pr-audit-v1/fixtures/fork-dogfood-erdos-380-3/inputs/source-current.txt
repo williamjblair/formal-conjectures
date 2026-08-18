@@ -1,0 +1,7 @@
+Locator: https://www.erdosproblems.com/380
+Retained: 2026-08-18
+Status: PROVED — solved in the affirmative.
+
+We call an interval [u,v] bad if the greatest prime factor of the product of the integers from u through v occurs with exponent greater than 1. Let B(x) count the n <= x contained in at least one bad interval. Is B(x) asymptotic to the number of n <= x for which P(n)^2 divides n, where P(n) is the largest prime factor?
+
+The page also asks for the analogous very-bad count, where the interval product is powerful, and says it should be asymptotic to the number of powerful integers <= x. It records that Tao proved the first asymptotic and the corresponding stronger estimate, together with a result for very bad intervals.

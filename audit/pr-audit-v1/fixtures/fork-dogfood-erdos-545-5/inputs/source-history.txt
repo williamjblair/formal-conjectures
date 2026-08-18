@@ -1,0 +1,4 @@
+Locator: https://www.erdosproblems.com/history/545
+Retained: 2026-08-18
+
+The current version is the literal universal question retained in source-current.txt. A prior displayed version asked related complete-graph extremal inequalities with different wording and bounds. The current page, rather than that prior wording, is the review target.

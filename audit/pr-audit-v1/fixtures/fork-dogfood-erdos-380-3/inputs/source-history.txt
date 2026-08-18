@@ -1,0 +1,4 @@
+Locator: https://www.erdosproblems.com/history/380
+Retained: 2026-08-18
+
+The current displayed problem is the bad-interval asymptotic from source-current.txt. The revision history shows the same mathematical question in its retained prior versions. The additional current text contains the very-bad interval variant and the proved status.

@@ -254,7 +254,7 @@ jobs:
             --json-schema '${{ steps.contract.outputs.schema }}'
             --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
             --permission-mode plan --safe-mode --disable-slash-commands
-            --no-session-persistence --max-turns 4
+            --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
 
   ai-lean-semantics:
@@ -297,7 +297,7 @@ jobs:
             --json-schema '${{ steps.contract.outputs.schema }}'
             --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
             --permission-mode plan --safe-mode --disable-slash-commands
-            --no-session-persistence --max-turns 4
+            --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
 
   ai-adversarial:
@@ -340,7 +340,7 @@ jobs:
             --json-schema '${{ steps.contract.outputs.schema }}'
             --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
             --permission-mode plan --safe-mode --disable-slash-commands
-            --no-session-persistence --max-turns 4
+            --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
 
   validate-ai:

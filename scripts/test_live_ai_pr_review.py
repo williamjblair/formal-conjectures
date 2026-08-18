@@ -290,6 +290,8 @@ class LiveAIReviewTest(unittest.TestCase):
         self.assertEqual(workflow.count('show_full_output: "false"'), 3)
         self.assertEqual(workflow.count('--tools "Read,Glob,Grep"'), 3)
         self.assertEqual(workflow.count('--disallowedTools "mcp__*"'), 3)
+        self.assertEqual(workflow.count("--max-turns 20"), 3)
+        self.assertNotIn("--max-turns 4", workflow)
         self.assertEqual(workflow.count("structured_output"), 3)
         self.assertEqual(workflow.count("steps.claude.outputs.session_id"), 3)
         self.assertEqual(workflow.count("_SESSION_ID:"), 3)

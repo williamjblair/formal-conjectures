@@ -71,6 +71,19 @@ class LiveAIReviewTest(unittest.TestCase):
             "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
         }
 
+    def test_action_facing_schema_omits_unsupported_meta_schema_declaration(self):
+        schema = json.loads(SCHEMA.read_text())
+        self.assertNotIn("$schema", schema)
+        self.assertEqual(schema["type"], "object")
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(
+            schema["required"],
+            [
+                "schema_version", "role", "authority", "independent", "exact_input_root",
+                "outcome", "severity", "findings", "limitations", "nonclaims",
+            ],
+        )
+
     def panel(self, root: Path, two_suggestions=True):
         _, input_dir = self.prepare(root)
         manifest = json.loads((input_dir / "input-manifest.json").read_text())

@@ -298,7 +298,7 @@ jobs:
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
             --permission-mode plan --safe-mode
-            --no-session-persistence --max-turns 30
+            --no-session-persistence --max-turns 40
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
         if: ${{ always() }}
@@ -398,7 +398,7 @@ jobs:
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
             --permission-mode plan --safe-mode
-            --no-session-persistence --max-turns 30
+            --no-session-persistence --max-turns 40
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
         if: ${{ always() }}

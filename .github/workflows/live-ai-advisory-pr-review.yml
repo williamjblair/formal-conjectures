@@ -209,9 +209,13 @@ jobs:
           base_oid=$(python3 -c 'import json; print(json.load(open("deterministic-evidence/live-pr.json"))["base"]["sha"])')
           git -C review-target diff --check "$base_oid...$EXPECTED_HEAD" > deterministic-evidence/diff-check.log 2>&1
           diff_exit=$?
+          expected_import_args=()
+          while IFS= read -r expected_import; do
+            [ -n "$expected_import" ] && expected_import_args+=(--expected-import "$expected_import")
+          done <<< "${{ inputs.expected_import }}"
           python3 -B -m fc_review_bot check-imports \
             --config "reviewer/${CONFIG}" --source-root review-target \
-            --expected-import "${{ inputs.expected_import }}" \
+            "${expected_import_args[@]}" \
             --output deterministic-evidence/import-policy.json > deterministic-evidence/import-policy.log 2>&1
           import_exit=$?
           set -e

@@ -470,7 +470,8 @@ class LiveAIReviewTest(unittest.TestCase):
         self.assertIn("needs.validate-suggestions.result == 'success'", workflow)
         self.assertIn("always() && inputs.publish_comment && needs.render-progress.result == 'success'", workflow)
         self.assertIn("escalation_mode", workflow)
-        self.assertIn("needs.inspect-primary.outputs.escalation_required", workflow)
+        self.assertIn("needs.inspect-primary.outputs.reason == 'primary_inconclusive'", workflow)
+        self.assertIn('default: "off"', workflow)
         self.assertIn("check-imports", workflow)
         self.assertEqual(workflow.count("checks: write"), 1)
         for job in ("ai-primary", "ai-escalation"):

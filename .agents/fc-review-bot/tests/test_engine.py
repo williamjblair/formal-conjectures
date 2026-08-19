@@ -159,8 +159,11 @@ class EngineTest(unittest.TestCase):
             self.assertEqual(manifest["repository"]["head_commit_oid"], HEAD)
             self.assertEqual(manifest["skill_sha256"], sha(SKILL_TEXT.encode()))
             self.assertEqual(manifest["agents_sha256"], sha(AGENTS_TEXT.encode()))
-            self.assertIn(SKILL_TEXT.strip(), (output / "prompt-primary_review.md").read_text())
-            self.assertIn(AGENTS_TEXT.strip(), (output / "prompt-primary_review.md").read_text())
+            prompt = (output / "prompt-primary_review.md").read_text()
+            self.assertIn("formal-conjectures-review/SKILL.md", prompt)
+            self.assertIn("AGENTS.md", prompt)
+            self.assertNotIn(SKILL_TEXT.strip(), prompt)
+            self.assertNotIn(AGENTS_TEXT.strip(), prompt)
             config, live, source, skill, agents = self.packet(root)
             stale = self.run_cli(
                 "prepare", "--config", str(config), "--live-pr", str(live), "--source-root", str(source),

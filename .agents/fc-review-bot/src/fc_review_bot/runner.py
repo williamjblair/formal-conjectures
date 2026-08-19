@@ -162,15 +162,15 @@ def prepare(args: argparse.Namespace) -> None:
     }
     manifest = {**manifest_without_root, "root": content_root(manifest_without_root)}
     write_canonical(output / "input-manifest.json", manifest)
-    skill = skill_source.read_text(encoding="utf-8")
-    agents = agents_source.read_text(encoding="utf-8")
     for role in ROLES:
         prompt = (
-            "You are the independent `" + role + "` reviewer. Use the consumer-provided "
-            "review skill and repository instructions below as the review method. They are "
-            "trusted inputs bound to `" + manifest["root"] + "`. Return only JSON matching "
-            "role-output.schema.json; do not claim acceptance, merge authority, or mathematical truth.\n\n"
-            "# SKILL.md\n\n" + skill + "\n\n# AGENTS.md\n\n" + agents
+            "You are the independent `" + role + "` reviewer. Work in the checked-out repository. "
+            "Read `.agents/skills/formal-conjectures-review/SKILL.md` and `AGENTS.md` before reviewing; "
+            "they are the authoritative method, bound to `" + manifest["root"] + "`. "
+            "Read the scoped diff, cited sources, and definitions you need. Return only JSON matching "
+            "`.fc-review-input/role-output.schema.json`; do not claim acceptance, merge authority, "
+            "or mathematical truth. Set outcome `pass` only when there are no findings; any nit or "
+            "meaning-level finding must use outcome `fail`; use `inconclusive` only when evidence cannot resolve it."
         )
         (output / f"prompt-{role}.md").write_text(prompt, encoding="utf-8", newline="\n")
     write_canonical(output / "preflight.json", {
@@ -512,6 +512,7 @@ def validate_panel(args: argparse.Namespace) -> None:
     roles: dict[str, dict[str, Any]] = {}
     receipts: dict[str, dict[str, Any]] = {}
     role_errors: dict[str, str] = {}
+    rejected_role_usage: dict[str, dict[str, Any]] = {}
     raw_outputs = Path(args.output_dir) / "raw-model-outputs"
     raw_outputs.mkdir(parents=True, exist_ok=True)
     for role in ROLES:
@@ -519,6 +520,12 @@ def validate_panel(args: argparse.Namespace) -> None:
             result = model_output(role, manifest["root"], required=role == PRIMARY_ROLE)
         except (AuditError, UnicodeError, ValueError, KeyError, TypeError) as error:
             role_errors[role] = str(error)[:500]
+            try:
+                rejected_role_usage[role] = provider_usage_from_env(
+                    role, args.model, args.max_budget_usd_per_role
+                )
+            except (AuditError, UnicodeError, ValueError, KeyError, TypeError) as usage_error:
+                role_errors[role] += "; usage: " + str(usage_error)[:300]
             continue
         if result is None:
             continue
@@ -555,7 +562,8 @@ def validate_panel(args: argparse.Namespace) -> None:
             "configured_role_limit": args.configured_role_limit,
             "max_budget_usd_total": f"{total_cap:.2f}",
             "role_receipts": receipts,
-            "role_errors": role_errors, "escalation_trigger": args.escalation_trigger,
+            "role_errors": role_errors, "rejected_role_usage": rejected_role_usage,
+            "escalation_trigger": args.escalation_trigger,
             "github_run_id": args.github_run_id, "github_run_attempt": args.github_run_attempt,
             "prompt_roots": {role: digest(Path(args.input_manifest).parent / f"prompt-{role}.md") for role in roles},
             "output_schema_root": digest(Path(args.input_manifest).parent / "role-output.schema.json"),
@@ -778,6 +786,7 @@ def aggregate_cost_ledger(args: argparse.Namespace) -> None:
     role_usage = {
         role: receipt["provider_usage"] for role, receipt in panel["execution"]["role_receipts"].items()
     }
+    role_usage.update(panel["execution"].get("rejected_role_usage", {}))
     reported_costs = [
         Decimal(usage["actual_cost_usd"]["value"]) for usage in role_usage.values()
         if usage["actual_cost_usd"].get("status") == "reported"

@@ -46,7 +46,7 @@ on:
       escalation_mode:
         description: Auto-escalate ambiguity/invalid output, force a manual escalation, or disable escalation
         required: true
-        default: auto
+        default: "off"
         type: choice
         options: [auto, force, "off"]
       publish_comment:
@@ -357,7 +357,7 @@ jobs:
     if: >-
       ${{ inputs.run_ai_review &&
           (inputs.escalation_mode == 'force' ||
-           (inputs.escalation_mode == 'auto' && needs.inspect-primary.outputs.escalation_required == 'true')) }}
+           (inputs.escalation_mode == 'auto' && needs.inspect-primary.outputs.reason == 'primary_inconclusive')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions: {contents: read, id-token: write}

@@ -478,6 +478,7 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertNotIn("FC_REVIEW_APP_PRIVATE_KEY", block)
             self.assertNotIn("pull-requests: write", block)
             self.assertIn("permissions", block)
+            self.assertIn("id-token: write", block)
             self.assertIn("ref: refs/pull/${{ inputs.pull_request }}/head", block)
             self.assertIn("persist-credentials: false", block)
             before_model, after_model = block.split("- id: claude", 1)

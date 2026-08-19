@@ -277,7 +277,7 @@ jobs:
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           cat .fc-review-input/prompt-primary_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:
@@ -377,7 +377,7 @@ jobs:
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           cat .fc-review-input/prompt-escalation_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:

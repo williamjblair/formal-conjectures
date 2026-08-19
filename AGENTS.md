@@ -4,6 +4,10 @@ Formal Conjectures states open mathematical problems in Lean 4. It is a statemen
 repository, not a proof repository: almost every problem is `sorry`. Each statement must say
 what its source says.
 
+The `formal-conjectures-review` skill is about that last sentence. Read
+[.agents/skills/formal-conjectures-review/SKILL.md](.agents/skills/formal-conjectures-review/SKILL.md) when you review a
+formalisation, or before you submit one. No check in this repository decides it.
+
 [CONTRIBUTING.md](CONTRIBUTING.md) is the reference for conventions, folders, and the
 attributes. This file adds only what CONTRIBUTING does not tell you.
 

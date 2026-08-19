@@ -1,0 +1,23 @@
+{
+  "schema_version": "formal-conjectures.live-ai-review-role-result.v1",
+  "role": "primary_review",
+  "authority": "advisory_model_review_only",
+  "independent": true,
+  "exact_input_root": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "outcome": "pass",
+  "severity": "none",
+  "findings": [
+    {
+      "id": "checked-retained-input",
+      "summary": "The retained source and target agree.",
+      "explanation": "The synthetic fixture has matching quantifiers and endpoints.",
+      "severity": "none",
+      "path": null,
+      "line": null,
+      "witnesses": ["Reviewed the exact retained input."],
+      "suggestion": null
+    }
+  ],
+  "limitations": ["Synthetic contract fixture only."],
+  "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"]
+}

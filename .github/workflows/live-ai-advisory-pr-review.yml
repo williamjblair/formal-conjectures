@@ -240,7 +240,6 @@ jobs:
     timeout-minutes: 2
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Refuse missing protected API key before invoking Claude
         env:
@@ -255,6 +254,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      id-token: write
     outputs:
       result: ${{ steps.claude.outputs.structured_output }}
       session_id: ${{ steps.claude.outputs.session_id }}

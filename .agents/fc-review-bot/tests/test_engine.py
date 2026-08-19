@@ -246,8 +246,8 @@ class EngineTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             summary = (root / "summary.md").read_text()
             self.assertIn("<!-- formal-conjectures:live-ai-review:v1 -->", summary)
-            self.assertIn("$0.2500", summary)
-            self.assertIn("advisory only", summary)
+            self.assertIn("## FC Review Pilot", summary)
+            self.assertIn("No high-confidence issue found", summary)
 
     def test_consumer_owns_import_policy(self):
         with tempfile.TemporaryDirectory() as temporary:

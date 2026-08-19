@@ -366,7 +366,8 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertEqual(metadata["inline_count"], 2)
             self.assertEqual(len(list(inline.glob("*.json"))), 2)
             self.assertTrue((root / "summary.md").read_text().startswith(SUMMARY))
-            self.assertIn("**Cost/time:** `$0.5000` actual", (root / "summary.md").read_text())
+            self.assertIn("## FC Review Pilot", (root / "summary.md").read_text())
+            self.assertIn("**Needs Revision** · 2 findings · Lean `pass` · 2 inline suggestion(s)", (root / "summary.md").read_text())
             self.assertLess(len((root / "summary.md").read_text()), 1_200)
 
     def test_failed_patch_validation_is_suppressed(self):
@@ -460,7 +461,7 @@ class LiveAIReviewTest(unittest.TestCase):
         self.assertNotIn('--tools "Read,Glob,Grep"', workflow)
         self.assertNotIn('--disallowedTools "mcp__*"', workflow)
         self.assertEqual(workflow.count("--max-turns ${{ inputs.max_turns }}"), 2)
-        self.assertIn('default: "40"', workflow)
+        self.assertIn('default: "20"', workflow)
         self.assertIn('options: ["20", "40", "60"]', workflow)
         self.assertNotRegex(workflow, r"--max-turns 4(?:\s|$)")
         self.assertEqual(workflow.count("structured_output"), 2)

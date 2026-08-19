@@ -175,6 +175,9 @@ def prepare(args: argparse.Namespace) -> None:
             "`.fc-review-input/role-output.schema.json`; do not claim acceptance, merge authority, "
             "or mathematical truth. Set outcome `pass` only when there are no findings; any nit or "
             "meaning-level finding must use outcome `fail`; use `inconclusive` only when evidence cannot resolve it."
+            " For every concrete, localized repair with high confidence, provide an exact `suggestion` "
+            "using the current path, line, original line, and a minimal replacement. Use `suggestion: null` "
+            "for source ambiguities or findings that cannot safely be fixed in one local edit."
         )
         (output / f"prompt-{role}.md").write_text(prompt, encoding="utf-8", newline="\n")
     write_canonical(output / "preflight.json", {
@@ -895,21 +898,24 @@ def render(args: argparse.Namespace) -> None:
         else "No localized semantic repair was identified; complete human review before disposition."
     )
     validated = suggestion.get("validated", []) if suggestion else []
-    inline_note = f" {len(validated)} validated inline suggestion(s) available." if validated else ""
+    inline_note = f" · {len(validated)} inline suggestion(s)" if validated else ""
     verification = (
-        "**Status:** Review in progress — deterministic Lean verification is pending."
+        "Lean verification pending"
         if args.phase == "in-progress"
-        else f"**Lean verification:** `{deterministic.get('outcome', 'error') if deterministic else 'error'}` at the pinned head."
+        else f"Lean `{deterministic.get('outcome', 'error') if deterministic else 'error'}`"
+    )
+    verdict = panel["disposition"]["advisory"].replace("_", " ")
+    finding_label = "finding" if failed == 1 else "findings"
+    status = f"**{verdict.title()}** · {failed} {finding_label} · {verification}{inline_note}"
+    action = (
+        f"**Action:** {markdown_text(next_action)}"
+        if panel["findings"] else
+        "No high-confidence issue found. Human review and maintainer disposition remain required."
     )
     summary = (
-        f"{SUMMARY_MARKER}\n\n## FC Review Bot — advisory\n\n"
-        f"**Verdict:** `{panel['disposition']['advisory']}` · **Findings:** {failed}\n\n"
-        f"{verification}\n\n"
-        f"{cost_time_line(panel, cost_ledger)}\n\n"
-        f"**Next action:** {markdown_text(next_action)}{inline_note}\n\nPinned head: `{head}`\n\n"
-        f"[Workflow evidence]({args.run_url}) · artifact `{args.artifact_name}`\n\n"
-        "This review was produced from fresh isolated model evidence and validated deterministically. "
-        "It is advisory only, not maintainer disposition, acceptance, a merge decision, or mathematical truth.\n"
+        f"{SUMMARY_MARKER}\n\n## FC Review Pilot\n\n"
+        f"{status}\n\n{action}\n\n"
+        f"_Advisory review of `{head[:12]}` · [evidence]({args.run_url})_\n"
     )
     Path(args.summary).write_text(summary, encoding="utf-8", newline="\n")
     write_canonical(Path(args.summary_payload), {"body": summary})

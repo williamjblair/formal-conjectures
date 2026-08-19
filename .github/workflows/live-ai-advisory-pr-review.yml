@@ -67,15 +67,15 @@ on:
         type: choice
         options: [low, medium, high, xhigh]
       max_budget_usd_per_role:
-        description: Hard Claude API budget cap for the primary or optional escalation review
+        description: Hard Claude API budget cap for the routine primary review
         required: true
-        default: "5.00"
+        default: "1.00"
         type: choice
         options: ["1.00", "2.50", "5.00", "10.00"]
       max_turns:
-        description: Bounded agent turns for the primary or optional escalation review
+        description: Bounded agent turns for the routine primary review
         required: true
-        default: "40"
+        default: "20"
         type: choice
         options: ["20", "40", "60"]
 

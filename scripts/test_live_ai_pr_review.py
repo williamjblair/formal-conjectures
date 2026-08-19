@@ -459,7 +459,7 @@ class LiveAIReviewTest(unittest.TestCase):
         self.assertEqual(workflow.count("--agents-path reviewer/AGENTS.md"), 2)
         self.assertNotIn('--tools "Read,Glob,Grep"', workflow)
         self.assertNotIn('--disallowedTools "mcp__*"', workflow)
-        self.assertEqual(workflow.count("--max-turns 20"), 2)
+        self.assertEqual(workflow.count("--max-turns 30"), 2)
         self.assertNotIn("--max-turns 4", workflow)
         self.assertEqual(workflow.count("structured_output"), 2)
         self.assertEqual(workflow.count("steps.claude.outputs.session_id"), 2)

@@ -242,7 +242,7 @@ class EngineTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             summary = (root / "summary.md").read_text()
-            self.assertIn("<!-- fc-review-bot:advisory-review:v1 -->", summary)
+            self.assertIn("<!-- formal-conjectures:live-ai-review:v1 -->", summary)
             self.assertIn("$0.2500", summary)
             self.assertIn("advisory only", summary)
 
@@ -263,7 +263,7 @@ class EngineTest(unittest.TestCase):
             comments = root / "comments.json"
             comments.write_text(json.dumps([{
                 "id": 7, "user": {"login": "review-bot[bot]"},
-                "body": "<!-- fc-review-bot:advisory-review:v1 -->\nold",
+                "body": "<!-- formal-conjectures:live-ai-review:v1 -->\nold",
             }]), encoding="utf-8")
             selection = root / "selection.json"
             result = self.run_cli(
@@ -274,13 +274,13 @@ class EngineTest(unittest.TestCase):
 
             request = root / "inline.json"
             request.write_text(json.dumps({
-                "body": "<!-- fc-review-bot:advisory-inline:v1:edge-case -->\nbody",
+                "body": "<!-- formal-conjectures:live-ai-inline:v1:edge-case -->\nbody",
                 "commit_id": HEAD, "path": "Target/Statement.lean", "line": 3, "side": "RIGHT",
             }), encoding="utf-8")
             inline_comments = root / "inline-comments.json"
             inline_comments.write_text(json.dumps([{
                 "id": 9, "user": {"login": "review-bot[bot]"},
-                "body": "<!-- fc-review-bot:advisory-inline:v1:edge-case -->\nold",
+                "body": "<!-- formal-conjectures:live-ai-inline:v1:edge-case -->\nold",
                 "commit_id": "d" * 40, "path": "Target/Statement.lean", "line": 3, "side": "RIGHT",
             }]), encoding="utf-8")
             result = self.run_cli(

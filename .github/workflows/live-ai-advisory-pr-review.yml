@@ -109,7 +109,7 @@ jobs:
           persist-credentials: false
       - name: Create conclusion-free sanitized model input
         env:
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           CONFIG: ${{ inputs.live_ai_config_path }}
           EXPECTED_HEAD: ${{ inputs.expected_head }}
           RUN_AI_REVIEW: ${{ inputs.run_ai_review }}
@@ -118,10 +118,10 @@ jobs:
           args=()
           [[ "$RUN_AI_REVIEW" == true ]] && args+=(--run-ai-review)
           [[ "$PUBLISH_COMMENT" == true ]] && args+=(--publish-comment)
-          python3 -B reviewer/scripts/live_ai_pr_review.py prepare \
+          python3 -B -m fc_review_bot prepare \
             --config "reviewer/${CONFIG}" --live-pr binding/live-pr.json --source-root review-target \
             --expected-head "$EXPECTED_HEAD" \
-            --prompt-template reviewer/.agents/prompts/live-ai-review-role.md \
+            --skill-path reviewer/.agents/skills/formal-conjectures-review/SKILL.md --agents-path reviewer/AGENTS.md \
             --output-schema reviewer/.agents/schemas/live-ai-review-role-output.schema.json \
             --output-dir live-ai-input "${args[@]}"
           test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
@@ -135,7 +135,7 @@ jobs:
         env:
           STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
         run: |
-          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot record-phase \
             --phase prepare --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
             --finished-at-epoch-ms "$(date +%s%3N)" --output live-ai-input/phase-prepare.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -169,7 +169,7 @@ jobs:
       - name: Recheck exact head
         env:
           GH_TOKEN: ${{ github.token }}
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           CONFIG: ${{ inputs.live_ai_config_path }}
           EXPECTED_HEAD: ${{ inputs.expected_head }}
           OWNER: ${{ inputs.owner }}
@@ -178,9 +178,9 @@ jobs:
         run: |
           mkdir -p deterministic-evidence
           gh api "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}" > deterministic-evidence/live-pr.json
-          python3 -B reviewer/scripts/live_ai_pr_review.py prepare \
+          python3 -B -m fc_review_bot prepare \
             --config "reviewer/${CONFIG}" --live-pr deterministic-evidence/live-pr.json --source-root review-target \
-            --expected-head "$EXPECTED_HEAD" --prompt-template reviewer/.agents/prompts/live-ai-review-role.md \
+            --expected-head "$EXPECTED_HEAD" --skill-path reviewer/.agents/skills/formal-conjectures-review/SKILL.md --agents-path reviewer/AGENTS.md \
             --output-schema reviewer/.agents/schemas/live-ai-review-role-output.schema.json \
             --output-dir deterministic-evidence/binding
       - name: Install elan
@@ -190,7 +190,7 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Run bounded checks and retain typed outcome
         env:
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           CONFIG: ${{ inputs.live_ai_config_path }}
           BUILD_TARGET: ${{ inputs.build_target }}
           EXPECTED_HEAD: ${{ inputs.expected_head }}
@@ -204,12 +204,12 @@ jobs:
           base_oid=$(python3 -c 'import json; print(json.load(open("deterministic-evidence/live-pr.json"))["base"]["sha"])')
           git -C review-target diff --check "$base_oid...$EXPECTED_HEAD" > deterministic-evidence/diff-check.log 2>&1
           diff_exit=$?
-          python3 -B reviewer/scripts/live_ai_pr_review.py check-imports \
+          python3 -B -m fc_review_bot check-imports \
             --config "reviewer/${CONFIG}" --source-root review-target \
             --output deterministic-evidence/import-policy.json > deterministic-evidence/import-policy.log 2>&1
           import_exit=$?
           set -e
-          python3 -B reviewer/scripts/live_ai_pr_review.py capture-deterministic \
+          python3 -B -m fc_review_bot capture-deterministic \
             --config "reviewer/${CONFIG}" --build-target "$BUILD_TARGET" \
             --lean-exit "$lean_exit" --diff-exit "$diff_exit" \
             --style-exit "$style_exit" --import-exit "$import_exit" \
@@ -223,7 +223,7 @@ jobs:
         env:
           STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
         run: |
-          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot record-phase \
             --phase deterministic --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
             --finished-at-epoch-ms "$(date +%s%3N)" --output deterministic-evidence/phase-deterministic.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -247,7 +247,7 @@ jobs:
         run: test -n "$FC_REVIEW_ANTHROPIC_API_KEY"
 
   ai-primary:
-    name: Primary clean-room Claude review
+    name: Primary Claude review using the FC skill
     needs: [prepare, ai-preflight]
     if: ${{ inputs.run_ai_review }}
     runs-on: ubuntu-latest
@@ -262,24 +262,25 @@ jobs:
       - id: phase-start
         name: Record primary review start
         run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
-        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .fc-review-input}
       - id: contract
-        name: Load trusted prompt and output schema
+        name: Load the bound FC skill contract
         run: |
-          git init -q .
-          git config user.name fc-review-input
-          git config user.email fc-review-input@invalid.example
-          git add --all && git commit -q -m 'Bind sanitized review input'
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          cat prompt-primary_review.md >> "$GITHUB_OUTPUT"
+          cat .fc-review-input/prompt-primary_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:
           anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
           prompt: ${{ steps.contract.outputs.prompt }}
           display_report: "false"
           show_full_output: "false"
@@ -289,8 +290,7 @@ jobs:
           claude_args: >-
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
-            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
-            --permission-mode plan --safe-mode --disable-slash-commands
+            --permission-mode plan --safe-mode
             --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
@@ -304,7 +304,7 @@ jobs:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
           STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
         run: |
-          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py capture-provider-usage \
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot capture-provider-usage \
             --role primary_review --execution-file "$EXECUTION_FILE" --model "${{ inputs.model }}" \
             --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
             --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
@@ -329,11 +329,11 @@ jobs:
       - id: inspect
         name: Inspect actual primary output; retain typed validation error
         env:
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
           FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
         run: |
-          python3 -B reviewer/scripts/live_ai_pr_review.py inspect-primary \
+          python3 -B -m fc_review_bot inspect-primary \
             --input-manifest live-ai-input/input-manifest.json --output primary-inspection.json
           echo "status=$(jq -r .status primary-inspection.json)" >> "$GITHUB_OUTPUT"
           echo "escalation_required=$(jq -r .escalation_required primary-inspection.json)" >> "$GITHUB_OUTPUT"
@@ -345,7 +345,7 @@ jobs:
           retention-days: 14
 
   ai-escalation:
-    name: Optional clean-room Claude escalation
+    name: Optional FC skill escalation
     needs: [prepare, ai-preflight, inspect-primary]
     if: >-
       ${{ inputs.run_ai_review &&
@@ -362,24 +362,25 @@ jobs:
       - id: phase-start
         name: Record escalation review start
         run: echo "epoch_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repository }}
+          ref: refs/pull/${{ inputs.pull_request }}/head
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
-        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .}
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: .fc-review-input}
       - id: contract
-        name: Load trusted escalation prompt and output schema
+        name: Load the bound FC skill contract
         run: |
-          git init -q .
-          git config user.name fc-review-input
-          git config user.email fc-review-input@invalid.example
-          git add --all && git commit -q -m 'Bind sanitized review input'
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          cat prompt-escalation_review.md >> "$GITHUB_OUTPUT"
+          cat .fc-review-input/prompt-escalation_review.md >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c . role-output.schema.json)" >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:
           anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
           prompt: ${{ steps.contract.outputs.prompt }}
           display_report: "false"
           show_full_output: "false"
@@ -389,8 +390,7 @@ jobs:
           claude_args: >-
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
-            --tools "Read,Glob,Grep" --disallowedTools "mcp__*"
-            --permission-mode plan --safe-mode --disable-slash-commands
+            --permission-mode plan --safe-mode
             --no-session-persistence --max-turns 20
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
@@ -404,7 +404,7 @@ jobs:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
           STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
         run: |
-          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py capture-provider-usage \
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot capture-provider-usage \
             --role escalation_review --execution-file "$EXECUTION_FILE" --model "${{ inputs.model }}" \
             --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
             --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
@@ -429,7 +429,7 @@ jobs:
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: live-ai-input}
       - name: Validate exact structured outputs; no stored fallback
         env:
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
           FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
           FC_AI_PRIMARY_REVIEW_USAGE: ${{ needs.ai-primary.outputs.usage }}
@@ -452,7 +452,7 @@ jobs:
           elif [[ "$PRIMARY_REASON" == primary_inconclusive ]]; then
             escalation_trigger=ambiguity
           fi
-          python3 -B reviewer/scripts/live_ai_pr_review.py validate-panel \
+          python3 -B -m fc_review_bot validate-panel \
             --input-manifest live-ai-input/input-manifest.json --output-dir ai-evidence \
             --action-commit d40ddef4c030e508327d6e35a9c45f3368482c50 \
             --model "$MODEL" --effort "$EFFORT" \
@@ -482,7 +482,7 @@ jobs:
         run: |
           echo "artifact_name=fc-live-ai-progress-${PULL_REQUEST}-${EXPECTED_HEAD}" >> "$GITHUB_OUTPUT"
           mkdir -p progress
-          PYTHONPATH=reviewer/scripts python3 -B reviewer/scripts/live_ai_pr_review.py render \
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot render \
             --panel ai-evidence/ai-review-panel.json --phase in-progress --expected-head "$EXPECTED_HEAD" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --artifact-name "fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}" \
@@ -512,10 +512,10 @@ jobs:
         with: {name: "${{ needs.validate-ai.outputs.artifact_name }}", path: ai-evidence}
       - name: Prepare exact-head suggestion candidate
         id: prepare
-        env: {PYTHONPATH: reviewer/scripts, EXPECTED_HEAD: "${{ inputs.expected_head }}"}
+        env: {PYTHONPATH: reviewer/.agents/fc-review-bot/src, EXPECTED_HEAD: "${{ inputs.expected_head }}"}
         run: |
           test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
-          python3 -B reviewer/scripts/live_ai_pr_review.py validate-suggestion \
+          python3 -B -m fc_review_bot validate-suggestion \
             --panel ai-evidence/ai-review-panel.json --source-root review-target --output prepared.json
           echo "outcome=$(jq -r .outcome prepared.json)" >> "$GITHUB_OUTPUT"
       - name: Install elan for suggestion validation
@@ -528,7 +528,7 @@ jobs:
         env:
           BUILD_TARGET: "${{ inputs.build_target }}"
           EXPECTED_HEAD: "${{ inputs.expected_head }}"
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
         run: |
           mkdir -p suggestion-results suggestion-logs
           if [[ "${{ steps.prepare.outputs.outcome }}" == prepared ]]; then
@@ -536,7 +536,7 @@ jobs:
           fi
           while IFS= read -r key; do
             git -C review-target restore --source="$EXPECTED_HEAD" --worktree --staged -- .
-            python3 -B reviewer/scripts/live_ai_pr_review.py apply-suggestion \
+            python3 -B -m fc_review_bot apply-suggestion \
               --prepared prepared.json --key "$key" --source-root review-target
             set +e
             timeout 8m bash -c 'cd review-target && lake --wfail build "$BUILD_TARGET"' > "suggestion-logs/${key}-build.log" 2>&1
@@ -544,11 +544,11 @@ jobs:
             git -C review-target diff --check > "suggestion-logs/${key}-diff-check.log" 2>&1
             diff_exit=$?
             set -e
-            python3 -B reviewer/scripts/live_ai_pr_review.py record-suggestion \
+            python3 -B -m fc_review_bot record-suggestion \
               --prepared prepared.json --key "$key" --build-exit "$build_exit" --diff-exit "$diff_exit" \
               --output "suggestion-results/${key}.json"
           done < <(jq -r '.candidates[] | select(.status == "prepared") | .key' prepared.json)
-          python3 -B reviewer/scripts/live_ai_pr_review.py aggregate-suggestions \
+          python3 -B -m fc_review_bot aggregate-suggestions \
             --prepared prepared.json --results-dir suggestion-results --output suggestion-validation.json
       - id: metadata
         env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}"}
@@ -603,20 +603,20 @@ jobs:
         env:
           PULL_REQUEST: "${{ inputs.pull_request }}"
           EXPECTED_HEAD: "${{ inputs.expected_head }}"
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           STARTED_AT_EPOCH_MS: ${{ steps.phase-start.outputs.epoch_ms }}
         run: |
           artifact="fc-live-ai-final-${PULL_REQUEST}-${EXPECTED_HEAD}"
           echo "artifact_name=${artifact}" >> "$GITHUB_OUTPUT"
-          python3 -B reviewer/scripts/live_ai_pr_review.py record-phase \
+          python3 -B -m fc_review_bot record-phase \
             --phase finalize --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" \
             --finished-at-epoch-ms "$(date +%s%3N)" --output final/phase-finalize.json
-          python3 -B reviewer/scripts/live_ai_pr_review.py aggregate-cost-ledger \
+          python3 -B -m fc_review_bot aggregate-cost-ledger \
             --panel final/ai-evidence/ai-review-panel.json \
             --prepare-timing final/input/phase-prepare.json \
             --deterministic-timing final/deterministic/phase-deterministic.json \
             --finalize-timing final/phase-finalize.json --output final/cost-ledger.json
-          python3 -B reviewer/scripts/live_ai_pr_review.py render \
+          python3 -B -m fc_review_bot render \
             --panel final/ai-evidence/ai-review-panel.json \
             --deterministic final/deterministic/runtime-deterministic.json \
             --suggestion-validation final/suggestions/suggestion-validation.json \
@@ -651,7 +651,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           OWNER: ${{ inputs.owner }}
           REPOSITORY: ${{ inputs.repository }}
           PULL_REQUEST: ${{ inputs.pull_request }}
@@ -662,7 +662,7 @@ jobs:
             --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
             --expected-head "$EXPECTED_HEAD" --output binding.json
           gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > comments.json
-          python3 -B reviewer/scripts/live_ai_pr_review.py select-summary --comments comments.json --app-slug "$APP_SLUG" --output selection.json
+          python3 -B -m fc_review_bot select-summary --comments comments.json --app-slug "$APP_SLUG" --output selection.json
           action=$(jq -r .action selection.json); id=$(jq -r '.comment_id // ""' selection.json)
           if [[ "$action" == create ]]; then
             gh api --method POST "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" --input progress/summary.json
@@ -694,7 +694,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-          PYTHONPATH: reviewer/scripts
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
           OWNER: ${{ inputs.owner }}
           REPOSITORY: ${{ inputs.repository }}
           PULL_REQUEST: ${{ inputs.pull_request }}
@@ -705,7 +705,7 @@ jobs:
             --owner "$OWNER" --repository "$REPOSITORY" --pull-request "$PULL_REQUEST" \
             --expected-head "$EXPECTED_HEAD" --output binding.json
           gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/issues/${PULL_REQUEST}/comments" > summary-comments.json
-          python3 -B reviewer/scripts/live_ai_pr_review.py select-summary --comments summary-comments.json --app-slug "$APP_SLUG" --output summary-selection.json
+          python3 -B -m fc_review_bot select-summary --comments summary-comments.json --app-slug "$APP_SLUG" --output summary-selection.json
           test "$(jq -r .action summary-selection.json)" = update
           summary_id=$(jq -r .comment_id summary-selection.json)
           gh api --method PATCH "repos/${OWNER}/${REPOSITORY}/issues/comments/${summary_id}" --input final/summary.json
@@ -713,7 +713,7 @@ jobs:
             gh api --paginate --slurp "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" > inline-comments.json
             for request in final/inline/*.json; do
               key=$(basename "$request" .json)
-              python3 -B reviewer/scripts/live_ai_pr_review.py select-inline --comments inline-comments.json \
+              python3 -B -m fc_review_bot select-inline --comments inline-comments.json \
                 --request "$request" --app-slug "$APP_SLUG" --output "inline-selection-${key}.json"
               if [[ "$(jq -r .action "inline-selection-${key}.json")" == create ]]; then
                 gh api --method POST "repos/${OWNER}/${REPOSITORY}/pulls/${PULL_REQUEST}/comments" --input "$request"

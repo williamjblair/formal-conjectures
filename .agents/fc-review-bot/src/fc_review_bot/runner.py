@@ -33,8 +33,8 @@ PRIMARY_ROLE = "primary_review"
 ESCALATION_ROLE = "escalation_review"
 ROLES = (PRIMARY_ROLE, ESCALATION_ROLE)
 NONCLAIMS = ["maintainer_disposition", "mathematical_truth", "merge_decision"]
-SUMMARY_MARKER = "<!-- fc-review-bot:advisory-review:v1 -->"
-INLINE_PREFIX = "fc-review-bot:advisory-inline:v1:"
+SUMMARY_MARKER = "<!-- formal-conjectures:live-ai-review:v1 -->"
+INLINE_PREFIX = "formal-conjectures:live-ai-inline:v1:"
 NOT_REPORTED = "unknown/not reported by provider"
 
 
@@ -948,7 +948,7 @@ def select_summary(args: argparse.Namespace) -> None:
 
 def select_inline(args: argparse.Namespace) -> None:
     request = load(Path(args.request))
-    marker = re.search(r"<!-- fc-review-bot:advisory-inline:v1:[a-z0-9-]+ -->", request.get("body", ""))
+    marker = re.search(r"<!-- formal-conjectures:live-ai-inline:v1:[a-z0-9-]+ -->", request.get("body", ""))
     if marker is None:
         raise AuditError("live AI inline request lacks a stable finding marker")
     login = f"{string(args.app_slug, 'app slug', 100)}[bot]"

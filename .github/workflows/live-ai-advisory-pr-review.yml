@@ -33,6 +33,11 @@ on:
         required: true
         default: FormalConjectures.ErdosProblems.«430»
         type: string
+      expected_import:
+        description: Exact import policy for the reviewed module
+        required: true
+        default: FormalConjecturesUtil
+        type: string
       run_ai_review:
         description: Invoke one fresh primary Claude review; false is a credential-free deterministic pilot
         required: true
@@ -206,6 +211,7 @@ jobs:
           diff_exit=$?
           python3 -B -m fc_review_bot check-imports \
             --config "reviewer/${CONFIG}" --source-root review-target \
+            --expected-import "${{ inputs.expected_import }}" \
             --output deterministic-evidence/import-policy.json > deterministic-evidence/import-policy.log 2>&1
           import_exit=$?
           set -e

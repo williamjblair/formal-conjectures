@@ -282,6 +282,7 @@ jobs:
         run: |
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           cat .fc-review-input/prompt-primary_review.md >> "$GITHUB_OUTPUT"
+          echo >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
@@ -382,6 +383,7 @@ jobs:
         run: |
           echo 'prompt<<__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           cat .fc-review-input/prompt-escalation_review.md >> "$GITHUB_OUTPUT"
+          echo >> "$GITHUB_OUTPUT"
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude

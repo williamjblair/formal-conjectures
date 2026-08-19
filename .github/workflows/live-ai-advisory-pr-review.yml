@@ -72,6 +72,12 @@ on:
         default: "5.00"
         type: choice
         options: ["1.00", "2.50", "5.00", "10.00"]
+      max_turns:
+        description: Bounded agent turns for the primary or optional escalation review
+        required: true
+        default: "40"
+        type: choice
+        options: ["20", "40", "60"]
 
 permissions:
   contents: read
@@ -303,7 +309,7 @@ jobs:
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
             --permission-mode plan --safe-mode
-            --no-session-persistence --max-turns 40
+            --no-session-persistence --max-turns ${{ inputs.max_turns }}
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
         if: ${{ always() }}
@@ -404,7 +410,7 @@ jobs:
             --model "${{ inputs.model }}" --effort "${{ inputs.effort }}"
             --json-schema '${{ steps.contract.outputs.schema }}'
             --permission-mode plan --safe-mode
-            --no-session-persistence --max-turns 40
+            --no-session-persistence --max-turns ${{ inputs.max_turns }}
             --max-budget-usd "${{ inputs.max_budget_usd_per_role }}"
       - name: Load trusted usage sanitizer after model execution
         if: ${{ always() }}

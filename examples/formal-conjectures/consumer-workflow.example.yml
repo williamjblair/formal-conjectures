@@ -1,0 +1,21 @@
+# Interface sketch for the future thin Formal Conjectures caller.
+# Pin the package/action commit; never use a floating ref in production.
+name: FC advisory review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request: {required: true, type: string}
+      expected_head: {required: true, type: string}
+      config_path: {required: true, type: string}
+      build_target: {required: true, type: string}
+      run_ai_review: {required: true, default: true, type: boolean}
+      publish_comment: {required: true, default: false, type: boolean}
+
+# Consumer jobs retain exact source assembly, Lean/diff/style/import gates,
+# Claude credential injection, and App-token publication. The model job uses
+# .agents/skills/formal-conjectures-review/SKILL.md and AGENTS.md from the
+# pinned checkout; fc-review-bot only prepares/validates/renders the run.
+# Pin the engine immutable installation, then call prepare with:
+#   --skill-path .agents/skills/formal-conjectures-review/SKILL.md
+#   --agents-path AGENTS.md

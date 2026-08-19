@@ -1,0 +1,31 @@
+{
+  "schema_version": "formal-conjectures.live-ai-review-config.v1",
+  "repository": {
+    "owner": "OWNER",
+    "name": "formal-conjectures",
+    "url": "https://github.com/OWNER/formal-conjectures",
+    "pull_request": 1,
+    "base_commit_oid": "0000000000000000000000000000000000000000",
+    "head_commit_oid": "0000000000000000000000000000000000000000"
+  },
+  "scope": {
+    "path": "FormalConjectures/Source/Problem.lean",
+    "declaration": "Namespace.problem",
+    "head_source_root": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "sources": [
+    {
+      "id": "consumer-rubric",
+      "locator": "consumer-owned exact rubric",
+      "path": "inputs/rubric.txt",
+      "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "original",
+      "locator": "immutable source locator",
+      "path": "inputs/original.txt",
+      "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"]
+}

@@ -25,6 +25,8 @@ ROLE_VERSION = "formal-conjectures.live-ai-review-role-result.v1"
 PANEL_VERSION = "formal-conjectures.live-ai-review-panel.v1"
 SUGGESTION_VERSION = "formal-conjectures.live-ai-suggestion-validation.v1"
 COST_ROLE_VERSION = "formal-conjectures.live-ai-provider-usage.v1"
+PROVIDER_CONTROL_VERSION = "formal-conjectures.live-ai-provider-controls.v1"
+PROVIDER_JOB_FAILURE_VERSION = "formal-conjectures.live-ai-provider-job-failure.v1"
 COST_LEDGER_VERSION = "formal-conjectures.live-ai-cost-ledger.v1"
 PHASE_TIMING_VERSION = "formal-conjectures.live-ai-phase-timing.v1"
 OID = re.compile(r"^[0-9a-f]{40}$")
@@ -112,6 +114,14 @@ def prepare(args: argparse.Namespace) -> None:
         raise AuditError("dispatch head differs from trusted live AI config")
     if args.publish_comment and not args.run_ai_review:
         raise AuditError("publication requires a real AI review execution")
+    max_turns = int(args.max_turns)
+    max_wall_clock_seconds = int(args.max_ai_wall_clock_seconds)
+    if max_turns < 1 or max_turns > 100:
+        raise AuditError("model turn ceiling must be between 1 and 100")
+    if max_wall_clock_seconds < 60 or max_wall_clock_seconds > 3600:
+        raise AuditError("model wall-clock ceiling must be between 60 and 3600 seconds")
+    if args.max_budget_usd_per_role not in {"1.00", "2.50", "5.00", "10.00"}:
+        raise AuditError("model budget ceiling is unsupported")
     live = load(Path(args.live_pr))
     if (
         live.get("number") != repository["pull_request"]
@@ -186,6 +196,11 @@ def prepare(args: argparse.Namespace) -> None:
         "input_root": manifest["root"],
         "run_ai_review": args.run_ai_review,
         "publish_comment": args.publish_comment,
+        "provider_controls": {
+            "max_budget_usd": args.max_budget_usd_per_role,
+            "max_turns": max_turns,
+            "max_wall_clock_seconds": max_wall_clock_seconds,
+        },
         "authority_effect": "none",
     })
 
@@ -379,7 +394,10 @@ def capture_provider_usage(args: argparse.Namespace) -> None:
     finished = int(args.finished_at_epoch_ms)
     if started < 0 or finished < started:
         raise AuditError("provider usage wall-clock bounds are malformed")
-    result, file_status, file_reason = execution_result(args.execution_file)
+    try:
+        result, file_status, file_reason = execution_result(args.execution_file)
+    except (AuditError, OSError, UnicodeError, ValueError) as error:
+        result, file_status, file_reason = None, "rejected", str(error)[:500]
     result = result or {}
     usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
     model_usage = result.get("modelUsage") if isinstance(result.get("modelUsage"), dict) else {}
@@ -452,6 +470,135 @@ def capture_provider_usage(args: argparse.Namespace) -> None:
     })
 
 
+def evaluate_provider_controls(args: argparse.Namespace) -> None:
+    usage = load(Path(args.usage))
+    if (
+        usage.get("schema_version") != COST_ROLE_VERSION
+        or usage.get("role") != args.role
+        or usage.get("provider") != "anthropic"
+        or usage.get("model") != args.model
+        or usage.get("configured_cap_usd") != args.max_budget_usd_per_role
+        or usage.get("nonclaims") != NONCLAIMS
+    ):
+        raise AuditError("provider usage does not match the configured control identity")
+    if args.action_outcome not in {"success", "failure", "cancelled", "timed_out"}:
+        raise AuditError("provider action outcome is unsupported")
+    if args.structured_output_present not in {"true", "false"}:
+        raise AuditError("structured-output presence must be true or false")
+    max_turns = int(args.max_turns)
+    max_wall_clock_seconds = int(args.max_ai_wall_clock_seconds)
+    if max_turns < 1 or max_turns > 100:
+        raise AuditError("provider turn ceiling must be between 1 and 100")
+    if max_wall_clock_seconds < 60 or max_wall_clock_seconds > 3600:
+        raise AuditError("provider wall-clock ceiling must be between 60 and 3600 seconds")
+    budget_limit = Decimal(args.max_budget_usd_per_role)
+
+    def bounded_check(observed: int | Decimal | None, limit: int | Decimal) -> dict[str, Any]:
+        if observed is None:
+            retained_limit = str(limit) if isinstance(limit, Decimal) else limit
+            return {"outcome": "error", "observed": None, "limit": retained_limit, "reason": NOT_REPORTED}
+        retained_observed = str(observed) if isinstance(observed, Decimal) else observed
+        retained_limit = str(limit) if isinstance(limit, Decimal) else limit
+        return {
+            "outcome": "pass" if observed <= limit else "fail",
+            "observed": retained_observed,
+            "limit": retained_limit,
+            "reason": None if observed <= limit else "reported value exceeded the configured ceiling",
+        }
+
+    cost_metric = obj(usage.get("actual_cost_usd"), "provider usage cost")
+    turn_metric = obj(usage.get("turn_count"), "provider usage turns")
+    timing = obj(usage.get("timing"), "provider usage timing")
+    cost = (
+        Decimal(string(cost_metric.get("value"), "reported provider cost", 100))
+        if cost_metric.get("status") == "reported" else None
+    )
+    turns = nonnegative_integer(turn_metric.get("value")) if turn_metric.get("status") == "reported" else None
+    wall_clock_ms = nonnegative_integer(timing.get("wall_clock_ms"))
+    structured_output_present = args.structured_output_present == "true"
+    execution_status = obj(usage.get("execution_file"), "provider execution file").get("status")
+    checks = {
+        "action": {
+            "outcome": "pass" if args.action_outcome == "success" else "fail",
+            "observed": args.action_outcome,
+            "limit": "success",
+            "reason": None if args.action_outcome == "success" else "provider action did not complete successfully",
+        },
+        "structured_output": {
+            "outcome": "pass" if structured_output_present else "fail",
+            "observed": structured_output_present,
+            "limit": True,
+            "reason": None if structured_output_present else "provider returned no structured output",
+        },
+        "execution_receipt": {
+            "outcome": "pass" if execution_status == "parsed" else "error",
+            "observed": execution_status,
+            "limit": "parsed",
+            "reason": None if execution_status == "parsed" else "provider execution receipt was unavailable or invalid",
+        },
+        "cost_usd": bounded_check(cost, budget_limit),
+        "turn_count": bounded_check(turns, max_turns),
+        "wall_clock_ms": bounded_check(wall_clock_ms, max_wall_clock_seconds * 1000),
+    }
+    outcomes = {item["outcome"] for item in checks.values()}
+    outcome = "fail" if "fail" in outcomes else "error" if "error" in outcomes else "pass"
+    without_root = {
+        "schema_version": PROVIDER_CONTROL_VERSION,
+        "role": args.role,
+        "provider": "anthropic",
+        "model": args.model,
+        "configured": {
+            "max_budget_usd": args.max_budget_usd_per_role,
+            "max_turns": max_turns,
+            "max_wall_clock_seconds": max_wall_clock_seconds,
+        },
+        "observed_usage_root": content_root(usage),
+        "checks": checks,
+        "outcome": outcome,
+        "authority": "producer_evidence_only",
+        "nonclaims": NONCLAIMS,
+    }
+    write_canonical(Path(args.output), {**without_root, "root": content_root(without_root)})
+
+
+def record_provider_job_failure(args: argparse.Namespace) -> None:
+    if args.role not in ROLES:
+        raise AuditError("provider failure role is unsupported")
+    if args.job_result not in {"failure", "cancelled"}:
+        raise AuditError("provider failure job result is unsupported")
+    preflight = load(Path(args.preflight))
+    if (
+        preflight.get("schema_version") != "formal-conjectures.live-ai-review-preflight.v1"
+        or preflight.get("authority_effect") != "none"
+        or SHA.fullmatch(str(preflight.get("input_root"))) is None
+        or OID.fullmatch(str(preflight.get("head_commit_oid"))) is None
+    ):
+        raise AuditError("provider failure preflight identity is unsupported")
+    configured = exact(
+        preflight.get("provider_controls"),
+        {"max_budget_usd", "max_turns", "max_wall_clock_seconds"},
+        "preflight provider controls",
+    )
+    without_root = {
+        "schema_version": PROVIDER_JOB_FAILURE_VERSION,
+        "role": args.role,
+        "input_root": preflight["input_root"],
+        "head_commit_oid": preflight["head_commit_oid"],
+        "configured": configured,
+        "job_result": args.job_result,
+        "outcome": "error",
+        "observed": {
+            "actual_cost_usd": typed_metric(None, "AI job ended before durable provider usage was guaranteed"),
+            "turn_count": typed_metric(None, "AI job ended before durable provider usage was guaranteed"),
+            "wall_clock_ms": typed_metric(None, "AI job ended at or before the hard GitHub job ceiling"),
+        },
+        "reason": "AI job failed or was cancelled before downstream validation; no candidate disposition may be inferred.",
+        "authority": "producer_evidence_only",
+        "nonclaims": NONCLAIMS,
+    }
+    write_canonical(Path(args.output), {**without_root, "root": content_root(without_root)})
+
+
 def unknown_provider_usage(role: str, model: str, cap: str) -> dict[str, Any]:
     return {
         "schema_version": COST_ROLE_VERSION, "role": role, "provider": "anthropic", "model": model,
@@ -487,6 +634,42 @@ def provider_usage_from_env(role: str, model: str, cap: str) -> dict[str, Any]:
     }
     if set(value) != allowed:
         raise AuditError(f"provider usage receipt contains unsupported fields for {role}")
+    return value
+
+
+def provider_controls_from_env(
+    role: str, model: str, cap: str, max_turns: int, max_wall_clock_seconds: int,
+    usage: dict[str, Any],
+) -> dict[str, Any]:
+    name = f"FC_AI_{role.upper()}_CONTROLS"
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        raise AuditError(f"provider control receipt is missing for {role}")
+    value = exact(
+        obj(parse_json_bytes(raw.encode(), label=name), "provider controls"),
+        {"schema_version", "role", "provider", "model", "configured", "observed_usage_root", "checks", "outcome", "authority", "nonclaims", "root"},
+        "provider controls",
+    )
+    root = value.pop("root")
+    if SHA.fullmatch(str(root)) is None or content_root(value) != root:
+        raise AuditError(f"provider control receipt root is invalid for {role}")
+    value["root"] = root
+    if (
+        value["schema_version"] != PROVIDER_CONTROL_VERSION
+        or value["role"] != role
+        or value["provider"] != "anthropic"
+        or value["model"] != model
+        or value["configured"] != {
+            "max_budget_usd": cap,
+            "max_turns": max_turns,
+            "max_wall_clock_seconds": max_wall_clock_seconds,
+        }
+        or value["observed_usage_root"] != content_root(usage)
+        or value["outcome"] != "pass"
+        or value["authority"] != "producer_evidence_only"
+        or value["nonclaims"] != NONCLAIMS
+    ):
+        raise AuditError(f"provider controls did not pass at the configured bounds for {role}")
     return value
 
 
@@ -529,6 +712,10 @@ def validate_panel(args: argparse.Namespace) -> None:
         raise AuditError("model per-role budget is unsupported")
     if args.configured_role_limit not in {1, 2}:
         raise AuditError("configured model role limit is unsupported")
+    if args.max_turns < 1 or args.max_turns > 100:
+        raise AuditError("configured model turn ceiling is unsupported")
+    if args.max_ai_wall_clock_seconds < 60 or args.max_ai_wall_clock_seconds > 3600:
+        raise AuditError("configured model wall-clock ceiling is unsupported")
     if not args.github_run_id.isdigit() or not args.github_run_attempt.isdigit():
         raise AuditError("GitHub execution receipt is malformed")
     string(args.model, "model", 100)
@@ -556,11 +743,17 @@ def validate_panel(args: argparse.Namespace) -> None:
         if result is None:
             continue
         roles[role], session_id = result
+        usage = provider_usage_from_env(role, args.model, args.max_budget_usd_per_role)
         receipts[role] = {
             "session_id": session_id,
             "structured_output_root": content_root(roles[role]),
-            "provider_usage": provider_usage_from_env(role, args.model, args.max_budget_usd_per_role),
+            "provider_usage": usage,
         }
+        if args.require_provider_controls:
+            receipts[role]["provider_controls"] = provider_controls_from_env(
+                role, args.model, args.max_budget_usd_per_role, args.max_turns,
+                args.max_ai_wall_clock_seconds, usage,
+            )
         write_canonical(raw_outputs / f"{role}.json", roles[role])
     if PRIMARY_ROLE not in roles and ESCALATION_ROLE not in roles:
         raise AuditError("no valid model review receipt is available; review remains fail-closed")
@@ -585,6 +778,8 @@ def validate_panel(args: argparse.Namespace) -> None:
             "provider": "anthropic", "runner": "claude-code-action", "action_commit": args.action_commit,
             "model": args.model, "effort": args.effort,
             "max_budget_usd_per_role": args.max_budget_usd_per_role,
+            "max_turns_per_role": args.max_turns,
+            "max_ai_wall_clock_seconds_per_role": args.max_ai_wall_clock_seconds,
             "configured_role_limit": args.configured_role_limit,
             "max_budget_usd_total": f"{total_cap:.2f}",
             "role_receipts": receipts,
@@ -1016,6 +1211,9 @@ def parser() -> argparse.ArgumentParser:
         p.add_argument(f"--{name}", required=True)
     p.add_argument("--run-ai-review", action="store_true")
     p.add_argument("--publish-comment", action="store_true")
+    p.add_argument("--max-budget-usd-per-role", default="1.00")
+    p.add_argument("--max-turns", type=int, default=20)
+    p.add_argument("--max-ai-wall-clock-seconds", type=int, default=1200)
     p = sub.add_parser("validate-panel")
     for name in (
         "input-manifest", "output-dir", "action-commit", "model", "effort", "max-budget-usd-per-role",
@@ -1024,11 +1222,23 @@ def parser() -> argparse.ArgumentParser:
         p.add_argument(f"--{name}", required=True)
     p.add_argument("--escalation-trigger", default="none")
     p.add_argument("--configured-role-limit", type=int, default=2)
+    p.add_argument("--max-turns", type=int, default=20)
+    p.add_argument("--max-ai-wall-clock-seconds", type=int, default=1200)
+    p.add_argument("--require-provider-controls", action="store_true")
     p = sub.add_parser("capture-provider-usage")
     for name in (
         "role", "execution-file", "model", "max-budget-usd-per-role", "started-at-epoch-ms",
         "finished-at-epoch-ms", "output",
     ):
+        p.add_argument(f"--{name}", required=True)
+    p = sub.add_parser("evaluate-provider-controls")
+    for name in (
+        "usage", "role", "model", "max-budget-usd-per-role", "max-turns",
+        "max-ai-wall-clock-seconds", "action-outcome", "structured-output-present", "output",
+    ):
+        p.add_argument(f"--{name}", required=True)
+    p = sub.add_parser("record-provider-job-failure")
+    for name in ("preflight", "role", "job-result", "output"):
         p.add_argument(f"--{name}", required=True)
     p = sub.add_parser("inspect-primary")
     for name in ("input-manifest", "output"):
@@ -1083,6 +1293,8 @@ def main() -> int:
     try:
         {"prepare": prepare, "inspect-primary": inspect_primary, "validate-panel": validate_panel,
          "capture-provider-usage": capture_provider_usage,
+         "evaluate-provider-controls": evaluate_provider_controls,
+         "record-provider-job-failure": record_provider_job_failure,
          "validate-suggestion": validate_suggestion,
          "apply-suggestion": apply_suggestion, "record-suggestion": record_suggestion,
          "aggregate-suggestions": aggregate_suggestions, "capture-deterministic": capture_deterministic,

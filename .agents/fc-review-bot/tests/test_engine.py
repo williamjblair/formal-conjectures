@@ -229,6 +229,155 @@ class EngineTest(unittest.TestCase):
             self.assertEqual(panel["disposition"]["advisory"], "nits_found")
             self.assertEqual(len(panel["findings"]), 1)
 
+    def test_provider_controls_retain_overruns_and_gate_panel_receipts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            failed_usage = self.usage()
+            failed_usage["configured_cap_usd"] = "1.00"
+            failed_usage["actual_cost_usd"] = {"status": "reported", "value": "1.0443573", "reason": None}
+            failed_usage["turn_count"] = {"status": "reported", "value": 26, "reason": None}
+            failed_usage["timing"]["wall_clock_ms"] = 477000
+            failed_usage_path = root / "failed-usage.json"
+            failed_usage_path.write_text(json.dumps(failed_usage), encoding="utf-8")
+            failed = root / "failed-controls.json"
+            result = self.run_cli(
+                "evaluate-provider-controls", "--usage", str(failed_usage_path), "--role", "primary_review",
+                "--model", "claude-sonnet-5", "--max-budget-usd-per-role", "1.00",
+                "--max-turns", "20", "--max-ai-wall-clock-seconds", "900",
+                "--action-outcome", "failure", "--structured-output-present", "false",
+                "--output", str(failed),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            failed_value = json.loads(failed.read_text())
+            self.assertEqual(failed_value["outcome"], "fail")
+            self.assertEqual(failed_value["checks"]["turn_count"]["outcome"], "fail")
+            self.assertEqual(failed_value["checks"]["turn_count"]["observed"], 26)
+            self.assertEqual(failed_value["checks"]["cost_usd"]["outcome"], "fail")
+            self.assertEqual(failed_value["checks"]["action"]["outcome"], "fail")
+            self.assertEqual(failed_value["checks"]["structured_output"]["outcome"], "fail")
+            self.assertEqual(failed_value["checks"]["wall_clock_ms"]["outcome"], "pass")
+
+            usage = root / "usage.json"
+            usage.write_text(json.dumps(self.usage()), encoding="utf-8")
+            passed = root / "passed-controls.json"
+            result = self.run_cli(
+                "evaluate-provider-controls", "--usage", str(usage), "--role", "primary_review",
+                "--model", "claude-sonnet-5", "--max-budget-usd-per-role", "5.00",
+                "--max-turns", "5", "--max-ai-wall-clock-seconds", "60",
+                "--action-outcome", "success", "--structured-output-present", "true",
+                "--output", str(passed),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            passed_value = json.loads(passed.read_text())
+            self.assertEqual(passed_value["outcome"], "pass")
+
+            prepared = self.prepare(root)
+            manifest = json.loads((prepared / "input-manifest.json").read_text())
+            output = root / "panel"
+            result = self.run_cli(
+                "validate-panel", "--input-manifest", str(prepared / "input-manifest.json"),
+                "--output-dir", str(output), "--action-commit", "c" * 40,
+                "--model", "claude-sonnet-5", "--effort", "high",
+                "--max-budget-usd-per-role", "5.00", "--max-turns", "5",
+                "--max-ai-wall-clock-seconds", "60", "--require-provider-controls",
+                "--github-run-id", "123", "--github-run-attempt", "1",
+                env={
+                    "FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(self.role(manifest["root"])),
+                    "FC_AI_PRIMARY_REVIEW_SESSION_ID": "session-primary",
+                    "FC_AI_PRIMARY_REVIEW_USAGE": json.dumps(self.usage()),
+                    "FC_AI_PRIMARY_REVIEW_CONTROLS": json.dumps(passed_value),
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            panel = json.loads((output / "ai-review-panel.json").read_text())
+            receipt = panel["execution"]["role_receipts"]["primary_review"]
+            self.assertEqual(receipt["provider_controls"]["root"], passed_value["root"])
+
+            stale_usage = self.usage()
+            stale_usage["actual_cost_usd"]["value"] = "0.26"
+            result = self.run_cli(
+                "validate-panel", "--input-manifest", str(prepared / "input-manifest.json"),
+                "--output-dir", str(root / "stale-panel"), "--action-commit", "c" * 40,
+                "--model", "claude-sonnet-5", "--effort", "high",
+                "--max-budget-usd-per-role", "5.00", "--max-turns", "5",
+                "--max-ai-wall-clock-seconds", "60", "--require-provider-controls",
+                "--github-run-id", "123", "--github-run-attempt", "1",
+                env={
+                    "FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(self.role(manifest["root"])),
+                    "FC_AI_PRIMARY_REVIEW_SESSION_ID": "session-primary",
+                    "FC_AI_PRIMARY_REVIEW_USAGE": json.dumps(stale_usage),
+                    "FC_AI_PRIMARY_REVIEW_CONTROLS": json.dumps(passed_value),
+                },
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("provider controls did not pass", result.stderr)
+
+            result = self.run_cli(
+                "validate-panel", "--input-manifest", str(prepared / "input-manifest.json"),
+                "--output-dir", str(root / "rejected-panel"), "--action-commit", "c" * 40,
+                "--model", "claude-sonnet-5", "--effort", "high",
+                "--max-budget-usd-per-role", "1.00", "--max-turns", "20",
+                "--max-ai-wall-clock-seconds", "900", "--require-provider-controls",
+                "--github-run-id", "123", "--github-run-attempt", "1",
+                env={
+                    "FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(self.role(manifest["root"])),
+                    "FC_AI_PRIMARY_REVIEW_SESSION_ID": "session-primary",
+                    "FC_AI_PRIMARY_REVIEW_USAGE": json.dumps(failed_usage),
+                    "FC_AI_PRIMARY_REVIEW_CONTROLS": json.dumps(failed_value),
+                },
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("provider controls did not pass", result.stderr)
+
+    def test_provider_controls_retain_malformed_missing_and_wall_clock_failures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            malformed = root / "malformed-execution.json"
+            malformed.write_text("{not-json", encoding="utf-8")
+            usage = root / "malformed-usage.json"
+            result = self.run_cli(
+                "capture-provider-usage", "--role", "primary_review",
+                "--execution-file", str(malformed), "--model", "claude-sonnet-5",
+                "--max-budget-usd-per-role", "5.00", "--started-at-epoch-ms", "1000",
+                "--finished-at-epoch-ms", "62001", "--output", str(usage),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            usage_value = json.loads(usage.read_text())
+            self.assertEqual(usage_value["execution_file"]["status"], "rejected")
+            self.assertEqual(usage_value["actual_cost_usd"]["status"], "unknown")
+            self.assertEqual(usage_value["turn_count"]["status"], "unknown")
+
+            controls = root / "malformed-controls.json"
+            result = self.run_cli(
+                "evaluate-provider-controls", "--usage", str(usage), "--role", "primary_review",
+                "--model", "claude-sonnet-5", "--max-budget-usd-per-role", "5.00",
+                "--max-turns", "20", "--max-ai-wall-clock-seconds", "60",
+                "--action-outcome", "failure", "--structured-output-present", "false",
+                "--output", str(controls),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            controls_value = json.loads(controls.read_text())
+            self.assertEqual(controls_value["outcome"], "fail")
+            self.assertEqual(controls_value["checks"]["execution_receipt"]["outcome"], "error")
+            self.assertEqual(controls_value["checks"]["cost_usd"]["outcome"], "error")
+            self.assertEqual(controls_value["checks"]["turn_count"]["outcome"], "error")
+            self.assertEqual(controls_value["checks"]["wall_clock_ms"]["outcome"], "fail")
+
+            prepared = self.prepare(root)
+            failure = root / "provider-job-failure.json"
+            result = self.run_cli(
+                "record-provider-job-failure", "--preflight", str(prepared / "preflight.json"),
+                "--role", "primary_review", "--job-result", "cancelled", "--output", str(failure),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            failure_value = json.loads(failure.read_text())
+            self.assertEqual(failure_value["outcome"], "error")
+            self.assertEqual(failure_value["head_commit_oid"], HEAD)
+            self.assertEqual(failure_value["job_result"], "cancelled")
+            self.assertEqual(failure_value["configured"]["max_turns"], 20)
+            self.assertEqual(failure_value["observed"]["actual_cost_usd"]["status"], "unknown")
+            self.assertEqual(failure_value["authority"], "producer_evidence_only")
+
     def test_cost_ledger_and_summary_are_bound_to_panel(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

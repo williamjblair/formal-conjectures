@@ -78,6 +78,12 @@ on:
         default: "20"
         type: choice
         options: ["20", "40", "60"]
+      max_ai_wall_clock_minutes:
+        description: Hard GitHub job wall-clock ceiling for each model pass
+        required: true
+        default: "15"
+        type: choice
+        options: ["10", "15", "20"]
 
 permissions:
   contents: read
@@ -114,7 +120,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ inputs.owner }}/${{ inputs.repository }}
-          ref: refs/pull/${{ inputs.pull_request }}/head
+          ref: ${{ inputs.expected_head }}
           fetch-depth: 0
           path: review-target
           persist-credentials: false
@@ -125,6 +131,9 @@ jobs:
           EXPECTED_HEAD: ${{ inputs.expected_head }}
           RUN_AI_REVIEW: ${{ inputs.run_ai_review }}
           PUBLISH_COMMENT: ${{ inputs.publish_comment }}
+          MAX_BUDGET_USD_PER_ROLE: ${{ inputs.max_budget_usd_per_role }}
+          MAX_TURNS: ${{ inputs.max_turns }}
+          MAX_AI_WALL_CLOCK_MINUTES: ${{ inputs.max_ai_wall_clock_minutes }}
         run: |
           args=()
           [[ "$RUN_AI_REVIEW" == true ]] && args+=(--run-ai-review)
@@ -134,7 +143,9 @@ jobs:
             --expected-head "$EXPECTED_HEAD" \
             --skill-path reviewer/.agents/skills/formal-conjectures-review/SKILL.md --agents-path reviewer/AGENTS.md \
             --output-schema reviewer/.agents/schemas/live-ai-review-role-output.schema.json \
-            --output-dir live-ai-input "${args[@]}"
+            --output-dir live-ai-input \
+            --max-budget-usd-per-role "$MAX_BUDGET_USD_PER_ROLE" --max-turns "$MAX_TURNS" \
+            --max-ai-wall-clock-seconds "$((MAX_AI_WALL_CLOCK_MINUTES * 60))" "${args[@]}"
           test "$(git -C review-target rev-parse HEAD)" = "$EXPECTED_HEAD"
       - id: metadata
         name: Name sanitized input artifact
@@ -173,7 +184,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ inputs.owner }}/${{ inputs.repository }}
-          ref: refs/pull/${{ inputs.pull_request }}/head
+          ref: ${{ inputs.expected_head }}
           fetch-depth: 0
           path: review-target
           persist-credentials: false
@@ -267,7 +278,7 @@ jobs:
     needs: [prepare, ai-preflight]
     if: ${{ inputs.run_ai_review }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ fromJSON(inputs.max_ai_wall_clock_minutes) }}
     permissions:
       contents: read
       id-token: write
@@ -275,6 +286,7 @@ jobs:
       result: ${{ steps.claude.outputs.structured_output }}
       session_id: ${{ steps.claude.outputs.session_id }}
       usage: ${{ steps.usage.outputs.receipt }}
+      controls: ${{ steps.controls.outputs.receipt }}
     steps:
       - id: phase-start
         name: Record primary review start
@@ -282,7 +294,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ inputs.owner }}/${{ inputs.repository }}
-          ref: refs/pull/${{ inputs.pull_request }}/head
+          ref: ${{ inputs.expected_head }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
@@ -296,6 +308,7 @@ jobs:
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
+        continue-on-error: true
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:
           anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
@@ -328,6 +341,62 @@ jobs:
             --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
             --output provider-usage.json
           echo "receipt=$(jq -c . provider-usage.json)" >> "$GITHUB_OUTPUT"
+      - id: controls
+        name: Evaluate explicit provider ceilings
+        if: ${{ always() }}
+        env:
+          ACTION_OUTCOME: ${{ steps.claude.outcome }}
+          STRUCTURED_OUTPUT_PRESENT: ${{ steps.claude.outputs.structured_output != '' }}
+          MAX_AI_WALL_CLOCK_MINUTES: ${{ inputs.max_ai_wall_clock_minutes }}
+        run: |
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot evaluate-provider-controls \
+            --usage provider-usage.json --role primary_review --model "${{ inputs.model }}" \
+            --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --max-turns "${{ inputs.max_turns }}" \
+            --max-ai-wall-clock-seconds "$((MAX_AI_WALL_CLOCK_MINUTES * 60))" \
+            --action-outcome "$ACTION_OUTCOME" --structured-output-present "$STRUCTURED_OUTPUT_PRESENT" \
+            --output provider-controls.json
+          echo "outcome=$(jq -r .outcome provider-controls.json)" >> "$GITHUB_OUTPUT"
+          echo "receipt=$(jq -c . provider-controls.json)" >> "$GITHUB_OUTPUT"
+      - name: Retain provider controls even when the model fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fc-live-ai-provider-primary-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: |
+            provider-usage.json
+            provider-controls.json
+          retention-days: 14
+      - name: Fail closed on any provider ceiling or receipt error
+        if: ${{ always() }}
+        run: test "${{ steps.controls.outputs.outcome }}" = pass
+
+  retain-primary-failure:
+    name: Retain typed primary job failure after hard cancellation
+    needs: [prepare, ai-primary]
+    if: >-
+      ${{ always() && needs.prepare.result == 'success' &&
+          (needs.ai-primary.result == 'failure' || needs.ai-primary.result == 'cancelled') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: live-ai-input}
+      - name: Record fail-closed observer receipt
+        env:
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
+        run: >-
+          python3 -B -m fc_review_bot record-provider-job-failure
+          --preflight live-ai-input/preflight.json --role primary_review
+          --job-result "${{ needs.ai-primary.result }}" --output provider-job-failure.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fc-live-ai-provider-primary-failure-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: provider-job-failure.json
+          retention-days: 14
 
   inspect-primary:
     name: Validate primary receipt and decide escalation
@@ -370,12 +439,13 @@ jobs:
           (inputs.escalation_mode == 'force' ||
            (inputs.escalation_mode == 'auto' && needs.inspect-primary.outputs.reason == 'primary_inconclusive')) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ fromJSON(inputs.max_ai_wall_clock_minutes) }}
     permissions: {contents: read, id-token: write}
     outputs:
       result: ${{ steps.claude.outputs.structured_output }}
       session_id: ${{ steps.claude.outputs.session_id }}
       usage: ${{ steps.usage.outputs.receipt }}
+      controls: ${{ steps.controls.outputs.receipt }}
     steps:
       - id: phase-start
         name: Record escalation review start
@@ -383,7 +453,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ inputs.owner }}/${{ inputs.repository }}
-          ref: refs/pull/${{ inputs.pull_request }}/head
+          ref: ${{ inputs.expected_head }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
@@ -397,6 +467,7 @@ jobs:
           echo '__FC_REVIEW_PROMPT__' >> "$GITHUB_OUTPUT"
           echo "schema=$(jq -c '.' .fc-review-input/role-output.schema.json)" >> "$GITHUB_OUTPUT"
       - id: claude
+        continue-on-error: true
         uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1, dereferenced 2026-08-18
         with:
           anthropic_api_key: ${{ secrets.FC_REVIEW_ANTHROPIC_API_KEY }}
@@ -429,6 +500,62 @@ jobs:
             --started-at-epoch-ms "$STARTED_AT_EPOCH_MS" --finished-at-epoch-ms "$(date +%s%3N)" \
             --output provider-usage.json
           echo "receipt=$(jq -c . provider-usage.json)" >> "$GITHUB_OUTPUT"
+      - id: controls
+        name: Evaluate explicit provider ceilings
+        if: ${{ always() }}
+        env:
+          ACTION_OUTCOME: ${{ steps.claude.outcome }}
+          STRUCTURED_OUTPUT_PRESENT: ${{ steps.claude.outputs.structured_output != '' }}
+          MAX_AI_WALL_CLOCK_MINUTES: ${{ inputs.max_ai_wall_clock_minutes }}
+        run: |
+          PYTHONPATH=reviewer/.agents/fc-review-bot/src python3 -B -m fc_review_bot evaluate-provider-controls \
+            --usage provider-usage.json --role escalation_review --model "${{ inputs.model }}" \
+            --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --max-turns "${{ inputs.max_turns }}" \
+            --max-ai-wall-clock-seconds "$((MAX_AI_WALL_CLOCK_MINUTES * 60))" \
+            --action-outcome "$ACTION_OUTCOME" --structured-output-present "$STRUCTURED_OUTPUT_PRESENT" \
+            --output provider-controls.json
+          echo "outcome=$(jq -r .outcome provider-controls.json)" >> "$GITHUB_OUTPUT"
+          echo "receipt=$(jq -c . provider-controls.json)" >> "$GITHUB_OUTPUT"
+      - name: Retain provider controls even when the model fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fc-live-ai-provider-escalation-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: |
+            provider-usage.json
+            provider-controls.json
+          retention-days: 14
+      - name: Fail closed on any provider ceiling or receipt error
+        if: ${{ always() }}
+        run: test "${{ steps.controls.outputs.outcome }}" = pass
+
+  retain-escalation-failure:
+    name: Retain typed escalation job failure after hard cancellation
+    needs: [prepare, ai-escalation]
+    if: >-
+      ${{ always() && needs.prepare.result == 'success' &&
+          (needs.ai-escalation.result == 'failure' || needs.ai-escalation.result == 'cancelled') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {path: reviewer, persist-credentials: false}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: live-ai-input}
+      - name: Record fail-closed observer receipt
+        env:
+          PYTHONPATH: reviewer/.agents/fc-review-bot/src
+        run: >-
+          python3 -B -m fc_review_bot record-provider-job-failure
+          --preflight live-ai-input/preflight.json --role escalation_review
+          --job-result "${{ needs.ai-escalation.result }}" --output provider-job-failure.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fc-live-ai-provider-escalation-failure-${{ inputs.pull_request }}-${{ inputs.expected_head }}
+          path: provider-job-failure.json
+          retention-days: 14
 
   validate-ai:
     name: Validate primary and optional escalation receipts
@@ -452,9 +579,11 @@ jobs:
           FC_AI_PRIMARY_REVIEW_OUTPUT: ${{ needs.ai-primary.outputs.result }}
           FC_AI_PRIMARY_REVIEW_SESSION_ID: ${{ needs.ai-primary.outputs.session_id }}
           FC_AI_PRIMARY_REVIEW_USAGE: ${{ needs.ai-primary.outputs.usage }}
+          FC_AI_PRIMARY_REVIEW_CONTROLS: ${{ needs.ai-primary.outputs.controls }}
           FC_AI_ESCALATION_REVIEW_OUTPUT: ${{ needs.ai-escalation.outputs.result }}
           FC_AI_ESCALATION_REVIEW_SESSION_ID: ${{ needs.ai-escalation.outputs.session_id }}
           FC_AI_ESCALATION_REVIEW_USAGE: ${{ needs.ai-escalation.outputs.usage }}
+          FC_AI_ESCALATION_REVIEW_CONTROLS: ${{ needs.ai-escalation.outputs.controls }}
           PRIMARY_STATUS: ${{ needs.inspect-primary.outputs.status }}
           PRIMARY_REASON: ${{ needs.inspect-primary.outputs.reason }}
           ESCALATION_MODE: ${{ inputs.escalation_mode }}
@@ -478,6 +607,9 @@ jobs:
             --escalation-trigger "$escalation_trigger" \
             --configured-role-limit "$configured_role_limit" \
             --max-budget-usd-per-role "${{ inputs.max_budget_usd_per_role }}" \
+            --max-turns "${{ inputs.max_turns }}" \
+            --max-ai-wall-clock-seconds "$(( ${{ inputs.max_ai_wall_clock_minutes }} * 60 ))" \
+            --require-provider-controls \
             --github-run-id "${{ github.run_id }}" --github-run-attempt "${{ github.run_attempt }}"
       - id: metadata
         env: {PULL_REQUEST: "${{ inputs.pull_request }}", EXPECTED_HEAD: "${{ inputs.expected_head }}"}
@@ -523,7 +655,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ inputs.owner }}/${{ inputs.repository }}
-          ref: refs/pull/${{ inputs.pull_request }}/head
+          ref: ${{ inputs.expected_head }}
           fetch-depth: 0
           path: review-target
           persist-credentials: false
@@ -609,6 +741,7 @@ jobs:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with: {name: "${{ needs.prepare.outputs.artifact_name }}", path: final/input}
       - name: Publish neutral exact-head check
+        if: ${{ inputs.publish_comment }}
         env:
           GH_TOKEN: ${{ github.token }}
           OWNER: ${{ inputs.owner }}

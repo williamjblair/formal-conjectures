@@ -284,7 +284,7 @@ class LiveAIReviewTest(unittest.TestCase):
             self.assertEqual(panel["execution"]["runner"], "claude-code-action")
             self.assertEqual(set(panel["execution"]["role_receipts"]), set(roles))
 
-    def test_primary_classification_error_requests_escalation_and_valid_escalation_recovers(self):
+    def test_primary_pass_with_nit_is_retained_and_conservatively_normalized(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, input_dir = self.prepare(root)
@@ -302,25 +302,26 @@ class LiveAIReviewTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             inspected = json.loads(inspection.read_text())
-            self.assertEqual(inspected["status"], "error")
-            self.assertTrue(inspected["escalation_required"])
-            escalation = self.role("escalation_review", manifest["root"])
-            env.update({
-                "FC_AI_ESCALATION_REVIEW_OUTPUT": json.dumps(escalation),
-                "FC_AI_ESCALATION_REVIEW_SESSION_ID": "session-escalation",
-            })
+            self.assertEqual(inspected["status"], "valid")
+            self.assertFalse(inspected["escalation_required"])
             output = root / "panel"
             result = self.execute(
                 "validate-panel", "--input-manifest", str(input_dir / "input-manifest.json"),
                 "--output-dir", str(output), "--action-commit", "d40ddef4c030e508327d6e35a9c45f3368482c50",
                 "--model", "claude-sonnet-5", "--effort", "high", "--max-budget-usd-per-role", "5.00",
                 "--github-run-id", "123", "--github-run-attempt", "1",
-                "--escalation-trigger", "validation_error", env=env,
+                "--escalation-trigger", "none", env=env,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             panel = json.loads((output / "ai-review-panel.json").read_text())
-            self.assertEqual(set(panel["roles"]), {"escalation_review"})
-            self.assertIn("primary_review", panel["execution"]["role_errors"])
+            primary = panel["roles"]["primary_review"]
+            self.assertEqual(primary["outcome"], "fail")
+            self.assertEqual(primary["severity"], "nit")
+            self.assertEqual(primary["findings"][0]["severity"], "nit")
+            self.assertIn("declared severity 'none' was conservatively normalized to 'nit'", primary["limitations"][-2])
+            self.assertIn("declared outcome 'pass' was normalized to 'fail'", primary["limitations"][-1])
+            self.assertEqual(panel["disposition"]["advisory"], "nits_found")
+            self.assertEqual(len(panel["findings"]), 1)
 
     def test_multiple_suggestions_are_validated_and_rendered_independently(self):
         with tempfile.TemporaryDirectory() as temporary:

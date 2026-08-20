@@ -226,14 +226,33 @@ def validate_role(value: dict[str, Any], expected_role: str, input_root: str) ->
     value["findings"] = [validate_finding(item, expected_role, index) for index, item in enumerate(value["findings"])]
     finding_severities = {item["severity"] for item in value["findings"]}
     expected_severity = "meaning" if "meaning" in finding_severities else "nit" if "nit" in finding_severities else "none"
+    if not isinstance(value["limitations"], list) or not value["limitations"]:
+        raise AuditError("model role limitations must be nonempty")
+    severity_rank = {"none": 0, "nit": 1, "meaning": 2}
     if value["severity"] != expected_severity:
-        raise AuditError("model review severity does not match its findings")
+        if severity_rank[expected_severity] <= severity_rank[value["severity"]]:
+            raise AuditError("model review severity does not match its findings")
+        declared_severity = value["severity"]
+        value["severity"] = expected_severity
+        value["limitations"] = [
+            *value["limitations"],
+            (
+                f"Validator correction: declared severity '{declared_severity}' was conservatively normalized "
+                f"to '{expected_severity}' from the retained findings."
+            ),
+        ]
     if value["outcome"] == "fail" and value["severity"] == "none":
         raise AuditError("failed model review must contain a nit or meaning finding")
     if value["outcome"] != "fail" and value["severity"] != "none":
-        raise AuditError("pass or inconclusive model review cannot contain a non-none finding")
-    if not isinstance(value["limitations"], list) or not value["limitations"]:
-        raise AuditError("model role limitations must be nonempty")
+        declared_outcome = value["outcome"]
+        value["outcome"] = "fail"
+        value["limitations"] = [
+            *value["limitations"],
+            (
+                f"Validator correction: declared outcome '{declared_outcome}' was normalized to 'fail' "
+                f"because validated findings have severity '{value['severity']}'; findings were retained."
+            ),
+        ]
     return value
 
 

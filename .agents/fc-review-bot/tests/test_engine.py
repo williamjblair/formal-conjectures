@@ -198,6 +198,37 @@ class EngineTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("no valid model review receipt", result.stderr)
 
+    def test_pass_with_nit_is_retained_and_conservatively_normalized(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            prepared = self.prepare(root)
+            manifest = json.loads((prepared / "input-manifest.json").read_text())
+            role = self.role(manifest["root"])
+            role["findings"][0]["severity"] = "nit"
+            output = root / "panel"
+            result = self.run_cli(
+                "validate-panel", "--input-manifest", str(prepared / "input-manifest.json"),
+                "--output-dir", str(output), "--action-commit", "c" * 40,
+                "--model", "claude-sonnet-5", "--effort", "high",
+                "--max-budget-usd-per-role", "5.00", "--github-run-id", "123",
+                "--github-run-attempt", "1", "--escalation-trigger", "none",
+                env={
+                    "FC_AI_PRIMARY_REVIEW_OUTPUT": json.dumps(role),
+                    "FC_AI_PRIMARY_REVIEW_SESSION_ID": "session-primary",
+                    "FC_AI_PRIMARY_REVIEW_USAGE": json.dumps(self.usage()),
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            panel = json.loads((output / "ai-review-panel.json").read_text())
+            primary = panel["roles"]["primary_review"]
+            self.assertEqual(primary["outcome"], "fail")
+            self.assertEqual(primary["severity"], "nit")
+            self.assertEqual(primary["findings"][0]["severity"], "nit")
+            self.assertIn("declared severity 'none' was conservatively normalized to 'nit'", primary["limitations"][-2])
+            self.assertIn("declared outcome 'pass' was normalized to 'fail'", primary["limitations"][-1])
+            self.assertEqual(panel["disposition"]["advisory"], "nits_found")
+            self.assertEqual(len(panel["findings"]), 1)
+
     def test_cost_ledger_and_summary_are_bound_to_panel(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

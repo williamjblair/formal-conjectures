@@ -1,0 +1,64 @@
+name: Check Erdos 686 four_three
+
+on:
+  push:
+    branches:
+      - chatgpt/erdos-686-four-three
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          set -o pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v1.4.2/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Restore Mathlib cache
+        run: lake exe cache get
+      - name: Compile focused module
+        id: lean_check
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          (
+            set -e
+            lake build FormalConjectures.ErdosProblems.Erdos686OrbitCases
+          ) 2>&1 | tee lean-check.log
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lean-check-log
+          path: lean-check.log
+          overwrite: true
+      - name: Report compact diagnostics on scratch PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Lean check outcome: **${{ steps.lean_check.outcome }}** for commit \`${GITHUB_SHA}\`."
+            echo
+            echo '```text'
+            grep -n -E 'error:|warning: declaration uses|depends on axioms|uses sorry|unsolved goals|type mismatch|application type mismatch|unknown constant|unknown identifier|declaration has metavariables' lean-check.log | tail -n 300 || true
+            echo
+            echo '--- tail ---'
+            tail -n 100 lean-check.log || true
+            echo '```'
+          } > lean-comment.md
+          gh pr comment 1 --body-file lean-comment.md
+      - name: Propagate failure
+        if: steps.lean_check.outcome != 'success'
+        run: exit 1

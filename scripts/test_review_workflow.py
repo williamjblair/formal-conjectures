@@ -63,7 +63,14 @@ class WorkflowTests(unittest.TestCase):
                 w.build_targets(["FormalConjectures/Fixture/12.lean"], root),
                 ["«FormalConjectures».«Fixture».«12»"],
             )
-            for scope in (["lakefile.toml"], ["FormalConjectures/deleted.lean"]):
+            utility = root / "FormalConjectures/Util/ProblemImports.lean"
+            utility.parent.mkdir(parents=True)
+            utility.write_text("")
+            for scope in (
+                ["lakefile.toml"],
+                ["FormalConjectures/deleted.lean"],
+                ["FormalConjectures/Util/ProblemImports.lean"],
+            ):
                 with self.assertRaises(ValueError):
                     w.build_targets(scope, root)
 

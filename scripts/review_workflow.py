@@ -207,7 +207,10 @@ def build_targets(scope, snapshot):
     # Utility/config/dependency changes need a broader policy; fail closed in this pilot.
     rr.require(
         all(
-            p.startswith("FormalConjectures/") and p.endswith(".lean") and (snapshot / p).is_file()
+            p.startswith("FormalConjectures/")
+            and not p.startswith(("FormalConjectures/Util/", "FormalConjectures/Subsets/"))
+            and p.endswith(".lean")
+            and (snapshot / p).is_file()
             for p in scope
         ),
         "pilot supports existing problem modules only",

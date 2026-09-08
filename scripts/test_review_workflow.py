@@ -7,7 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import review_workflow as w
+try:
+    import review_workflow as w
+except ModuleNotFoundError as error:
+    if error.name not in ("review_report", "review_eval"):
+        raise
+    raise unittest.SkipTest(
+        "Requires #4899; the dedicated integration job supplies its pinned tools"
+    ) from error
 
 
 class WorkflowTests(unittest.TestCase):

@@ -1,12 +1,37 @@
 name: Advisory review pilot
 on:
+  pull_request:
+    paths:
+      - 'scripts/review_workflow.py'
+      - 'scripts/test_review_workflow.py'
+      - 'scripts/review-report/**'
+      - '.github/workflows/advisory-review.yml'
   issue_comment:
     types: [created]
 permissions: {}
 concurrency:
-  group: advisory-review-${{ github.event.issue.number }}
+  group: advisory-review-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: false
 jobs:
+  integration:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      # Remove this prerequisite checkout after #4899 merges.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: williamjblair/formal-conjectures
+          ref: 450c1419654ee9ba86e3b484c8d4f78187ab7ff5
+          path: .review-prerequisite
+          persist-credentials: false
+      - env:
+          PYTHONPATH: ${{ github.workspace }}/.review-prerequisite/scripts
+        run: python3 -m unittest discover -s scripts -p test_review_workflow.py -v
   prepare:
     if: >-
       vars.FC_REVIEW_ENABLED == 'true' && github.event.issue.pull_request &&

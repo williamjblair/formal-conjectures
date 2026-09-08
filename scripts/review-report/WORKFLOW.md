@@ -2,6 +2,9 @@
 
 This workflow depends on #4899. It remains disabled until FC maintainers configure it.
 There is no GitHub App or archive repository.
+The PR integration job tests against #4899 at a pinned commit; ordinary script discovery
+explicitly skips these dependent tests until those tools exist on main. Remove the extra
+checkout after #4899 merges.
 
 ```mermaid
 flowchart LR

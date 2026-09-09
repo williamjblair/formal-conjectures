@@ -106,7 +106,7 @@ class WorkflowTests(unittest.TestCase):
         ), patch.object(
             w.urllib.request, "urlopen", side_effect=[io.BytesIO(json.dumps(x).encode()) for x in responses]
         ), patch.object(
-            w, "execute", return_value={"exit_code": 0, "output": "source"}
+            __import__("conjectures.execution", fromlist=["execute"]), "execute", return_value={"exit_code": 0, "output": "source"}
         ) as execute:
             result = w.model_review(request, "isolated-container", Path(directory), "requested-model")
             self.assertEqual(result["reviewer"], "actual-model")

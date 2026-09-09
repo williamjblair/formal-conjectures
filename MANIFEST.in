@@ -1,0 +1,2 @@
+recursive-include .agents/skills/formal-conjectures-review *.md
+include toolkit/README.md

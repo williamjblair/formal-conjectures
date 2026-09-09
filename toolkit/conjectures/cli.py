@@ -38,6 +38,7 @@ def parser():
         if name=='check': group.add_argument('file',nargs='?')
         q.add_argument('--base',default='origin/main');q.add_argument('--repository')
         if name=='review':
+            group.add_argument('--input',type=Path,help='Replay a retained prepared review directory')
             q.add_argument('--sources',type=Path);q.add_argument('--backend',choices=('codex','api'))
             q.add_argument('--model');q.add_argument('--post',action='store_true')
     q=cmd('init','Generate a pinned proof workspace for one exact declaration')
@@ -107,7 +108,17 @@ def dispatch(args):
         directory,record=start_run(root,'review')
         try:
             print('Preparing exact review inputs…',file=sys.stderr)
-            ticket=review.prepare(root,directory,base=args.base,pr=args.pr,repository=args.repository,supplied=args.sources)
+            if args.input:
+                retained=args.input.resolve()
+                request,files=rr.load_request(retained/'input')
+                files['request.json']=rr.encode(request)
+                rr.write_directory(directory/'input',files)
+                ticket=rr.read_json(retained/'ticket.json')
+                if ticket['head']!=request['head_commit'] or ticket['base']!=request['base_tip']:
+                    raise Failure('input_binding_mismatch','Retained ticket differs from the request',3)
+                save(directory/'ticket.json',ticket)
+            else:
+                ticket=review.prepare(root,directory,base=args.base,pr=args.pr,repository=args.repository,supplied=args.sources)
             record.update(target=ticket);save(directory/'run.json',record)
             print('Building independently, then running the reviewer…',file=sys.stderr)
             outcome,report=review.run(directory,cfg)

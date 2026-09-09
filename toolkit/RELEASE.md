@@ -17,6 +17,10 @@ archive and include checksums.
   this is a provisional operator review, not a blinded accuracy evaluation.
 - Selected review archived and advisory summary posted on
   [PR #4941](https://github.com/google-deepmind/formal-conjectures/pull/4941#issuecomment-5604286224); full sources and local execution files remain local.
+- macOS initialization produced an exact public fixture workspace. The valid proof
+  passed both configured kernels on [Linux run 34371044609](https://github.com/williamjblair/formal-conjectures/actions/runs/34371044609),
+  using executor `e1c3e16c31ee5bc8f60c744e4b675a67c7fd20bd`. The CLI retrieved and
+  checked its exact request and executor bindings.
 - Real poisoned-build isolation: invalid candidate rejected after scratch Lake
   tampering; valid candidate builds twice.
 - Disposable Git archive tests for idempotency, failed upload, stale target, and

@@ -99,7 +99,7 @@ def verify(root,candidate,cfg):
       'source_commit':trusted['source']['commit'],'source_path':trusted['source']['path'],
       'declaration':trusted['source']['declaration']}
     save(directory/'request.json',inputs)
-    args=['workflow','run','conjectures-verify.yml','--repo',executor_repo,'--ref',ref]
+    args=['workflow','run','comparator-lean-4-33.yml','--repo',executor_repo,'--ref',ref]
     for k,v in inputs.items():args += ['-f',f'{k}={v}']
     try:
         gh(*args)
@@ -113,7 +113,7 @@ def control(directory,record,operation):
         raise Failure('unsupported_control','Local foreground runs cannot be controlled after they exit',4)
     repo=record['executor']['repository']
     if not record.get('remote_run_id'):
-        matches=rr.parse(gh('run','list','--repo',repo,'--workflow','conjectures-verify.yml','--limit','100',
+        matches=rr.parse(gh('run','list','--repo',repo,'--workflow','comparator-lean-4-33.yml','--limit','100',
                          '--json','databaseId,displayTitle,headSha,status,conclusion'))
         found=[x for x in matches if x['displayTitle']=='FC verification '+record['id'] and x['headSha']==record['executor']['commit']]
         if len(found)!=1:raise Failure('run_not_visible','Remote run is not visible yet; retry run wait',4)

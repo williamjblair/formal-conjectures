@@ -1,9 +1,9 @@
 """Exact submission and typed-verifier boundary checks."""
 import unittest
 from conjectures import core, remote
-from test_toolkit import ToolkitTests
+from test_toolkit import ToolkitFixture
 
-class ProofTests(ToolkitTests):
+class ProofTests(ToolkitFixture):
     def test_typed_rejection_is_not_an_execution_error(self):
         value=remote.typed_result(b'{"schemaVersion":1,"outcome":"rejected","reason":"illegal_axiom","stage":"axioms"}',1)
         self.assertEqual(value['outcome'],'rejected')

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 from conjectures import catalog, core, execution, report, review, sources
 
-class ToolkitTests(unittest.TestCase):
+class ToolkitFixture(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name).resolve()
@@ -19,6 +19,8 @@ class ToolkitTests(unittest.TestCase):
         self.git('init','-q');self.git('config','user.name','Fixture');self.git('config','user.email','fixture@invalid')
         (self.root/'FormalConjectures').mkdir();(self.root/'FormalConjectures/A.lean').write_text('theorem original : True := by trivial\n')
         self.git('add','.');self.git('commit','-qm','base')
+
+class ToolkitTests(ToolkitFixture):
     def test_snapshot_preserves_branch_index_and_worktree(self):
         self.repository();head=self.git('rev-parse','HEAD');before=self.git('ls-files','--stage')
         (self.root/'FormalConjectures/A.lean').write_text('changed\n')

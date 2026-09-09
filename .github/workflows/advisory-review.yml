@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: williamjblair/formal-conjectures
-          ref: 450c1419654ee9ba86e3b484c8d4f78187ab7ff5
+          ref: feb17d19f712aaac3653b2fdc1d77507f1c07953
           path: .review-prerequisite
           persist-credentials: false
       - env:

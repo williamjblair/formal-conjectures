@@ -1,0 +1,18 @@
+{
+  "kind": "build",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "lake",
+    "--wfail",
+    "build",
+    "FormalConjectures.ErdosProblems.\u00ab354\u00bb"
+  ],
+  "exit_code": 0,
+  "stdout": "\u2714 [8896/8896] Built FormalConjectures.ErdosProblems.\u00ab354\u00bb (2.6s)\nBuild completed successfully (8896 jobs).\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 6.63
+}

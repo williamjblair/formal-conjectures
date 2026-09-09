@@ -1,0 +1,146 @@
+{
+  "artifacts": [
+    {
+      "path": "context/candidate.lean",
+      "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+    },
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "338d843fb7178ac1d79a52d938b05a7549be43378741f51b615283180d29118d"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "fb06f5bf7bafd191c55b819ebd9b353d9b21de99d440708fe292616c146d0797"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "11fb68c6d8a48f33c482e1177c8dfe6a66b60d3254b66e6a85eb0e0ed8b086d3"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "279d3ec15ddcee318a144889ab958e10aedbe55074599ce194bc5b765508832b"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "a2c060a36d29a68dad04ef2fdf93e2e544e5724af99173323763e99a1cf4b879"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "1b07a8eff55c53c9edb6636ccd07f14cb2cfe40f7a326b07c53ca087e80817e6"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "8d1e24bc7c851b1a538b5ea98d203e0273230ad1191bd7ef0a8fd02ea0b7e70a"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "e1f0c199881389c7d9ace4923f0fb9be208fbf18a7d84271ecce5105e63d93ff"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "f1413758372f943db03b00fe588cfc2d98f39ea7ccfeaf54ebed4d5cfe04c905"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "bdb17d242bc77e2782ba47e319d620787e769d18056945a7d60ce666a557565e"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "873eb638c48c0533ac04fdc1dafa66ad332a013f6f53212f6c1cb92026d05cfe"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-005.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "base_tip": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "context": [
+      {
+        "path": "context/candidate.lean",
+        "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+      },
+      {
+        "path": "context/environment.json",
+        "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+      }
+    ],
+    "head_commit": "cde58ea7dce3741716cbfbd8c2586a7f09587d12",
+    "id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v2",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-006.json",
+          "evidence/tool-011.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/479.lean",
+        "line": 32,
+        "message": "The extended-binder expression introduces two shadowing integer variables: the theorem elaborates as `∀ (k k : ℤ), k ≠ 1 → ...`, whereas the source quantifies one `k`. The first variable is unused. This is logically harmless because `ℤ` is inhabited, so the mathematical claim still matches the cited problem, but the statement should not contain the redundant quantifier.",
+        "severity": "nit",
+        "suggestion": "Replace `∀ᵉ (k : ℤ) (k ≠ 1),` with `∀ k : ℤ, k ≠ 1 →`, or write the restriction as an explicitly typed proof binder."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "ACCEPT WITH NITS"
+}

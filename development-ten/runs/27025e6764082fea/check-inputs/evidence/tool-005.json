@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cat /sources/document-1.txt"
+  ],
+  "exit_code": 0,
+  "stdout": "Source: https://www.erdosproblems.com/latex/479\nRetrieved: 2026-09-08\nOriginal response SHA256: d5cd2911fe5465dfb51758d0287c21b6524a04fe319473f775566b8d47dc5883\nExtraction: complete problem box, no FC reviews.\n\nIs it true that, for all $k\\neq 1$, there are infinitely many $n$ such that $2^n\\equiv k\\pmod{n}$?\nA conjecture of Graham. It is easy to see that $2^n\\not\\equiv 1\\mod{n}$ for all $n>1$, so the restriction $k\\neq 1$ is necessary. Erd\\H{o}s and Graham report that Graham, Lehmer, and Lehmer have proved this for $k=2^i$ for $i\\geq 1$, or if $k=-1$, but I cannot find such a paper. Tang has written a short\nnote\ngiving a proof for this case.\nAs an indication of the difficulty, when $k=3$ the smallest $n$ such that $2^n\\equiv 3\\pmod{n}$ is $n=4700063497$.\nThe minimal such $n$ for each $k$ is\nA036236\nin the OEIS.\nBack to the problem\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.09
+}

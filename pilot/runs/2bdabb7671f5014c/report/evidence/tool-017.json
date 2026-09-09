@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n -F '\u2200\u1d49' .lake/packages/batteries .lake/packages | rg 'syntax|macro|notation|Pairwise|pairwise' | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": ".lake/packages/batteries/Batteries/Util/ExtendedBinder.lean:44:/-- The syntax `\u2200\u1d49 (x < 2) (y < 3), p x y` is shorthand for `\u2200 x < 2, \u2200 y < 3, p x y`. -/\n.lake/packages/batteries/Batteries/Util/ExtendedBinder.lean:45:syntax \"\u2200\u1d49\" extBinders \", \" term : term\n.lake/packages/batteries/Batteries/Util/ExtendedBinder.lean:44:/-- The syntax `\u2200\u1d49 (x < 2) (y < 3), p x y` is shorthand for `\u2200 x < 2, \u2200 y < 3, p x y`. -/\n.lake/packages/batteries/Batteries/Util/ExtendedBinder.lean:45:syntax \"\u2200\u1d49\" extBinders \", \" term : term\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.14
+}

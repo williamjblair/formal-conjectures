@@ -1,0 +1,1 @@
+I won’t load the optional semantic-review skill because this is a Mathlib proof-search task. Next I’ll inspect the unchanged theorem and its imports, then identify applicable Mathlib lemmas and verify the proof in Lean.

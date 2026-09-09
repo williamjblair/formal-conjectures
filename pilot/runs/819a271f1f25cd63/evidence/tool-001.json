@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && pwd && rg --files -g 'AGENTS.md' -g 'CONTRIBUTING*' -g '*contribut*' -g '354.lean' -g 'README*' | sort"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace\nAGENTS.md\nCONTRIBUTING.md\nFormalConjectures/ErdosProblems/354.lean\nREADME.md\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.086
+}

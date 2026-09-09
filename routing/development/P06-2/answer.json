@@ -1,0 +1,1 @@
+Skill loaded. Next I’d locate the conjecture and cited source, then compare whether the source quantifies over an indexed family/multiset while the Lean statement uses `Finset`, which could collapse equal-valued summands. I’d validate any mismatch with a minimal repeated-summand example and a focused Lean build.

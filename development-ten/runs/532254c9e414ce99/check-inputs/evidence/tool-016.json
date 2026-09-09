@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.Wikipedia.Jacobson' '/-! Scoped satisfiability controls. -/' 'example : IsNoetherianRing (ZMod 2) := inferInstance' 'example : IsRightNoetherianRing (ZMod 2) := inferInstance' 'example : (Ring.jacobson (ZMod 2)).IsTwoSided := inferInstance' 'example : Jacobson.JacobsonConjectureFor (ZMod 2) \u2194 (\u2a05 n : \u2115, Ring.jacobson (ZMod 2) ^ n) = (0 : Ideal (ZMod 2)) := Iff.rfl' > /output/JacobsonControls.lean && lake env lean /output/JacobsonControls.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.449
+}

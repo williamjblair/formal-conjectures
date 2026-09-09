@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && git rev-parse HEAD && git rev-parse origin/main && if [ -f FormalConjectures/ErdosProblems/README.md ]; then cat FormalConjectures/ErdosProblems/README.md; fi && nl -ba FormalConjectures/ErdosProblems/479.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "cde58ea7dce3741716cbfbd8c2586a7f09587d12\ne1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94\n     1\t/-\n     2\tCopyright 2025 The Formal Conjectures Authors.\n     3\t\n     4\tLicensed under the Apache License, Version 2.0 (the \"License\");\n     5\tyou may not use this file except in compliance with the License.\n     6\tYou may obtain a copy of the License at\n     7\t\n     8\t    https://www.apache.org/licenses/LICENSE-2.0\n     9\t\n    10\tUnless required by applicable law or agreed to in writing, software\n    11\tdistributed under the License is distributed on an \"AS IS\" BASIS,\n    12\tWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n    13\tSee the License for the specific language governing permissions and\n    14\tlimitations under the License.\n    15\t-/\n    16\t\n    17\timport FormalConjecturesUtil\n    18\t\n    19\t/-!\n    20\t# Erd\u0151s Problem 479\n    21\t\n    22\t*Reference:* [erdosproblems.com/479](https://www.erdosproblems.com/479)\n    23\t-/\n    24\t\n    25\tnamespace Erdos479\n    26\t\n    27\t/--\n    28\tIs it true that, for every integer $k\\neq 1$, there are infinitely many $n$ such that\n    29\t$2^n\\equiv k\\pmod{n}$?\n    30\t-/\n    31\t@[category research open, AMS 11]\n    32\ttheorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n    33\t    { n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)] }.Infinite := by\n    34\t  sorry\n    35\t\n    36\tend Erdos479\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.127
+}

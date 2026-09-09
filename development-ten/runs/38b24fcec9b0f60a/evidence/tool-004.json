@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"notation.*\u2200\u1d49|macro.*\u2200\u1d49|syntax.*\u2200\u1d49|\u2200\u1d49 \\(\" FormalConjectures FormalConjecturesForMathlib FormalConjecturesUtil.lean | head -120 && rg -n \"def answer|syntax.*answer|macro.*answer|scoped.*answer\" . -g '*.lean' | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjecturesForMathlib/Combinatorics/Basic.lean:67:def IsSidon (A : Set \u03b1) : Prop := \u2200\u1d49 (i\u2081 \u2208 A) (j\u2081 \u2208 A) (i\u2082 \u2208 A) (j\u2082 \u2208 A),\nFormalConjecturesForMathlib/Combinatorics/Basic.lean:95:    IsSidon (A \u222a {m}) \u2194 (m \u2208 A \u2228 \u2200\u1d49 (a \u2208 A) (b \u2208 A), m + m \u2260 a + b \u2227 \u2200 c \u2208 A, m + a \u2260 b + c) := by\nFormalConjecturesForMathlib/Combinatorics/Basic.lean:157:  refine decidable_of_iff (\u2200\u1d49 (i\u2081 \u2208 A) (j\u2081 \u2208 A) (i\u2082 \u2208 A) (j\u2082 \u2208 A),\nFormalConjectures/ErdosProblems/479.lean:32:theorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n./FormalConjecturesUtil/Linters/CategoryAnswerLinter.lean:53:partial def answerSorries (stx : Syntax) : Array Syntax :=\n./FormalConjecturesUtil/Linters/AnswerLinter.lean:63:def answerLinter : Linter where\n./FormalConjecturesUtil/Answer/Syntax.lean:27:syntax (name := Google.answer) \"answer(\" term \")\" : term\n./FormalConjecturesUtil/Answer.lean:27:This file provides syntax for marking up answers in a problem statement.\n./FormalConjecturesUtil/Answer.lean:113:def answerElab : TermElab := fun stx expectedType? => do\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.112
+}

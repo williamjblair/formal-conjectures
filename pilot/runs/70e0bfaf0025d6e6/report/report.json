@@ -1,0 +1,163 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "03e6a6f55d09cfb8a67573a1aeb893505fe395b04cce5ea4731f7d064f165411"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "dbe37d8561c1e4dd2dce35ac9424904d746bfa3dcd1b1819581e54d94379eda1"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "d709b796b7ac1bfc0b588d898dd61cd5ed56caa83f11921585952f1abe51c2bc"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "3ec899c1e0c9a75f8c08670fc66eb5f2d5209998594b7b887ef774e87f5ebea6"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "462393ba47753d575f03624f2178c9e6cf0bca93133ab04a58f640d47a62354e"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "13db1985400816e163736f4e03509c48f6c8669e9645e17dc0cb833bcbebc114"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "50a7313ee54dcca0cb22e0ac318ed21c6b73fa4211ce53ae03ea4ddbe08e7755"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "f82985a5637bf9339032f1dcfffdf5e4072eefa5f123caea5072f0a470387041"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "094ff0493dfd9d1de478412b216c3be87889be38ba4d209b4ba0d951cf92eef7"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "c7c6b48ffae5c53068955bdd11cb8f3fd3f22c20bd461ebf11a304b116588f9b"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "73daa9a0ea39a829999f0956c8795a4f4d2e7b667dd03134062e5068d70382f1"
+    },
+    {
+      "path": "evidence/tool-012.json",
+      "sha256": "f4780242ce0dcb5d1b0bdea6e14fa5ba524b517581f86cd5837c042384d2e56a"
+    },
+    {
+      "path": "evidence/tool-013.json",
+      "sha256": "1b0e752fabd3fe5b06d3a053643254aa36b01075926badd6a1dce3281e2edd6d"
+    },
+    {
+      "path": "evidence/tool-014.json",
+      "sha256": "fb1cdbc484093715fc40befc32b4542a59459949f43f4046f570559970762004"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "0ad18dc15c9bad2baebfcb7c4c2f70c24832f5df1ab50510bf0c8ec8c342a6ef"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-009.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.Wikipedia.Jacobson",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "head_commit": "2b3c097656ebdece14355e8038f68716c831f60c",
+    "id": "0e0e251e98b8beb34b13231c6ee97f80f57919969b632936d2ca3b67be841122",
+    "merge_base": "5f40d5b09242a612322468cb8d61c998b25d65e0",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/Wikipedia/Jacobson.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "0ad18dc15c9bad2baebfcb7c4c2f70c24832f5df1ab50510bf0c8ec8c342a6ef"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-007.json",
+          "evidence/tool-013.json"
+        ],
+        "file": "FormalConjectures/Wikipedia/Jacobson.lean",
+        "line": 49,
+        "message": "The source asserts the conjecture rather than asking a yes-or-no question. Wrapping it as `answer(sorry) ↔ ...` therefore misclassifies what the source asks to determine and conflicts with the contribution guidance for non-question statements.",
+        "severity": "semantic",
+        "suggestion": "State the universal proposition directly, without `answer(sorry) ↔`."
+      },
+      {
+        "angle": "statement-soundness",
+        "evidence": [
+          "evidence/tool-010.json",
+          "sources/document-1.txt"
+        ],
+        "file": "FormalConjectures/Wikipedia/Jacobson.lean",
+        "line": 49,
+        "message": "`R : Type` fixes the quantified rings to universe level 0, even though `JacobsonConjectureFor` is universe-polymorphic and the source states the conjecture for rings without this size restriction. The declared universe `u` is consequently unused by this theorem.",
+        "severity": "semantic",
+        "suggestion": "Quantify `R : Type u`, for example `theorem jacobson_conjecture : ∀ (R : Type u) [Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R], JacobsonConjectureFor R := by ...`."
+      },
+      {
+        "angle": "metadata-hygiene",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-013.json"
+        ],
+        "file": "FormalConjectures/Wikipedia/Jacobson.lean",
+        "line": 46,
+        "message": "The theorem docstring calls `J` the “Jacobson ideal,” whereas the source and the local definition identify it as the Jacobson radical. The current term is nonstandard and potentially confusing.",
+        "severity": "nit",
+        "suggestion": "Replace “Jacobson ideal” with “Jacobson radical” and terminate the sentence with a period."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "0e0e251e98b8beb34b13231c6ee97f80f57919969b632936d2ca3b67be841122",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "NEEDS REVISION"
+}

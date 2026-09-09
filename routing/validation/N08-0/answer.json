@@ -1,0 +1,1 @@
+I won’t load the semantic-review skill; this is a mechanical Lean refactor. Next I’ll locate the lemma and all references, rename them consistently, then verify the lemma’s type is unchanged and the affected Lean targets still build.

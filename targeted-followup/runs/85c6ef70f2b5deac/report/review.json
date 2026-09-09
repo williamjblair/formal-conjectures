@@ -1,0 +1,26 @@
+{
+  "context_policy": "rereview",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [],
+  "prior_reviews": [
+    "evidence/prior.txt"
+  ],
+  "questions": [],
+  "reconciliations": [
+    {
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-005.json"
+      ],
+      "prior_evidence": "evidence/prior.txt",
+      "reason": "The prior finding does not apply. The cited problem quantifies over all k ≠ 1 and explicitly discusses the proved case k = -1, so using ℤ is necessary; restricting k to natural numbers greater than 1 would incorrectly exclude a source-stated case. The formal statement otherwise matches the source, and the focused module build succeeds.",
+      "status": "withdrawn"
+    }
+  ],
+  "request_id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+  "reviewer": "gpt-5.6-sol"
+}

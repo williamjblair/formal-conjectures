@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.ErdosProblems.\u00ab479\u00bb' '/-! Scratch semantic checks. -/' 'example (P : \u2124 \u2192 Prop) : (\u2200\u1d49 (k : \u2124) (k \u2260 1), P k) \u2194 \u2200 k : \u2124, k \u2260 1 \u2192 P k := by simp' '' 'example (k : \u2124) :' '    {n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)]}.Infinite \u2194' '      {n : \u2115 | 0 < n \u2227 (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)]}.Infinite := by' '  let A := {n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)]}' '  let B := {n : \u2115 | 0 < n \u2227 (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)]}' '  change A.Infinite \u2194 B.Infinite' '  have heq : A \\ {0} = B := by' '    ext n' '    simp [A, B, Nat.pos_iff_ne_zero]' '  constructor' '  \u00b7 intro h' '    rw [\u2190 heq]' '    exact h.sdiff (Set.finite_singleton 0)' '  \u00b7 intro h' '    exact h.mono (by intro n hn; exact hn.2)' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 1,
+  "stdout": "/dev/stdin:3:30: warning: Variable name `k` is not explicitly referenced.\n\nHint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:\n  [apply] _k\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`\n/dev/stdin:11:28: error: unsolved goals\nk : \u2124\nA : Set \u2115 := {n | 2 ^ n \u2261 k [ZMOD \u2191n]}\nB : Set \u2115 := {n | 0 < n \u2227 2 ^ n \u2261 k [ZMOD \u2191n]}\nn : \u2115\n\u22a2 2 ^ n \u2261 k [ZMOD \u2191n] \u2227 \u00acn = 0 \u2194 \u00acn = 0 \u2227 2 ^ n \u2261 k [ZMOD \u2191n]\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.893
+}

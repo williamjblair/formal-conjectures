@@ -1,0 +1,16 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "incomplete",
+    "source-fidelity": "incomplete",
+    "statement-soundness": "complete"
+  },
+  "findings": [],
+  "prior_reviews": [],
+  "questions": [
+    "Please provide a snapshot of the cited Erdős Problem 354: `/sources` is empty. Until the source is available, I cannot determine whether line 48 correctly asserts one universal γ (`∃ γ, ∀ α β`) rather than a γ depending on α and β (`∀ α β, ∃ γ`), or verify the `research open` status. The declaration itself builds successfully and its definitions, bounds, hypotheses, and `answer(sorry)` polarity are sound."
+  ],
+  "reconciliations": [],
+  "request_id": "fcabeb0e68691448a3681154fe592293e91aed640fc6a1c2a9ef80313def6b54",
+  "reviewer": "gpt-5.6-sol"
+}

@@ -1,0 +1,29 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [
+    {
+      "angle": "source-fidelity",
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-009.json",
+        "evidence/tool-024.json",
+        "evidence/tool-023.json"
+      ],
+      "file": "FormalConjectures/ErdosProblems/479.lean",
+      "line": 32,
+      "message": "The source quantifies over every integer k ≠ 1 and explicitly discusses k = -1. The Lean declaration instead elaborates k as Nat and assumes k > 1, so it omits k = 0 and every negative integer. This materially weakens the cited problem.",
+      "severity": "semantic",
+      "suggestion": "Use an integer parameter and integer congruence, for example: `answer(sorry) ↔ ∀ k : ℤ, k ≠ 1 → { n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD n] }.Infinite`. This replacement type-checks."
+    }
+  ],
+  "prior_reviews": [],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "7c01747c12ee1e02038adbe40a7539477141fe48f6488e7ea052c281565dde97",
+  "reviewer": "gpt-5.6-sol"
+}

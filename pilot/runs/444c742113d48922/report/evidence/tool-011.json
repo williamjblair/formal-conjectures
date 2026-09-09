@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"syntax.*answer|elab.*answer|def answer|macro.*answer\" FormalConjecturesUtil.lean FormalConjecturesForMathlib .lake/packages/mathlib/Mathlib | head -100 && nl -ba FormalConjectures/Wikipedia/Jacobson.lean | sed -n '34,58p'"
+  ],
+  "exit_code": 0,
+  "stdout": "    34\t\n    35\tuniverse u\n    36\t\n    37\tnamespace Jacobson\n    38\t\n    39\t/-- The Jacobson conjecture for a ring $R$: the infimum of the powers of the Jacobson radical\n    40\t$J$ is the zero ideal. -/\n    41\tdef JacobsonConjectureFor (R : Type u) [Ring R] : Prop :=\n    42\t  \u2a05 n : \u2115, jacobson R ^ n = 0\n    43\t\n    44\t/-- The Jacobson conjecture (in its modern form):\n    45\tIn a (noncommutative) ring which is left and right Noetherian,\n    46\tthe intersection of the powers of the Jacobson ideal is trivial -/\n    47\t@[category research open, AMS 16]\n    48\ttheorem jacobson_conjecture :\n    49\t    answer(sorry) \u2194 \u2200 (R : Type) [Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R],\n    50\t      JacobsonConjectureFor R := by\n    51\t  sorry\n    52\t\n    53\t/-- For commutative rings this is the case as a consequence of Krull's intersection theorem. -/\n    54\t@[category textbook, AMS 13 16]\n    55\ttheorem jacobson_conjecture_of_comm_ring (R : Type u) [CommRing R] [IsNoetherianRing R] :\n    56\t    JacobsonConjectureFor R := by\n    57\t  sorry\n    58\t\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.206
+}

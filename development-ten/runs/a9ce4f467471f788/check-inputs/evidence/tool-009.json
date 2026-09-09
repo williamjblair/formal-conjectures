@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n '\\[ZMOD|k : \u2124|\u2200\u1d49 \\(k : \u2124\\)' FormalConjectures/ErdosProblems | head -120 && rg -n '479' AUTHORS FormalConjectures/ErdosProblems 2>/dev/null"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjectures/ErdosProblems/479.lean:20:# Erd\u0151s Problem 479\nFormalConjectures/ErdosProblems/479.lean:22:*Reference:* [erdosproblems.com/479](https://www.erdosproblems.com/479)\nFormalConjectures/ErdosProblems/479.lean:25:namespace Erdos479\nFormalConjectures/ErdosProblems/479.lean:32:theorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k > 1), { n | 2 ^ n \u2261 k [MOD n]}.Infinite := by\nFormalConjectures/ErdosProblems/479.lean:35:end Erdos479\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.089
+}

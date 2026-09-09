@@ -1,0 +1,11 @@
+{
+  "comments": "The clean review is substantiated: the source snapshot asks whether, for all k ≠ 1, infinitely many n satisfy 2^n ≡ k (mod n), and lines 32–33 formalize exactly that proposition for k : ℤ. Batteries' extended-binder definition confirms that `∀ᵉ (k : ℤ) (k ≠ 1), ...` expands to `∀ k : ℤ, k ≠ 1 → ...`; `.Infinite` expresses infinitely many natural-number solutions. Allowing n = 0 does not alter an infinitude claim compared with a positive-n convention, since it adds at most one candidate. The focused `lake --wfail build FormalConjectures.ErdosProblems.«479»` succeeded, and the open-category metadata and `answer(sorry) ↔` polarity match repository conventions.",
+  "detected_defects": [],
+  "findings": [],
+  "gold_status": "confirmed",
+  "rereview_evidence": "There are no prior reviews or disputed claims in the supplied review record, so no rereview assessment applies.",
+  "rereview_handling": "not_applicable",
+  "uncertainty": "not_applicable",
+  "verdict_calibration": "appropriate",
+  "verdict_evidence": "CLEAN is proportionate because the supplied source was completely extracted, the relevant notation and definitions were checked, the formal statement preserves the source's quantification, exclusion k ≠ 1, congruence, and infinitude requirement, and the focused warning-as-error build passed. No actionable semantic or metadata defect remains."
+}

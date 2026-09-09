@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n \"theorem erdos_479|\u2200\u1d49 \\(k > 1\\)\" . --glob '*.lean' --glob '!evals/**'"
+  ],
+  "exit_code": 0,
+  "stdout": "./FormalConjectures/ErdosProblems/479.lean:32:theorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k > 1), { n | 2 ^ n \u2261 k [MOD n]}.Infinite := by\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.064
+}

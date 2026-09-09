@@ -1,0 +1,129 @@
+{
+  "artifacts": [
+    {
+      "path": "context/candidate.lean",
+      "sha256": "4d86f1ef94a95d1e392c41b792a299a3d2f6f2ac08d568a98b8da927b89bb200"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+    },
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "4e193246a84c521d8183cf2a630b468902421ecf70fcfc89c5427cd739b6bb57"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "9cc221144e9d8ffa23c0ea5c3ae3b038e25e3ff05968935c7d01f1e78e9b16c5"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "205dbc62fc7c5e3872768eba5234e200dd2ba9b29161be40368e4848b3ab38da"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "48d3fcbfa5b8ac44f1fc04cab53251b81012edba5f23122d04e92799bb4cfbcd"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "48d8b3b8c7c427bd1b5ed7cbe0e059d3010766ae29642bcff447be0f996c1371"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "a04e8f6788a1b2696226e668d81cded404295af7979f5f0447d883333559ffcb"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "597182da19967fe1ca3307a06655d156e0e6ea57031b7a111e30a2772de42a59"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "63ccfa01fda698c271a7cb0ebc4a510ddc1446b2ffc902fa49933a0e1a84e4fe"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    }
+  ],
+  "assembler_sha256": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«354»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "incomplete",
+  "gaps": [
+    "source-fidelity: incomplete",
+    "The cited source could not be checked because `/sources` is empty (evidence/tool-001.json). Please supply its snapshot before treating source fidelity as verified. Internally, the Lean statement is coherent and its focused `lake --wfail build` succeeds (evidence/tool-006.json)."
+  ],
+  "request": {
+    "base_tip": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "context": [
+      {
+        "path": "context/candidate.lean",
+        "sha256": "4d86f1ef94a95d1e392c41b792a299a3d2f6f2ac08d568a98b8da927b89bb200"
+      },
+      {
+        "path": "context/environment.json",
+        "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+      }
+    ],
+    "head_commit": "4f2e14df0441f5a9b8d64029b8c997adad326d85",
+    "id": "df08749acb78a9adf3d539bac9b907566e7093acd89ff16f920b9cb5e4fbcf5e",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v2",
+    "scope": [
+      "FormalConjectures/ErdosProblems/354.lean"
+    ],
+    "sources": []
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "incomplete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "metadata-hygiene",
+        "evidence": [
+          "evidence/tool-002.json",
+          "evidence/tool-008.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/354.lean",
+        "line": 44,
+        "message": "The docstring leaves γ free, while the elaborated theorem asks whether there exists one uniform γ with 1 < γ < 2 that works for every admissible α and β. The missing quantifier, bounds, and uniformity make the documented problem materially ambiguous.",
+        "severity": "nit",
+        "suggestion": "Rewrite the docstring to say: “Does there exist a real γ with 1 < γ < 2 such that, for every α, β > 0 with α/β irrational, this multiset is complete?”"
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [
+      "The cited source could not be checked because `/sources` is empty (evidence/tool-001.json). Please supply its snapshot before treating source fidelity as verified. Internally, the Lean statement is coherent and its focused `lake --wfail build` succeeds (evidence/tool-006.json)."
+    ],
+    "reconciliations": [],
+    "request_id": "df08749acb78a9adf3d539bac9b907566e7093acd89ff16f920b9cb5e4fbcf5e",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "INCOMPLETE"
+}

@@ -1,0 +1,18 @@
+{
+  "comments": "The review correctly identifies a documentary source mismatch, not a mathematical counterexample to the conjecture. The focused build passed, elaboration confirmed that the original statement quantifies over natural k with k > 1, and the proposed integer-domain replacement typechecked.",
+  "detected_defects": [
+    "domain"
+  ],
+  "findings": [
+    {
+      "actionable": true,
+      "duplicate": false,
+      "evidence": "The source states “for all k ≠ 1” and explicitly discusses the proved case k = -1, establishing that negative integers are in scope. By contrast, `#print Erdos479.erdos_479` shows `∀ (k : Nat), k > 1 → ...`, which excludes every negative integer as well as k = 0. The suggested replacement quantifies `k : ℤ` with `k ≠ 1`, and the transcript confirms that this exact replacement typechecks.",
+      "index": 0,
+      "repair": "valid",
+      "status": "supported"
+    }
+  ],
+  "gold_status": "confirmed",
+  "uncertainty": "not_applicable"
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n \"Erd\u0151s Problem 354|erdos_354|erdosproblems.com/354|FloorMultiples\" /workspace -g '!evals/**'\nrg -n \"def IsAddCompleteNatSeq'|IsAddCompleteNatSeq'\" FormalConjecturesForMathlib FormalConjectures FormalConjecturesUtil.lean -g '*.lean' | head -80\ngit rev-parse HEAD\ngit log -1 --format='%H %s' -- FormalConjectures/ErdosProblems/354.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace/FormalConjectures/ErdosProblems/354.lean:20:# Erd\u0151s Problem 354\n/workspace/FormalConjectures/ErdosProblems/354.lean:21:*Reference:* [erdosproblems.com/354](https://www.erdosproblems.com/354)\n/workspace/FormalConjectures/ErdosProblems/354.lean:27:noncomputable def FloorMultiples (a \u03b3 : \u211d) (n : \u2115) : \u2124 := \u230a\u03b3 ^ n * a\u230b\n/workspace/FormalConjectures/ErdosProblems/354.lean:30:noncomputable def FloorMultiples.interleave (a b \u03b3 : \u211d) (n : \u2115) : \u2124 :=\n/workspace/FormalConjectures/ErdosProblems/354.lean:32:    FloorMultiples a \u03b3 (n / 2)\n/workspace/FormalConjectures/ErdosProblems/354.lean:34:    FloorMultiples b \u03b3 (n / 2)\n/workspace/FormalConjectures/ErdosProblems/354.lean:40:theorem erdos_354.parts.i : answer(sorry) \u2194 \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n/workspace/FormalConjectures/ErdosProblems/354.lean:41:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 2) := by\n/workspace/FormalConjectures/ErdosProblems/354.lean:48:theorem erdos_354.parts.ii : answer(sorry) \u2194 \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n/workspace/FormalConjectures/ErdosProblems/354.lean:49:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\nFormalConjectures/ErdosProblems/354.lean:41:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 2) := by\nFormalConjectures/ErdosProblems/354.lean:49:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean:96:def IsAddCompleteNatSeq' (A : \u2115 \u2192 M) : Prop :=\n624d0c19fb2740d261d88c5372e2010cf12b488d\n624d0c19fb2740d261d88c5372e2010cf12b488d Review snapshot\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.116
+}

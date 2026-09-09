@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf 'import FormalConjectures.ErdosProblems.\u00ab479\u00bb\\n#print Erdos479.erdos_479\\n' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "theorem Erdos479.erdos_479 : sorry \u2194 \u2200 (k k : \u2124), k \u2260 1 \u2192 {n | 2 ^ n \u2261 k [ZMOD \u2191n]}.Infinite :=\nsorry\n/dev/stdin:2:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.037
+}

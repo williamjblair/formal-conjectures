@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.ErdosProblems.\u00ab354\u00bb' 'set_option pp.universes false in' 'set_option pp.explicit false in' '#check Erdos354.erdos_354.parts.ii' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "Erdos354.erdos_354.parts.ii :\n  sorry \u2194\n    \u2203 \u03b3 \u2208 Set.Ioo 1 2,\n      \u2200 \u03b1 > 0, \u2200 \u03b2 > 0, Irrational (\u03b1 / \u03b2) \u2192 IsAddCompleteNatSeq' (Erdos354.FloorMultiples.interleave \u03b1 \u03b2 \u03b3)\n/dev/stdin:5:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.395
+}

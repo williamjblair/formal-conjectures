@@ -1,0 +1,88 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "comments": {
+      "type": "string"
+    },
+    "detected_defects": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "actionable": {
+            "type": "boolean"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "index": {
+            "maximum": 0,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "repair": {
+            "enum": [
+              "valid",
+              "invalid",
+              "not_checked",
+              "not_proposed"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "supported",
+              "unsupported",
+              "unresolved"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "status",
+          "actionable",
+          "repair",
+          "duplicate",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "type": "array"
+    },
+    "gold_status": {
+      "enum": [
+        "confirmed",
+        "disputed",
+        "insufficient"
+      ],
+      "type": "string"
+    },
+    "uncertainty": {
+      "enum": [
+        "appropriate",
+        "inappropriate",
+        "not_applicable"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "gold_status",
+    "detected_defects",
+    "findings",
+    "uncertainty",
+    "comments"
+  ],
+  "type": "object"
+}

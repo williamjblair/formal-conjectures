@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /workspace -name AGENTS.md -print"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace/AGENTS.md\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.131
+}

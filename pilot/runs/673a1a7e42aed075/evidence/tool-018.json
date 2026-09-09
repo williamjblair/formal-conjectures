@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /sources -maxdepth 3 -type f -print -exec sh -c 'wc -c \"$1\"; sed -n \"1,160p\" \"$1\"' sh {} \\;"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.082
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && sed -n '820,880p' .lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean | rg -n 'Infinite|theorem|lemma' "
+  ],
+  "exit_code": 0,
+  "stdout": "2:theorem card_ne_eq [Fintype \u03b1] (a : \u03b1) [Fintype { x : \u03b1 | x \u2260 a }] :\n8:/-! ### Infinite sets -/\n12:theorem infinite_univ_iff : (@univ \u03b1).Infinite \u2194 Infinite \u03b1 := by\n13:  rw [Set.Infinite, finite_univ_iff, not_finite_iff_infinite]\n15:theorem infinite_univ [h : Infinite \u03b1] : (@univ \u03b1).Infinite :=\n18:lemma Infinite.exists_notMem_finite (hs : s.Infinite) (ht : t.Finite) : \u2203 a, a \u2208 s \u2227 a \u2209 t := by\n21:lemma Infinite.exists_notMem_finset (hs : s.Infinite) (t : Finset \u03b1) : \u2203 a \u2208 s, a \u2209 t :=\n24:section Infinite\n25:variable [Infinite \u03b1]\n27:lemma Finite.exists_notMem (hs : s.Finite) : \u2203 a, a \u2209 s := by\n30:lemma _root_.Finset.exists_notMem (s : Finset \u03b1) : \u2203 a, a \u2209 s := s.finite_toSet.exists_notMem\n32:end Infinite\n35:noncomputable def Infinite.natEmbedding (s : Set \u03b1) (h : s.Infinite) : \u2115 \u21aa s :=\n38:theorem Infinite.exists_subset_card_eq {s : Set \u03b1} (hs : s.Infinite) (n : \u2115) :\n42:theorem infinite_of_finite_compl [Infinite \u03b1] {s : Set \u03b1} (hs : s\u1d9c.Finite) : s.Infinite := fun h =>\n45:theorem Finite.infinite_compl [Infinite \u03b1] {s : Set \u03b1} (hs : s.Finite) : s\u1d9c.Infinite := fun h =>\n48:theorem Infinite.sdiff {s t : Set \u03b1} (hs : s.Infinite) (ht : t.Finite) :\n49:    (s \\ t).Infinite := fun h => hs <| h.of_sdiff ht\n51:@[deprecated (since := \"2026-06-03\")] alias Infinite.diff := Infinite.sdiff\n53:lemma Infinite.inter_of_finite_sdiff {\u03b1 : Type*} {s t : Set \u03b1} (hs : s.Infinite)\n54:    (ht : (s \\ t).Finite) : (s \u2229 t).Infinite := by\n58:alias Infinite.inter_of_finite_diff := Infinite.inter_of_finite_sdiff\n61:theorem infinite_union {s t : Set \u03b1} : (s \u222a t).Infinite \u2194 s.Infinite \u2228 t.Infinite := by\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.05
+}

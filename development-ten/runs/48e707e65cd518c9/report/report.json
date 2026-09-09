@@ -1,0 +1,149 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "841e4830a217b156e65849856ca736654d9efdbd9d71278453ce39ff5d7029af"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "4ffca0c70c1a09d0a08125a5cadc8cea80d0367d9267f251fdc7b154f0bca429"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "1832b6eaf10f9d9c66c0af96725c684587a8d87d3f4ac4c9ff53feda8e8f9a9e"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "67a6f50977f230505df5de106384f4a99565ca1262b7271fc2cd996f0536ad1a"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "024f9fe11020d110e86d8aebad3b2ced004194ef1e26e583c10c48596be9c2f4"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "5eabed893fa86f5c2ff3ce7d17a337fd46ad7ffb7468d3738ffced8a43524281"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "eadbfcfae35fe2f09858abf6cf6963e2b35207582e270754d7769525766c4798"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "dca787b2b178a4b978ab6e834b5600d1355067520a9ba4b7e7a483d2c52790b0"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "6d1eeaa952d2cbd855b7a37a486b9a79e93b030e3f8d228610bb2a11ec491436"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "00a823f085c4c74256a15ccba1aaae7c4ab1c02c5c42cb71d4a8271bf4acff07"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "2c6a292e5131f0f8489e4c968d49ae1d7e3c2a6c2ad26a808c17b380fd821fdc"
+    },
+    {
+      "path": "evidence/tool-012.json",
+      "sha256": "1949b9c241ca54c20220a99165288b00999f8a43da5ef883480bdd775942500a"
+    },
+    {
+      "path": "evidence/tool-013.json",
+      "sha256": "6dd571f6ac8c59e95abcd610537158e6262f768f443bea96f9f1e67b1f267785"
+    },
+    {
+      "path": "evidence/tool-014.json",
+      "sha256": "1ac5d40912efd2b726299513d4e2b282b2ed8d5a84ba81b09e672ef8d18e627f"
+    },
+    {
+      "path": "evidence/tool-015.json",
+      "sha256": "7058fd40898ec0b39c3f27de9251d4c28a52b3bba14f503621542cf8e60a1dc9"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-013.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«354»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "incomplete",
+  "gaps": [
+    "source-fidelity: incomplete",
+    "Can a snapshot of erdosproblems.com/354 be supplied? `/sources` is empty and the cited website is unreachable, so source fidelity cannot be completed without assuming the crucial γ quantifier."
+  ],
+  "request": {
+    "head_commit": "4f2e14df0441f5a9b8d64029b8c997adad326d85",
+    "id": "b8788989559f24771280e242a59f553d059ea91ebc79373c0177d354a7821831",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/354.lean"
+    ],
+    "sources": []
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "incomplete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "evidence/tool-003.json",
+          "evidence/tool-015.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/354.lean",
+        "line": 48,
+        "message": "The quantification of γ cannot be validated from the checkout. The theorem asserts that one fixed γ ∈ (1, 2) works for every admissible α and β, while the docstring neither binds γ nor states this uniform existential claim. This is materially different from “every γ works” or “each α, β has some γ.”",
+        "severity": "semantic",
+        "suggestion": "Check the cited problem’s exact quantifiers. If it asks for one uniform γ, retain `∃ γ ... ∀ α ... ∀ β ...`; otherwise correct the binder and quantifier order to match the source."
+      },
+      {
+        "angle": "metadata-hygiene",
+        "evidence": [
+          "evidence/tool-003.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/354.lean",
+        "line": 44,
+        "message": "The theorem docstring leaves γ unquantified and omits the restriction 1 < γ < 2, so it does not document the formal statement precisely.",
+        "severity": "nit",
+        "suggestion": "Rewrite the docstring to state the exact γ quantifier, its range, and whether γ must work uniformly for all α and β."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [
+      "Can a snapshot of erdosproblems.com/354 be supplied? `/sources` is empty and the cited website is unreachable, so source fidelity cannot be completed without assuming the crucial γ quantifier."
+    ],
+    "reconciliations": [],
+    "request_id": "b8788989559f24771280e242a59f553d059ea91ebc79373c0177d354a7821831",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "NEEDS REVISION"
+}

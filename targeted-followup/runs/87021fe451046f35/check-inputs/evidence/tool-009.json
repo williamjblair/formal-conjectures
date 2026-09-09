@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && git rev-parse HEAD && git rev-parse origin/main && git log -1 --format=fuller -- FormalConjectures/ErdosProblems/354.lean && printf '\\nSOURCE_DIR\\n' && ls -la /sources && find /sources -maxdepth 4 -printf '%y %p -> %l\\n' 2>/dev/null | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "4f2e14df0441f5a9b8d64029b8c997adad326d85\ne1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94\ncommit 4f2e14df0441f5a9b8d64029b8c997adad326d85\nAuthor:     Evaluation <eval@localhost>\nAuthorDate: Sat Jan 1 00:00:00 2000 +0000\nCommit:     Evaluation <eval@localhost>\nCommitDate: Sat Jan 1 00:00:00 2000 +0000\n\n    Review snapshot\n\nSOURCE_DIR\ntotal 8\ndrwxr-xr-x 2 root root 4096 Sep  8 15:41 .\ndrwxr-xr-x 1 root root 4096 Sep  8 21:28 ..\nd /sources -> \n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.069
+}

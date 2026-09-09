@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "git fsck --no-reflogs --unreachable 2>/dev/null | head -100\ngit reflog --all --oneline | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "624d0c1 refs/heads/master@{0}: commit: Review snapshot\n5f40d5b refs/heads/master@{1}: commit (initial): Base\n5f40d5b refs/heads/origin/main@{0}: branch: Created from master\n624d0c1 HEAD@{0}: commit: Review snapshot\n5f40d5b HEAD@{1}: commit (initial): Base\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.107
+}

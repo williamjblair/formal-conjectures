@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /sources -maxdepth 2 -type f -print | sort && wc -l /workspace/FormalConjectures/Wikipedia/Jacobson.lean && tail -10 /workspace/FormalConjectures/Wikipedia/Jacobson.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/sources/document-1.txt\n71 /workspace/FormalConjectures/Wikipedia/Jacobson.lean\n@[category research solved, AMS 16]\ntheorem jacobson_conjecture_of_right_noetherian :\n    answer(False) \u2194 \u2200 (R : Type) [Ring R] [IsRightNoetherianRing R], JacobsonConjectureFor R := by\n  sorry\n\n/- In [Le1977] Lenagan shows the Jacobson conjecture holds for left and right Noetherian rings\nwith Krull dimension $1$. -/\n-- TODO: Add this result. Note that we do not have Krull dimension for noncommutative rings yet.\n\nend Jacobson\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.098
+}

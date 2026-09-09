@@ -1,0 +1,1 @@
+I won’t load the semantic-review skill because this is a Mathlib proof-search task. Next, I’ll inspect the unchanged Lean statement and surrounding imports, then test the smallest suitable Mathlib proof.

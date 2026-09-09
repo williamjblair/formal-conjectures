@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "pwd && find .. -name AGENTS.md -print && find . -maxdepth 2 -iname 'CONTRIBUTING*' -o -iname 'README*'"
+  ],
+  "exit_code": 1,
+  "stdout": "/workspace\n../workspace/AGENTS.md\n",
+  "stderr": "find: '../etc/ssl/private': Permission denied\nfind: '../home/ubuntu': Permission denied\nfind: '../proc/tty/driver': Permission denied\nfind: '../root': Permission denied\nfind: '../var/cache/ldconfig': Permission denied\nfind: '../var/cache/apt/archives/partial': Permission denied\n",
+  "timed_out": false,
+  "wall_seconds": 0.246
+}

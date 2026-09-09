@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"def jacobson|class IsRightNoetherianRing|abbrev IsRightNoetherianRing|def IsRightNoetherianRing|class IsNoetherianRing|syntax.*answer|elab.*answer|scoped.*answer\" .lake/packages/mathlib/Mathlib FormalConjecturesUtil FormalConjecturesForMathlib | head -200"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjecturesUtil/Answer/Syntax.lean:27:syntax (name := Google.answer) \"answer(\" term \")\" : term\nFormalConjecturesUtil/Answer.lean:27:This file provides syntax for marking up answers in a problem statement.\nFormalConjecturesUtil/Answer.lean:112:@[term_elab answer]\nFormalConjecturesUtil/Answer.lean:176:      if t.elaborator == ``answerElab then\nFormalConjecturesForMathlib/RingTheory/Noetherian/Defs.lean:32:abbrev IsRightNoetherianRing (R : Type u) [Semiring R] : Prop :=\n.lake/packages/mathlib/Mathlib/RingTheory/Jacobson/Radical.lean:43:def jacobson : Submodule R M :=\n.lake/packages/mathlib/Mathlib/RingTheory/Jacobson/Ideal.lean:65:def jacobson (I : Ideal R) : Ideal R :=\n.lake/packages/mathlib/Mathlib/RingTheory/Jacobson/Ideal.lean:384:def jacobson (I : TwoSidedIdeal R) : TwoSidedIdeal R :=\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.184
+}

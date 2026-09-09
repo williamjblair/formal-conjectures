@@ -1,0 +1,25 @@
+{
+  "kind": "build",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "lake",
+    "--wfail",
+    "build",
+    "FormalConjectures.ReviewIsolation"
+  ],
+  "exit_code": 1,
+  "stdout": "\u2716 [8896/8896] Building FormalConjectures.ReviewIsolation (1.9s)\ntrace: .> LEAN_PATH=/workspace/.lake/packages/Cli/.lake/build/lib/lean:/workspace/.lake/packages/batteries/.lake/build/lib/lean:/workspace/.lake/packages/Qq/.lake/build/lib/lean:/workspace/.lake/packages/aesop/.lake/build/lib/lean:/workspace/.lake/packages/proofwidgets/.lake/build/lib/lean:/workspace/.lake/packages/importGraph/.lake/build/lib/lean:/workspace/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/workspace/.lake/packages/plausible/.lake/build/lib/lean:/workspace/.lake/packages/mathlib/.lake/build/lib/lean:/workspace/.lake/build/lib/lean /opt/lean/bin/lean /workspace/FormalConjectures/ReviewIsolation.lean -o /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.olean -i /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.ilean -c /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.c --setup /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.setup.json --json\nerror: FormalConjectures/ReviewIsolation.lean:21:32: Tactic `assumption` failed\n\n\u22a2 False\nerror: Lean exited with code 1\nSome required targets logged failures:\n- FormalConjectures.ReviewIsolation\n",
+  "stderr": "error: build failed\n",
+  "timed_out": false,
+  "environment": {
+    "isolation": "fresh_container",
+    "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+    "module": "FormalConjectures.ReviewIsolation",
+    "candidate_path": "FormalConjectures/ReviewIsolation.lean",
+    "candidate_sha256": "c029c1b93dabdeb59d77b52208fba729b81aafc65a376ada78271c1a5de142dd"
+  },
+  "wall_seconds": 5.474
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.Wikipedia.Jacobson' 'open Ring' 'set_option pp.all true in' '#check (\u2a05 n : \u2115, jacobson \u2124 ^ n = 0)' 'example (R : Type) [Ring R] : Jacobson.JacobsonConjectureFor R \u2194 ((\u2a05 n : \u2115, jacobson R ^ n) = 0) := by rfl' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "/dev/stdin:2:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n@Eq.{1} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n  (@iInf.{0, 1} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing)) Nat\n    (@Submodule.instInfSet.{0, 0} Int Int (@Ring.toSemiring.{0} Int Int.instRing)\n      (@Semiring.toAddCommMonoid.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n      (@Semiring.toModule.{0} Int (@Ring.toSemiring.{0} Int Int.instRing)))\n    fun (n : Nat) =>\n    @HPow.hPow.{0, 0, 0} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing)) Nat\n      (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n      (@instHPow.{0, 0} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing)) Nat\n        (@Submodule.instPowNat.{0, 0} Int (@Ring.toSemiring.{0} Int Int.instRing) Int Int.instSemiring\n          (@Semiring.toModule.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n          (@IsScalarTower.right.{0, 0} Int Int Int.instCommSemiring\n            (@CommSemiring.toSemiring.{0} Int Int.instCommSemiring) (@Algebra.id.{0} Int Int.instCommSemiring))))\n      (@Ring.jacobson.{0} Int Int.instRing) n)\n  (@OfNat.ofNat.{0} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing)) (nat_lit 0)\n    (@Zero.toOfNat0.{0} (@Ideal.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n      (@Submodule.pointwiseZero.{0, 0} Int Int (@Ring.toSemiring.{0} Int Int.instRing)\n        (@Semiring.toAddCommMonoid.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))\n        (@Semiring.toModule.{0} Int (@Ring.toSemiring.{0} Int Int.instRing))))) : Prop\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 6.949
+}

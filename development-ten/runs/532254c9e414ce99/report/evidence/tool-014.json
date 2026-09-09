@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.Wikipedia.Jacobson' '/-! Scoped controls for Jacobson.jacobson_conjecture. -/' 'example : IsNoetherianRing \u2124 := inferInstance' 'example : IsRightNoetherianRing \u2124 := inferInstance' 'example : (Ring.jacobson \u2124).IsTwoSided := inferInstance' 'example : Jacobson.JacobsonConjectureFor \u2124 \u2194 (\u2a05 n : \u2115, Ring.jacobson \u2124 ^ n) = (0 : Ideal \u2124) := Iff.rfl' > /output/JacobsonControls.lean && lake env lean /output/JacobsonControls.lean"
+  ],
+  "exit_code": 1,
+  "stdout": "/output/JacobsonControls.lean:4:37: error(lean.synthInstanceFailed): failed to synthesize instance of type class\n  IsRightNoetherianRing \u2124\n\nHint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 4.09
+}

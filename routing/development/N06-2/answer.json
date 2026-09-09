@@ -1,0 +1,1 @@
+The semantic-review skill isn’t relevant here. Next, I’d inspect the existing workflow and repository conventions, then update its upload/push step to target the `review-data` repo.

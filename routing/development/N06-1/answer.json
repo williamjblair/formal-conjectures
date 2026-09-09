@@ -1,0 +1,1 @@
+The semantic-review skill isn’t needed for this workflow change. Next I’ll inspect the existing CI workflow and repository conventions to locate bundle generation, then update its upload target to the `review-data` repository.

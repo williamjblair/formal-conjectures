@@ -1,0 +1,1 @@
+Loaded `formal-conjectures-review`. Next I would identify the changed FC file and diff, run its focused Lean build, then compare the formal statement, revised primary citation, and “solved” metadata/proof evidence.

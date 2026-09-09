@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n 'answer|BinderPred|\u2200\u1d49' FormalConjecturesUtil.lean FormalConjecturesForMathlib Mathlib 2>/dev/null | head -120 && nl -ba FormalConjectures/ErdosProblems/479.lean | sed -n '18,42p' && nl -ba /sources/document-1.txt | sed -n '1,35p' && rg -n '^def answer|^syntax.*answer|macro.*answer|elab.*answer|scoped.*answer' .lake/packages/mathlib/Mathlib FormalConjecturesUtil.lean FormalConjecturesForMathlib 2>/dev/null | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjecturesForMathlib/Combinatorics/Basic.lean:67:def IsSidon (A : Set \u03b1) : Prop := \u2200\u1d49 (i\u2081 \u2208 A) (j\u2081 \u2208 A) (i\u2082 \u2208 A) (j\u2082 \u2208 A),\nFormalConjecturesForMathlib/Combinatorics/Basic.lean:95:    IsSidon (A \u222a {m}) \u2194 (m \u2208 A \u2228 \u2200\u1d49 (a \u2208 A) (b \u2208 A), m + m \u2260 a + b \u2227 \u2200 c \u2208 A, m + a \u2260 b + c) := by\nFormalConjecturesForMathlib/Combinatorics/Basic.lean:157:  refine decidable_of_iff (\u2200\u1d49 (i\u2081 \u2208 A) (j\u2081 \u2208 A) (i\u2082 \u2208 A) (j\u2082 \u2208 A),\n    18\t\n    19\t/-!\n    20\t# Erd\u0151s Problem 479\n    21\t\n    22\t*Reference:* [erdosproblems.com/479](https://www.erdosproblems.com/479)\n    23\t-/\n    24\t\n    25\tnamespace Erdos479\n    26\t\n    27\t/--\n    28\tIs it true that, for every integer $k\\neq 1$, there are infinitely many $n$ such that\n    29\t$2^n\\equiv k\\pmod{n}$?\n    30\t-/\n    31\t@[category research open, AMS 11]\n    32\ttheorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n    33\t    { n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)] }.Infinite := by\n    34\t  sorry\n    35\t\n    36\tend Erdos479\n     1\tSource: https://www.erdosproblems.com/latex/479\n     2\tRetrieved: 2026-09-08\n     3\tOriginal response SHA256: d5cd2911fe5465dfb51758d0287c21b6524a04fe319473f775566b8d47dc5883\n     4\tExtraction: complete problem box, no FC reviews.\n     5\t\n     6\tIs it true that, for all $k\\neq 1$, there are infinitely many $n$ such that $2^n\\equiv k\\pmod{n}$?\n     7\tA conjecture of Graham. It is easy to see that $2^n\\not\\equiv 1\\mod{n}$ for all $n>1$, so the restriction $k\\neq 1$ is necessary. Erd\\H{o}s and Graham report that Graham, Lehmer, and Lehmer have proved this for $k=2^i$ for $i\\geq 1$, or if $k=-1$, but I cannot find such a paper. Tang has written a short\n     8\tnote\n     9\tgiving a proof for this case.\n    10\tAs an indication of the difficulty, when $k=3$ the smallest $n$ such that $2^n\\equiv 3\\pmod{n}$ is $n=4700063497$.\n    11\tThe minimal such $n$ for each $k$ is\n    12\tA036236\n    13\tin the OEIS.\n    14\tBack to the problem\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.129
+}

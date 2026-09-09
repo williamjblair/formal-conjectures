@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /workspace -maxdepth 2 -type f \\( -iname 'CONTRIBUTING*' -o -iname 'README*' \\) -print"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace/CONTRIBUTING.md\n/workspace/README.md\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.054
+}

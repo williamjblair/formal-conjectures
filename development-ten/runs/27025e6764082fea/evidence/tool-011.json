@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n 'Infinite.*diff|infinite_diff|diff.*Infinite|infinite.*insert|Infinite.*insert' .lake/packages/mathlib/Mathlib/Data/Set .lake/packages/mathlib/Mathlib | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": ".lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:867:theorem Infinite.sdiff {s t : Set \u03b1} (hs : s.Infinite) (ht : t.Finite) :\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:868:    (s \\ t).Infinite := fun h => hs <| h.of_sdiff ht\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:870:@[deprecated (since := \"2026-06-03\")] alias Infinite.diff := Infinite.sdiff\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:872:lemma Infinite.inter_of_finite_sdiff {\u03b1 : Type*} {s t : Set \u03b1} (hs : s.Infinite)\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:877:alias Infinite.inter_of_finite_diff := Infinite.inter_of_finite_sdiff\n.lake/packages/mathlib/Mathlib/Data/Set/Card.lean:760:  \u00b7 simp_all [ncard, Infinite.sdiff hs (finite_singleton a)]\n.lake/packages/mathlib/Mathlib/Combinatorics/SimpleGraph/Ends/Defs.lean:208:      obtain \u27e8v, \u27e8vK, rfl\u27e9, vL\u27e9 := Set.Infinite.nonempty (Set.Infinite.sdiff Cinf L.finite_toSet)\n.lake/packages/mathlib/Mathlib/Order/CompactlyGenerated/Basic.lean:294:      have : (s \\ (insert \u22a5 t : Finset \u03b1)).Infinite := contra.sdiff (Finset.finite_toSet _)\n.lake/packages/mathlib/Mathlib/Order/CompactlyGenerated/Basic.lean:318:  let e := (Infinite.sdiff inf <| finite_singleton \u22a5).to_subtype.natEmbedding\n.lake/packages/mathlib/Mathlib/Geometry/Manifold/Diffeomorph.lean:92:/-- Infinitely differentiable diffeomorphism between `M` and `M'` with respect to `I` and `I'`. -/\n.lake/packages/mathlib/Mathlib/Geometry/Manifold/Diffeomorph.lean:99:/-- Infinitely differentiable diffeomorphism between `E` and `E'`. -/\n.lake/packages/mathlib/Mathlib/Data/Nat/Nth.lean:188:    (range_nth_of_infinite h).trans_subset (Set.subset_insert _ _)\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:867:theorem Infinite.sdiff {s t : Set \u03b1} (hs : s.Infinite) (ht : t.Finite) :\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:868:    (s \\ t).Infinite := fun h => hs <| h.of_sdiff ht\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:870:@[deprecated (since := \"2026-06-03\")] alias Infinite.diff := Infinite.sdiff\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:872:lemma Infinite.inter_of_finite_sdiff {\u03b1 : Type*} {s t : Set \u03b1} (hs : s.Infinite)\n.lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:877:alias Infinite.inter_of_finite_diff := Infinite.inter_of_finite_sdiff\n.lake/packages/mathlib/Mathlib/Data/Set/Card.lean:760:  \u00b7 simp_all [ncard, Infinite.sdiff hs (finite_singleton a)]\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.263
+}

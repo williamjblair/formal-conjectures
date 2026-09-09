@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"elab.*answer|syntax.*answer|def answer|answer\\(\" FormalConjecturesUtil.lean FormalConjecturesForMathlib | head -100 && rg -n \"answer\\(sorry\\) \u2194 \u2203 .*Set.Ioo|answer\\(sorry\\) \u2194 \u2200.*Set.Ioo|parts\\.ii\" FormalConjectures/ErdosProblems | head -120"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjectures/ErdosProblems/354.lean:48:theorem erdos_354.parts.ii : answer(sorry) \u2194 \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.077
+}

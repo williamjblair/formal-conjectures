@@ -1,0 +1,1 @@
+Loaded `formal-conjectures-review`. Next I’ll compare the source’s quantifier order with the Lean declaration, checking whether the constant correctly depends on ε.

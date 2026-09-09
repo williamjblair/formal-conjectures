@@ -1,0 +1,1 @@
+Loaded `formal-conjectures-review`. Next I’ll locate the conjecture, inspect the complete Lean definition, and compare its `Finset` semantics with the cited source—especially whether duplicate summands collapse. No substantive review has been run yet.

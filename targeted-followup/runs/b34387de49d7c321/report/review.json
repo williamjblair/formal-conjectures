@@ -1,0 +1,27 @@
+{
+  "context_policy": "rereview",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [],
+  "prior_reviews": [
+    "evidence/prior.txt"
+  ],
+  "questions": [],
+  "reconciliations": [
+    {
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-008.json",
+        "evidence/tool-014.json"
+      ],
+      "prior_evidence": "evidence/prior.txt",
+      "reason": "Withdrawn. The source explicitly discusses the proved case k = -1, so k is not restricted to natural numbers greater than 1. The formalisation correctly quantifies over integers k with k ≠ 1 and otherwise matches the source. The focused module build also passes.",
+      "status": "withdrawn"
+    }
+  ],
+  "request_id": "541d495c8155ade489d9dac5d2a2dc131c040ca807ffd867581912d5195b23f9",
+  "reviewer": "gpt-5.6-sol"
+}

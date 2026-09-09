@@ -1,0 +1,12 @@
+{
+  "kind": "controlled MCP description routing; native client discovery unmeasured",
+  "model": "gpt-5.6-sol",
+  "query_sha256": "1a46a96ae39f168332d5784b10e15b863e4e4e6d3ee1263ffcdfe70355970a74",
+  "repeats": 3,
+  "skill_sha256": "8d321de2686506b2858c3ecff1ecdc5530de42c9c4344106905ccfa5e5681a12",
+  "tooling": {
+    "review-eval/trigger_eval.py": "5fe4241e9f91e574658be96ff0f26e409a976948685ba60ac0d803628d1db1a5",
+    "review_eval.py": "fc6d3e1153846718d6026dd34f07b1231f7f4420a99926724d3ce4d0035ffec3",
+    "review_report.py": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42"
+  }
+}

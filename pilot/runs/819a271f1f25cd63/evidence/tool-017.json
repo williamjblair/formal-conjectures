@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "for p in /sources/erdosproblems.com_354.html /sources/354.html /sources/erdos-354.html /sources/354.md; do sed -n '1,20p' \"$p\"; done"
+  ],
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "sed: can't read /sources/erdosproblems.com_354.html: No such file or directory\nsed: can't read /sources/354.html: No such file or directory\nsed: can't read /sources/erdos-354.html: No such file or directory\nsed: can't read /sources/354.md: No such file or directory\n",
+  "timed_out": false,
+  "wall_seconds": 0.093
+}

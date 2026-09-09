@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "printf '%s\n' 'SOURCE' && nl -ba /sources/document-1.txt && printf '%s\n' 'STATEMENTS_GUIDE_RELEVANT' && rg -n -C 4 'answer|boundary|quantif|Erd.s|source|integer|natural' /workspace/STATEMENTS.md | head -n 240"
+  ],
+  "exit_code": 0,
+  "stdout": "SOURCE\n     1\tSource: https://www.erdosproblems.com/latex/479\n     2\tRetrieved: 2026-09-08\n     3\tOriginal response SHA256: d5cd2911fe5465dfb51758d0287c21b6524a04fe319473f775566b8d47dc5883\n     4\tExtraction: complete problem box, no FC reviews.\n     5\t\n     6\tIs it true that, for all $k\\neq 1$, there are infinitely many $n$ such that $2^n\\equiv k\\pmod{n}$?\n     7\tA conjecture of Graham. It is easy to see that $2^n\\not\\equiv 1\\mod{n}$ for all $n>1$, so the restriction $k\\neq 1$ is necessary. Erd\\H{o}s and Graham report that Graham, Lehmer, and Lehmer have proved this for $k=2^i$ for $i\\geq 1$, or if $k=-1$, but I cannot find such a paper. Tang has written a short\n     8\tnote\n     9\tgiving a proof for this case.\n    10\tAs an indication of the difficulty, when $k=3$ the smallest $n$ such that $2^n\\equiv 3\\pmod{n}$ is $n=4700063497$.\n    11\tThe minimal such $n$ for each $k$ is\n    12\tA036236\n    13\tin the OEIS.\n    14\tBack to the problem\nSTATEMENTS_GUIDE_RELEVANT\n1-# Statements\n2-\n3-Use this guide when you add or review a formalisation. The main question is whether the Lean\n4:statement says what its cited source says.\n5-\n6:## Read the source and definitions\n7-\n8:Read the cited source, including relevant remarks and variants. Do not treat the module docstring\n9:as an independent source. It is part of the change under review.\n10-\n11-Read every non-standard definition used by the statement. Search Mathlib,\n12-`FormalConjecturesForMathlib/`, and nearby files. Confirm names with `#check` and inspect their\n13-definitions before you decide what they return on empty or smallest inputs.\n--\n19-## Compare the statements\n20-\n21-Check:\n22-\n23:- the order and scope of all quantifiers\n24-- strict and non-strict bounds\n25-- all hypotheses and domain restrictions\n26-- equality, asymptotic equivalence, and order relations\n27-- the direction of implications\n28-- every variant and special case\n29:- the category and answer recorded by the source\n30-\n31-Be careful with `\u2203 x, P x \u2192 Q`. The intended statement is usually `\u2203 x, P x \u2227 Q`; the first\n32-form can be trivially true.\n33-\n34:For a yes-or-no problem, check that `answer(True)` states a positive answer and `answer(False)`\n35:states a negative answer. Also check the scope and expected type of `answer(sorry)`. The rest of\n36:the statement must constrain the unknown answer. It must not make the theorem true for every\n37:possible answer.\n38-\n39:## Check boundary cases\n40-\n41-Substitute the smallest permitted value of each parameter. Check empty types, empty sets, zero,\n42-and missing witnesses. The following table gives common examples. It is not exhaustive.\n43-\n--\n51-A default value is not a defect by itself. Report it only when the statement can reach that input\n52-and the value changes the mathematical claim.\n53-\n54-For each hypothesis, ask whether any object can satisfy it. An impossible hypothesis makes an\n55:implication vacuously true. Add a domain restriction when the source assumes one.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.114
+}

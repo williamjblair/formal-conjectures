@@ -1,0 +1,1 @@
+The optional semantic-review skill isn’t needed for this tooling-only task. Next, I’ll run `scripts/review_report.py` on the specified JSON files and present its Markdown output.

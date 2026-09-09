@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"IsAddCompleteNatSeq'|Erd\u0151s Problem 354|erdos_354|FloorMultiples\" . --glob '!evals/**' && printf '\\n---DEFINITION CONTEXT---\\n' && rg -n -C 8 \"def IsAddCompleteNatSeq'|theorem IsAddCompleteNatSeq'|abbrev IsAddCompleteNatSeq'\" FormalConjecturesUtil.lean FormalConjecturesForMathlib FormalConjectures 2>/dev/null && printf '\\n---GIT OBJECT SEARCH---\\n' && git log --all -S'erdos_354.parts.ii' --oneline -- FormalConjectures/ErdosProblems/354.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "./FormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean:96:def IsAddCompleteNatSeq' (A : \u2115 \u2192 M) : Prop :=\n./FormalConjectures/ErdosProblems/354.lean:20:# Erd\u0151s Problem 354\n./FormalConjectures/ErdosProblems/354.lean:27:noncomputable def FloorMultiples (a \u03b3 : \u211d) (n : \u2115) : \u2124 := \u230a\u03b3 ^ n * a\u230b\n./FormalConjectures/ErdosProblems/354.lean:30:noncomputable def FloorMultiples.interleave (a b \u03b3 : \u211d) (n : \u2115) : \u2124 :=\n./FormalConjectures/ErdosProblems/354.lean:32:    FloorMultiples a \u03b3 (n / 2)\n./FormalConjectures/ErdosProblems/354.lean:34:    FloorMultiples b \u03b3 (n / 2)\n./FormalConjectures/ErdosProblems/354.lean:40:theorem erdos_354.parts.i : answer(sorry) \u2194 \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n./FormalConjectures/ErdosProblems/354.lean:41:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 2) := by\n./FormalConjectures/ErdosProblems/354.lean:48:theorem erdos_354.parts.ii : answer(sorry) \u2194 \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n./FormalConjectures/ErdosProblems/354.lean:49:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\n\n---DEFINITION CONTEXT---\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-88-  rw [Set.Finite.toFinset_subset, Finset.coe_range] at hn\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-89-  refine (h (n + 1)).mono ?_\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-90-  refine fun x \u27e8y, hy\u27e9 => \u27e8\u27e8n + 1 + y, hy\u27e9, fun hx => ?_\u27e9\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-91-  have : n + 1 + y \u2208 Set.Iio n := by grind\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-92-  grind\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-93-\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-94-/-- A sequence `A` is complete if every sufficiently large element of `M` is a sum of\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-95-(not necessarily distinct) terms of `A`. -/\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean:96:def IsAddCompleteNatSeq' (A : \u2115 \u2192 M) : Prop :=\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean-97-  \u2200\u1da0 k in Filter.atTop, k \u2208 subseqSums' A\n\n---GIT OBJECT SEARCH---\n4f2e14d Review snapshot\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.094
+}

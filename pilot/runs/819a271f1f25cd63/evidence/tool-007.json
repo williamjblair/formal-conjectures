@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && git log --all --oneline -- FormalConjectures/ErdosProblems/354.lean | head -20 && git status --short && git remote -v"
+  ],
+  "exit_code": 0,
+  "stdout": "624d0c1 Review snapshot\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.08
+}

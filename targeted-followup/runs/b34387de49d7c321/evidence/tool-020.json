@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && nl -ba FormalConjectures/ErdosProblems/479.lean | sed -n '20,40p'"
+  ],
+  "exit_code": 0,
+  "stdout": "    20\t# Erd\u0151s Problem 479\n    21\t\n    22\t*Reference:* [erdosproblems.com/479](https://www.erdosproblems.com/479)\n    23\t-/\n    24\t\n    25\tnamespace Erdos479\n    26\t\n    27\t/--\n    28\tIs it true that, for every integer $k\\neq 1$, there are infinitely many $n$ such that\n    29\t$2^n\\equiv k\\pmod{n}$?\n    30\t-/\n    31\t@[category research open, AMS 11]\n    32\ttheorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n    33\t    { n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD (n : \u2124)] }.Infinite := by\n    34\t  sorry\n    35\t\n    36\tend Erdos479\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.053
+}

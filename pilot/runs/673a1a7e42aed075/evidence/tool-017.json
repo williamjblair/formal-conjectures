@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cp FormalConjectures/ErdosProblems/354.lean /output/354-quantifier-fix.lean\nperl -0pi -e 's/answer\\(sorry\\) \u2194 \u2203 \u03b3 \u2208 Set\\.Ioo \\(1 : \u211d\\) 2, \u2200\u1d49 \\(\u03b1 > 0\\) \\(\u03b2 > 0\\), Irrational \\(\u03b1 \\/ \u03b2\\) \u2192\\n    IsAddCompleteNatSeq'\"'\"' \\(FloorMultiples\\.interleave \u03b1 \u03b2 \u03b3\\)/answer(sorry) \u2194 \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 \\/ \u03b2) \u2192\\n    \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, IsAddCompleteNatSeq'\"'\"' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3)/' /output/354-quantifier-fix.lean\nsed -n '44,52p' /output/354-quantifier-fix.lean\nlake env lean /output/354-quantifier-fix.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/-- Let $\\alpha,\\beta\\in \\mathbb{R}_{>0}$ such that $\\alpha/\\beta$ is irrational. Is\n$$\\{ \\lfloor \\alpha\\rfloor,\\lfloor \\gamma\\alpha\\rfloor,\\lfloor \\gamma^2\\alpha\\rfloor,\\ldots\\}\\cup\n\\{ \\lfloor \\beta\\rfloor,\\lfloor \\gamma\\beta\\rfloor,\\lfloor \\gamma^2\\beta\\rfloor,\\ldots\\}$$ complete? -/\n@[category research open, AMS 11]\ntheorem erdos_354.parts.ii : answer(sorry) \u2194 \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n    \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\n  sorry\n\nend Erdos354\n/output/354-quantifier-fix.lean:40:8: warning: declaration uses `sorry`\n/output/354-quantifier-fix.lean:48:8: warning: declaration uses `sorry`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 5.13
+}

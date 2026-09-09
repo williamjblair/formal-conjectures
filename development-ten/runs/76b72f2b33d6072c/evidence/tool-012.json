@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n \"Erd\u0151s Problem 479|erdos_479|erdosproblems.com/479\" /workspace | head -50"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace/FormalConjectures/ErdosProblems/479.lean:20:# Erd\u0151s Problem 479\n/workspace/FormalConjectures/ErdosProblems/479.lean:22:*Reference:* [erdosproblems.com/479](https://www.erdosproblems.com/479)\n/workspace/FormalConjectures/ErdosProblems/479.lean:32:theorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.068
+}

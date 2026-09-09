@@ -1,0 +1,1 @@
+I won’t load the optional review skill because this is solely a Lean build error. Next I’ll inspect `479.lean` and its imports to identify the missing name and apply the minimal namespace/import fix.

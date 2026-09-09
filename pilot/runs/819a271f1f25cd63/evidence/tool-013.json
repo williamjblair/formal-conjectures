@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /sources -maxdepth 2 -type f -print"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.115
+}

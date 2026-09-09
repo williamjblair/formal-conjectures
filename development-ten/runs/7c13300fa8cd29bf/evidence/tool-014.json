@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"abbrev IsNoetherianRing|def IsNoetherianRing|class IsNoetherianRing\" .lake/packages/mathlib/Mathlib | head -30 && rg -n \"def IsNoetherian|class IsNoetherian\" .lake/packages/mathlib/Mathlib/RingTheory/Noetherian .lake/packages/mathlib/Mathlib/LinearAlgebra | head -80 && rg -n \"abbrev Ideal|def Ideal\" .lake/packages/mathlib/Mathlib/RingTheory/Ideal/Defs.lean | head -20"
+  ],
+  "exit_code": 0,
+  "stdout": ".lake/packages/mathlib/Mathlib/RingTheory/Noetherian/Defs.lean:196:abbrev IsNoetherianRing (R) [Semiring R] :=\n.lake/packages/mathlib/Mathlib/RingTheory/Noetherian/Orzech.lean:77:def IsNoetherian.equivPUnitOfProdInjective (f : M \u00d7 N \u2192\u2097[R] M)\n.lake/packages/mathlib/Mathlib/RingTheory/Noetherian/Defs.lean:62:class IsNoetherian (R M) [Semiring R] [AddCommMonoid M] [Module R M] : Prop where\n40:abbrev Ideal (R : Type u) [Semiring R] :=\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.14
+}

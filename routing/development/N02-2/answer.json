@@ -1,0 +1,1 @@
+I won’t load the semantic-review skill because this is a Mathlib proof-search task. Next, I’ll inspect the unchanged theorem statement and surrounding Lean context, then test a minimal proof against the project.

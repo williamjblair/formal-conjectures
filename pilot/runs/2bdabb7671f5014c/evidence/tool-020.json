@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cat /skill/references/definition-traps.md"
+  ],
+  "exit_code": 0,
+  "stdout": "# Definitions this repository has been burned by\n\nFacts about specific definitions that decided a review. Each entry earned its\nplace; add to it when a definition surprises you.\n\n- `Nat.Full k n` is `\u2200 p \u2208 n.primeFactors, p ^ k \u2223 n`, and `primeFactors 0 = \u2205`, so `0` and `1`\n  are vacuously Full. `decide` cannot settle it: the `Decidable` instance exists but does not\n  reduce, and gets stuck on `List.decidableBAll` over `primeFactorsList`. Use the lemmas in\n  `FormalConjecturesForMathlib/Data/Nat/Full.lean`, which ships `Full.zero_right`,\n  `Full.one_right` and a `primeFactorsEq` dsimproc, or `norm_num [Nat.Full, Nat.primeFactors,\n  Nat.primeFactorsList]`, which needs `set_option maxRecDepth 4000`; the default 512 fails.\n- `Finset.Coprime S` is `S.gcd id = 1`, the gcd of the whole set. It is not pairwise, so a set\n  containing `1` is coprime whatever else it holds. Before you propose making it pairwise, check\n  the source's own example: for Erd\u0151s 939 that example is not pairwise coprime, so the change\n  would break it.\n- `\u2211' n, f n` is `0` when `f` is not `Summable`, and `0` is rational, an integer, and a limit.\n  So `\u2203 q : \u211a, \u2211' n, f n = q` reads as \"converges to a rational **or** diverges\". `HasSum`\n  carries convergence in the statement and does not have this hole. The same applies to\n  `Filter.limsup` over `\u211d`, which is `sInf \u2205 = 0` on an unbounded sequence. Check which way it\n  cuts: inside a bound this weakens the claim, but inside the admissibility predicate of an\n  `\u2203 a, Admissible a \u2227 P a` it makes the existential easier to satisfy, and can make a\n  `research open` statement provable.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.066
+}

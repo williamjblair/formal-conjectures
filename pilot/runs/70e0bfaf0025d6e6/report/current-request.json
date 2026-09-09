@@ -1,0 +1,25 @@
+{
+  "head_commit": "2b3c097656ebdece14355e8038f68716c831f60c",
+  "id": "0e0e251e98b8beb34b13231c6ee97f80f57919969b632936d2ca3b67be841122",
+  "merge_base": "5f40d5b09242a612322468cb8d61c998b25d65e0",
+  "procedure": [
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    }
+  ],
+  "repository": "evaluation-snapshot/formal-conjectures",
+  "required_checks": [
+    "build"
+  ],
+  "schema_version": "fc.review-pilot.request.v1",
+  "scope": [
+    "FormalConjectures/Wikipedia/Jacobson.lean"
+  ],
+  "sources": [
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "0ad18dc15c9bad2baebfcb7c4c2f70c24832f5df1ab50510bf0c8ec8c342a6ef"
+    }
+  ]
+}

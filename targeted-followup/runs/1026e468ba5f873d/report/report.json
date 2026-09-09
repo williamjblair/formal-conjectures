@@ -1,0 +1,152 @@
+{
+  "artifacts": [
+    {
+      "path": "context/candidate.lean",
+      "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+    },
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "89ba524ead6ad58505b6ad88bb273b2b6fe43734b0f9a57f2574e44e2031db97"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "4f9170e97ba3cf80f14838dafa889c618d6faf7462dca937a7c6f007cb364db3"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "c58e750d532fc1b1e593c0b1c46228b2e5876042b06e33c610686717e6746c38"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "5e9f86e23a59cf6d595e0e1f07535f94b93b1c545468447c87bfce2be475fdc7"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "f15cc60957a6d93fe92cf54f083357f3e9c4474fffcffcbb7cba8efdd96a9e9f"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "880b0287c6b43a39fc6104860911bfb01e95dd4f3abac2c83dbdddbd066a0078"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "0f8b06fe32b153ac7c35442b85221ee4990ed8feecab3d854ae784982c9a543a"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-003.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "base_tip": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "context": [
+      {
+        "path": "context/candidate.lean",
+        "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+      },
+      {
+        "path": "context/environment.json",
+        "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+      }
+    ],
+    "head_commit": "cde58ea7dce3741716cbfbd8c2586a7f09587d12",
+    "id": "541d495c8155ade489d9dac5d2a2dc131c040ca807ffd867581912d5195b23f9",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "0f8b06fe32b153ac7c35442b85221ee4990ed8feecab3d854ae784982c9a543a"
+      },
+      {
+        "path": "procedure/references/checking-in-lean.md",
+        "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+      },
+      {
+        "path": "procedure/references/verifying-proofs.md",
+        "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+      },
+      {
+        "path": "procedure/rubrics/metadata-hygiene.md",
+        "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+      },
+      {
+        "path": "procedure/rubrics/source-fidelity.md",
+        "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+      },
+      {
+        "path": "procedure/rubrics/statement-soundness.md",
+        "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v2",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "541d495c8155ade489d9dac5d2a2dc131c040ca807ffd867581912d5195b23f9",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "CLEAN"
+}

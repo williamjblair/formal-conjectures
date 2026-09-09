@@ -1,0 +1,1 @@
+I won’t load `formal-conjectures-review`, since this is a Lean syntax question, not a semantic audit. Next, I’ll explain how `answer(sorry)` is parsed and what `sorry` means in that context.

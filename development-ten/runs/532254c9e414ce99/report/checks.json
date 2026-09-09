@@ -1,0 +1,93 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "feed208f8955b1fd6cdba7acddd4833d7a74183acd33efd135c0234023c591de"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "baef0ca42bc826ba52a6d3845d6c2fa3787564e2bd789b81b7b59ba8919732db"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "ba1ca77e8d0fb8aca750ef4790a4207880f3213d93581bbb763eaa4715065622"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "3f7dd4ebb8c09a7236fccf8d5ba71c9626e04009fe0c62195449811669a2af14"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "f45b7cf0e3e05acaf62be785cc585844884e4f2fb7295a67fad30b665a636982"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "15a2487c2827d5e051d20eb24bfcc2c06a3891de1fc87ec7070bd217a90777df"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "82b2fc8fa3cd7f3591b5324a3489de545e2b9b0b1d02eff9df53fe7d340aaa15"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "90203608bb9a5eb57570176493885fbc22765a685bd778d5c789d6eba85d9726"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "ef9a3c94b127976bb9c721f9f3f2be51dbfe90e869dad1ef0a9d77c8c91b30fd"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "7d651cd0fd2d26df5ec31920fa61e711b4b3a387a6951552a921467c3b8dba28"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "fa4dd41c7dd320f540812ed28ac6bb58c5677b515c266ed3dbd05f8eba826144"
+    },
+    {
+      "path": "evidence/tool-012.json",
+      "sha256": "675e0fe6f80b676d69de0e9de6e22f7ac12fe290c2db08c3963a93031ac71135"
+    },
+    {
+      "path": "evidence/tool-013.json",
+      "sha256": "4a59e373d74e6b89f3a9bf0f6ad1f27a96acc90bb76c954cc476d0e602dd7248"
+    },
+    {
+      "path": "evidence/tool-014.json",
+      "sha256": "f09e519e2053f351a70f1c9174c7ab1abeac77e21267920527192f81bdbf4447"
+    },
+    {
+      "path": "evidence/tool-015.json",
+      "sha256": "1ed8f75c39277032874afe6332efaafc240a1193b176d17591182b0f60d7fc32"
+    },
+    {
+      "path": "evidence/tool-016.json",
+      "sha256": "bc0d03274c6bcb53b533571d03b234affd6b03c14a07ec4a242bb7109c8ea512"
+    },
+    {
+      "path": "evidence/tool-017.json",
+      "sha256": "c879ee5f5afa2b9681765448145b64a17f948363a400c2c33327c0ccca70b762"
+    },
+    {
+      "path": "evidence/tool-018.json",
+      "sha256": "e77de1688ed1fa805ec1339a1f6def946046a303552ce932370d8713530998d3"
+    },
+    {
+      "path": "evidence/tool-019.json",
+      "sha256": "5ce082bcb340bf5c099bfa7c6644bf9bce6d2a82125dfe324bbb75ca095acc66"
+    }
+  ],
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-004.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.Wikipedia.Jacobson",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "request_id": "015af8cdde2380ccc404fcb4173a958f2f8db0863d35053e6728994527a90f3b"
+}

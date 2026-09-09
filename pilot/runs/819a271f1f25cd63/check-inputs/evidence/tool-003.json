@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "find /sources -maxdepth 3 -ls; command -v source_snapshot || true; command -v fetch_source || true; ls -la /"
+  ],
+  "exit_code": 0,
+  "stdout": "   476678      4 drwxr-xr-x   2 root     root         4096 Sep  8 15:41 /sources\ntotal 72\ndrwxr-xr-x   1 root   root    4096 Sep  8 16:07 .\ndrwxr-xr-x   1 root   root    4096 Sep  8 16:07 ..\n-rwxr-xr-x   1 root   root       0 Sep  8 16:07 .dockerenv\nlrwxrwxrwx   1 root   root       7 Apr 22  2024 bin -> usr/bin\ndrwxr-xr-x   2 root   root    4096 Apr 22  2024 boot\ndrwxr-xr-x   5 root   root     340 Sep  8 16:07 dev\ndrwxr-xr-x   1 root   root    4096 Sep  8 16:07 etc\ndrwxr-xr-x   3 root   root    4096 Aug 10 14:55 home\nlrwxrwxrwx   1 root   root       7 Apr 22  2024 lib -> usr/lib\ndrwxr-xr-x   2 root   root    4096 Aug 10 14:49 media\ndrwxr-xr-x   2 root   root    4096 Aug 10 14:49 mnt\ndrwxr-xr-x   1 root   root    4096 Sep  8 15:13 opt\ndrwxr-xr-x   2 nobody nogroup   64 Sep  8 16:07 output\ndr-xr-xr-x 289 root   root       0 Sep  8 16:07 proc\ndrwx------   2 root   root    4096 Aug 10 14:55 root\ndrwxr-xr-x   4 root   root    4096 Aug 10 14:55 run\nlrwxrwxrwx   1 root   root       8 Apr 22  2024 sbin -> usr/sbin\ndrwxr-xr-x   2 root   root    4096 Sep  8 15:41 skill\ndrwxr-xr-x   2 root   root    4096 Sep  8 15:41 sources\ndrwxr-xr-x   2 root   root    4096 Aug 10 14:49 srv\ndr-xr-xr-x  11 root   root       0 Sep  8 16:07 sys\ndrwxrwxrwt   1 root   root    4096 Sep  8 16:07 tmp\ndrwxr-xr-x   1 root   root    4096 Aug 10 14:49 usr\ndrwxr-xr-x   1 root   root    4096 Aug 10 14:55 var\ndrwxr-xr-x   1 nobody nogroup 4096 Sep  8 16:07 workspace\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.07
+}

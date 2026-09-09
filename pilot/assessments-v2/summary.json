@@ -1,0 +1,195 @@
+{
+  "arms": {
+    "baseline": {
+      "appropriate_uncertainty": 0,
+      "assembled": 2,
+      "assessed": 2,
+      "assessed_clean_cases": 0,
+      "clean_cases_with_false_alarms": 0,
+      "detected_defects": 1,
+      "duplicates": 0,
+      "invalid_repairs": 0,
+      "output_tokens": 18212,
+      "reference_defects": 1,
+      "scheduled": 3,
+      "supported_findings": 4,
+      "unresolved_findings": 0,
+      "unresolved_keys": 1,
+      "unsupported_findings": 0,
+      "usage_unavailable_runs": 0,
+      "valid_repairs": 3,
+      "wall_seconds": 805.073
+    },
+    "skill": {
+      "appropriate_uncertainty": 0,
+      "assembled": 2,
+      "assessed": 2,
+      "assessed_clean_cases": 0,
+      "clean_cases_with_false_alarms": 0,
+      "detected_defects": 1,
+      "duplicates": 0,
+      "invalid_repairs": 0,
+      "output_tokens": 12461,
+      "reference_defects": 1,
+      "scheduled": 3,
+      "supported_findings": 3,
+      "unresolved_findings": 0,
+      "unresolved_keys": 1,
+      "unsupported_findings": 0,
+      "usage_unavailable_runs": 1,
+      "valid_repairs": 3,
+      "wall_seconds": 1028.4180000000001
+    }
+  },
+  "qualification": "Development observations; model assessments are not human accuracy labels.",
+  "runs": [
+    {
+      "arm": "skill",
+      "case": "R22",
+      "family": "354",
+      "id": "673a1a7e42aed075",
+      "repeat": 0,
+      "report_status": "not_run",
+      "status": "timeout"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The provisional clean reference is disputed. Both findings identify distinct, actionable source-fidelity defects. They are documentary source mismatches, not mathematical counterexamples. The focused original module built successfully, and a merged replacement incorporating both suggested changes was accepted by Lean; that supports these repairs but does not establish that unrelated parts of the file are clean.",
+        "detected_defects": [],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The cited source states the conjecture affirmatively: “In a right-and-left Noetherian ring, ⋂ n∈ℕ Jⁿ = {0}.” The declaration’s docstring likewise says the intersection “is trivial,” but line 49 formalizes `answer(sorry) ↔ ∀ ...`. The repository’s STATEMENTS.md explicitly prefers `P` when the source is not phrased as a question and reserves `answer(sorry) ↔ P` for yes-or-no questions. The final Lean check successfully elaborated the direct universal proposition (together with the universe repair), so removing the answer wrapper is a validated repair shape.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          },
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The source quantifies over a ring without a size restriction, while line 49 uses `(R : Type)`. The `#print` transcript confirms that the declaration is fixed to `Ring.{0} R`, both Noetherian predicates at universe 0, and `JacobsonConjectureFor.{0}`. By contrast, the definition is universe-polymorphic as `JacobsonConjectureFor.{u}`, and the file already declares `universe u`. The final Lean check successfully elaborated the proposed universal statement with `(R : Type u)`. This is a checked quantifier-scope/source mismatch, not a counterexample to the conjecture.",
+            "index": 1,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "disputed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R17",
+      "family": "jacobson",
+      "id": "444c742113d48922",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The review correctly identifies a direct source-fidelity defect, not a mathematical counterexample to the conjecture. The proposed integer-domain formulation was checked by Lean in the transcript and is a suitable repair.",
+        "detected_defects": [
+          "domain"
+        ],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The source asks for all k ≠ 1 and explicitly treats k = -1 as a case. By contrast, the elaborated type shown in Check479Type quantifies `∀ (k : Nat), k > 1 → ...`, excluding all negative integers as well as 0. This materially narrows the cited problem. The proposed replacement `∀ k : ℤ, k ≠ 1 → {n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD n]}.Infinite` successfully elaborated in `/output/Check479.lean`, so the repair is tested rather than merely suggested.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R01",
+      "family": "479",
+      "id": "2bdabb7671f5014c",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "assessment": {
+        "comments": "The review correctly identifies a source-fidelity defect. This is a domain mismatch, not a mathematical counterexample to either the source conjecture or the weaker Lean statement. The proposed repair is both semantically appropriate and typechecked in the transcript.",
+        "detected_defects": [
+          "domain"
+        ],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The source asks for all k ≠ 1 and explicitly cites the case k = -1, establishing that k is not restricted to naturals greater than 1. The printed elaboration shows the Lean theorem quantifies `k : Nat` under `k > 1`, so it excludes zero and every negative integer. The suggested integer predicate `∀ k : ℤ, k ≠ 1 → {n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD n]}.Infinite` successfully typechecked in the transcript and restores the cited domain.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R01",
+      "family": "479",
+      "id": "9ee8305030d23db2",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "assessment": {
+        "comments": "The provisional clean reference is disputed. Findings 0 and 2 identify source/convention mismatches, while finding 1 identifies a verified universe-scope restriction rather than a mathematical counterexample. The transcript validates the combined direct, universe-polymorphic repair for findings 0 and 1; the docstring edit was not tested.",
+        "detected_defects": [],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The cited source states “Jacobson's conjecture: In a right-and-left Noetherian ring, …” as a proposition, not as a request to determine a Boolean answer. CONTRIBUTING.md lines 324–344 reserve `answer(sorry) ↔ P` for English questions and prefer `P` directly for statements; AGENTS.md likewise says to use `answer(sorry)` only for information the problem asks to determine. Thus line 49 conflicts with the repository's stated source-fidelity convention. The final Lean check successfully elaborated the direct universal proposition, supporting the proposed removal of `answer(sorry) ↔`.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          },
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The transcript's universe-printing check shows the actual theorem quantifies `R : Type` with `Ring.{0}`, `IsNoetherianRing.{0}`, and `JacobsonConjectureFor.{0}`, whereas the local definition is universe-polymorphic as `JacobsonConjectureFor.{u} (R : Type u)`. The source states the conjecture for rings without this Lean-specific restriction. This is a source-scope mismatch, not a checked ring counterexample. The proposed `R : Type u` form was explicitly elaborated successfully in the final tool command.",
+            "index": 1,
+            "repair": "valid",
+            "status": "supported"
+          },
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The cited text repeatedly calls `J` the “Jacobson radical,” and the local definition's docstring does the same, while the target theorem's docstring says “Jacobson ideal” at line 46. Since the theorem documentation is part of the reviewed source representation, replacing that inconsistent terminology is warranted. No modified file containing this textual repair was built, so the repair is not validated by the transcript.",
+            "index": 2,
+            "repair": "not_checked",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "disputed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R17",
+      "family": "jacobson",
+      "id": "70e0bfaf0025d6e6",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "case": "R22",
+      "family": "354",
+      "id": "819a271f1f25cd63",
+      "repeat": 0,
+      "report_status": "invalid",
+      "status": "completed"
+    }
+  ],
+  "unique_cases": 3,
+  "unique_families": 3
+}

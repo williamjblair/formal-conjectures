@@ -1,0 +1,53 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "2815995c117ce21cb0c318d3b08bef14ea6e0c5dcc2c1e40e713ecf9dcf34a9e"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "08429d4d438392ef9a6463534e6ecdaf2e4782dd1cd31a2e935604c6c535e7e4"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "53446e3a48d47d2014f80e459cd2ea07701665d04570a13c0852f1cffce0ea08"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "d9667410e886146a84d65726bee1517b295a91cb5b02bfaa690f3b8736e92adb"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "2786874a5549ae5918ef22417af392bfedd68b38399ed0b566485f934e3c6d8d"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "fc26fea8e786de568d1db1d9862b7e56a1ad93a980f0c2acb22dd2861b1cfaf4"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "d07bef5d08301ef3fc4e6bdd5ab33986e6d5d856cb2e8bfb3497d29b678fe7c8"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "118db1a28d39e9fc5238c2850dbd38f31558ac3023d3c5ec537dd4523aaa64ba"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "553986639dac04c3f358dfbeb8a7308ab939375d8aaca17b38e7690164393ed6"
+    }
+  ],
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«354»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "request_id": "fcabeb0e68691448a3681154fe592293e91aed640fc6a1c2a9ef80313def6b54"
+}

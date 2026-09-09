@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\n' 'import FormalConjecturesUtil' '/-! Boundary checks for Erd\u0151s 479. -/' '#check Set.Infinite.sdiff' '#check Set.finite_Iic' '#check Set.infinite_mono' '#check Set.Infinite.mono' | lake env lean /dev/stdin && sed -n '850,878p' .lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean"
+  ],
+  "exit_code": 1,
+  "stdout": "Set.Infinite.sdiff.{u} {\u03b1 : Type u} {s t : Set \u03b1} (hs : s.Infinite) (ht : t.Finite) : (s \\ t).Infinite\nSet.finite_Iic.{u_1} {\u03b1 : Type u_1} [Preorder \u03b1] [LocallyFiniteOrderBot \u03b1] (a : \u03b1) : (Set.Iic a).Finite\n/dev/stdin:5:7: error(lean.unknownIdentifier): Unknown constant `Set.infinite_mono`\nSet.Infinite.mono.{u} {\u03b1 : Type u} {s t : Set \u03b1} (h : s \u2286 t) : s.Infinite \u2192 t.Infinite\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.144
+}

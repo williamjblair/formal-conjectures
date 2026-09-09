@@ -1,0 +1,45 @@
+{
+  "head_commit": "4a20822a518e79972704a936a6572cf195003af9",
+  "id": "effbeaede88aeab03c8789fb16b0c08843168e3c509e5497b06fa5ccd603fc04",
+  "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+  "procedure": [
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "c9180bc59c72cf49717fc44d7b28328362f86d8e96b240c57f033402f010f9d9"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    }
+  ],
+  "repository": "evaluation-snapshot/formal-conjectures",
+  "required_checks": [
+    "build"
+  ],
+  "schema_version": "fc.review-pilot.request.v1",
+  "scope": [
+    "FormalConjectures/ErdosProblems/479.lean"
+  ],
+  "sources": [
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ]
+}

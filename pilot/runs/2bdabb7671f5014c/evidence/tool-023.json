@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "mkdir -p /output && printf '%s\\n' 'import FormalConjectures.ErdosProblems.\u00ab479\u00bb' '' 'example : answer(sorry) \u2194 \u2200 k : \u2124, k \u2260 1 \u2192' '    {n : \u2115 | (2 : \u2124) ^ n \u2261 k [ZMOD n]}.Infinite := by' '  sorry' > /output/Check479.lean && lake env lean /output/Check479.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/output/Check479.lean:3:0: warning: declaration uses `sorry`\n/output/Check479.lean:6:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.139
+}

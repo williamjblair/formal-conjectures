@@ -1,0 +1,10 @@
+{
+  "environment_commit": "d33e35a5f45386a173b31159ae6598b1968bc463",
+  "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+  "limitation": "Replay requires the pinned evaluation image; source is retained.",
+  "tooling": {
+    "review_eval.py": "be1211d880b30af8f2f87d9c250ae2bc0be36fc221c18fb641a70f7ed473d004",
+    "review_report.py": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+    "workspace_server.py": "9a35c8ae786aebbb7be8efafe59dd2f11f255b447bf0da5caf32d500feabc5ac"
+  }
+}

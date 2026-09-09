@@ -1,0 +1,1 @@
+Skill loaded. Next I’d inspect the cited source and Lean declaration, focusing on whether the binder order is `∀ ε, ∃ C` rather than `∃ C, ∀ ε`.

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "curl --max-time 15 --user-agent 'FormalConjecturesReview/1.0' -fsSL https://www.erdosproblems.com/latex/354 -o /output/erdos354-source.txt\nwc -c /output/erdos354-source.txt\nsed -n '1,200p' /output/erdos354-source.txt\nfind /sources -maxdepth 2 -type f -print"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "curl: (6) Could not resolve host: www.erdosproblems.com\nwc: /output/erdos354-source.txt: No such file or directory\nsed: can't read /output/erdos354-source.txt: No such file or directory\n",
+  "timed_out": false,
+  "wall_seconds": 0.092
+}

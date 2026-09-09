@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cat /skill/rubrics/source-fidelity.md"
+  ],
+  "exit_code": 0,
+  "stdout": "# Source fidelity\n\nYour job: the Lean statement against the words of the cited source. Read the source, not\nonly the docstring \u2014 the docstring is also under review. A green build tells you nothing\nhere; a reversed conclusion reads well in both directions. This angle may block.\n\n## What to hunt for\n\n- Quantifiers, the direction of each inequality, the constants, and the ranges. Compare\n  each against the source's own phrasing, not the docstring's paraphrase.\n- The file contradicting itself. The docstring records the source, so a statement can\n  disagree with its own file without the paper in hand. *Erd\u0151s 887* `variants.rosenfeld_4`\n  (confirmed): the docstring gives the interval `(n^{1/2}, n^{1/2} + n^{1/4})`, coefficient\n  `1`; the Lean writes `\u2203 C > 0, ... C * n^(1/4)`. The two give different answers for the\n  greatest `K`; either way the file disagrees with itself.\n- A question turned into an assertion, or the wrong half stated. A file can state an\n  extremal value as an equality where the source asks whether that value is eventually\n  unattainable \u2014 with the pigeonhole half already a theorem in the same file, the open\n  content is the other half (confirmed; fixed in #4941).\n- The shape of a bound. `\u2203 c > 0, \u2200 n, f n \u2264 n ^ (c / log log n)` and\n  `f(n) < n^{O(1/log log n)}` differ: the first fixes one exponent constant for all `n`,\n  the second allows the implied constant to sit outside. Match the source's quantifier\n  order over constants.\n- Leads needing the cited papers (open in #4896): *Erd\u0151s 757*, `IsAdmissible` may use\n  `(B - B).ncard = 11` where the source has `11 \u2264`; *Erd\u0151s 1167*, the module docstring\n  records `\u03ba \u03b1 > r` and the theorem may omit it.\n- Variants: a variant claims the same problem, so run the same comparison. A shared\n  definition can make a variant stronger or weaker than its docstring says, and a defect\n  in a shared definition affects every statement in the file.\n\n## The positive control\n\nWhen a faithfulness or status claim relies on a source construction, instantiate it against\nthe Lean predicate at a concrete value (`../references/checking-in-lean.md`). A predicate\nthat rejects the source's own example can expose a mismatch. A passing control checks that\nexample only; it does not establish faithfulness for all inputs. If a required control cannot\nrun, report the gap rather than claiming the construction has been verified.\n\n## Not yours\n\nWhether the hypotheses are satisfiable, junk values, and boundary behaviour belong to\nstatement-soundness. Category tags, statuses, and `formal_proof` links belong to\nmetadata-hygiene.\n\n## Review background\n\nFurther discussions: [FABLE_REVIEW.md](https://github.com/ryantuck/erdos-ai/blob/master/FABLE_REVIEW.md),\n[ryantuck/formal-conjectures#1](https://github.com/ryantuck/formal-conjectures/pull/1),\nand FC #4876 and #4896. These are review background, not sources for the mathematical statements.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.068
+}

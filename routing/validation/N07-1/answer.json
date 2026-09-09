@@ -1,0 +1,3 @@
+I won’t load `formal-conjectures-review`, since this is a Lean syntax explanation rather than a semantic audit.
+
+Next, I’d inspect the Lean snippet and explain what each construct does in plain language.

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"def IsAddCompleteNatSeq'|abbrev IsAddCompleteNatSeq'|IsAddCompleteNatSeq'\" FormalConjecturesUtil.lean FormalConjecturesForMathlib FormalConjectures | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjectures/ErdosProblems/354.lean:41:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 2) := by\nFormalConjectures/ErdosProblems/354.lean:49:    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\nFormalConjecturesForMathlib/NumberTheory/AdditivelyComplete.lean:96:def IsAddCompleteNatSeq' (A : \u2115 \u2192 M) : Prop :=\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.079
+}

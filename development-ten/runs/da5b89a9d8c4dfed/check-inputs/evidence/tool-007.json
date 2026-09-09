@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n -i \"354|gamma.{0,20}2|\u03b3.{0,20}2|replaced by.{0,20}2\" . --hidden --glob '!evals/**' --glob '!.git/**' --glob '!FormalConjectures/ErdosProblems/354.lean' | head -200"
+  ],
+  "exit_code": 0,
+  "stdout": "./FormalConjecturesForMathlib/Combinatorics/SetTheory/PartitionRelation.lean:53:When `\u03b3 = 2` and `r = 2` this reduces to the classical binary partition\n./FormalConjecturesForMathlib/Computability/TuringMachine/Notation.lean:208:where `\u0393 = Fin 2` and `\u039b` is an inductive type constructed on the fly with constructors\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.186
+}

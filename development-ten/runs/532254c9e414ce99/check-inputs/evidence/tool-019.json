@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.Wikipedia.Jacobson' '/-! Typecheck the scoped universe-polymorphic repair. -/' 'open Ring' 'universe u' 'namespace Jacobson' '@[category research open, AMS 16]' 'theorem jacobson_conjecture_universe_repair :' '    answer(sorry) \u2194 \u2200 (R : Type u) [Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R],' '      JacobsonConjectureFor R := by' '  sorry' 'end Jacobson' > /output/JacobsonRepair.lean && lake env lean /output/JacobsonRepair.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/output/JacobsonRepair.lean:7:8: warning: declaration uses `sorry`\n/output/JacobsonRepair.lean:7:8: warning: Declarations tagged `@[category research open]`, `@[category research solved]`, or `@[category textbook]` must have a docstring.\n\nNote: This linter can be disabled with `set_option linter.style.category_docstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.857
+}

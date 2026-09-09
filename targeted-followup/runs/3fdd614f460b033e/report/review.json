@@ -1,0 +1,29 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "incomplete",
+    "statement-soundness": "complete"
+  },
+  "findings": [
+    {
+      "angle": "metadata-hygiene",
+      "evidence": [
+        "evidence/tool-002.json",
+        "evidence/tool-008.json"
+      ],
+      "file": "FormalConjectures/ErdosProblems/354.lean",
+      "line": 44,
+      "message": "The docstring leaves γ free, while the elaborated theorem asks whether there exists one uniform γ with 1 < γ < 2 that works for every admissible α and β. The missing quantifier, bounds, and uniformity make the documented problem materially ambiguous.",
+      "severity": "nit",
+      "suggestion": "Rewrite the docstring to say: “Does there exist a real γ with 1 < γ < 2 such that, for every α, β > 0 with α/β irrational, this multiset is complete?”"
+    }
+  ],
+  "prior_reviews": [],
+  "questions": [
+    "The cited source could not be checked because `/sources` is empty (evidence/tool-001.json). Please supply its snapshot before treating source fidelity as verified. Internally, the Lean statement is coherent and its focused `lake --wfail build` succeeds (evidence/tool-006.json)."
+  ],
+  "reconciliations": [],
+  "request_id": "df08749acb78a9adf3d539bac9b907566e7093acd89ff16f920b9cb5e4fbcf5e",
+  "reviewer": "gpt-5.6-sol"
+}

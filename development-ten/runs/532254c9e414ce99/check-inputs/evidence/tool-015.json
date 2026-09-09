@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"IsRightNoetherianRing\" FormalConjecturesForMathlib FormalConjectures .lake/packages/mathlib/Mathlib | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjectures/Wikipedia/Jacobson.lean:49:    answer(sorry) \u2194 \u2200 (R : Type) [Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R],\nFormalConjectures/Wikipedia/Jacobson.lean:64:    answer(False) \u2194 \u2200 (R : Type) [Ring R] [IsRightNoetherianRing R], JacobsonConjectureFor R := by\nFormalConjecturesForMathlib/RingTheory/Noetherian/Defs.lean:32:abbrev IsRightNoetherianRing (R : Type u) [Semiring R] : Prop :=\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.156
+}

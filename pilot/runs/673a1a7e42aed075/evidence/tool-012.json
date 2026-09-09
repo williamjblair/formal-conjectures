@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "git branch -a\ngit remote -v\ngit show --stat --oneline HEAD\nfind /workspace -maxdepth 3 -type f -not -path '*/.git/*' | rg 'source|snapshot|erdos' | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "* master\n  origin/main\n624d0c1 Review snapshot\n FormalConjectures/ErdosProblems/354.lean | 52 ++++++++++++++++++++++++++++++++\n 1 file changed, 52 insertions(+)\n/workspace/.vscode/erdos.code-snippets\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.068
+}

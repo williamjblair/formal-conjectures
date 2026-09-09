@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && git show --stat --format=fuller 624d0c1 && git branch -a && git tag -l | tail -20 && git count-objects -v"
+  ],
+  "exit_code": 0,
+  "stdout": "commit 624d0c19fb2740d261d88c5372e2010cf12b488d\nAuthor:     Evaluation <eval@localhost>\nAuthorDate: Sat Jan 1 00:00:00 2000 +0000\nCommit:     Evaluation <eval@localhost>\nCommitDate: Sat Jan 1 00:00:00 2000 +0000\n\n    Review snapshot\n\n FormalConjectures/ErdosProblems/354.lean | 52 ++++++++++++++++++++++++++++++++\n 1 file changed, 52 insertions(+)\n* master\n  origin/main\ncount: 7\nsize: 28\nin-pack: 0\npacks: 0\nsize-pack: 0\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.077
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\n' 'REVISION' && git rev-parse HEAD && git rev-parse origin/main && printf '%s\n' 'DIRECTORY_GUIDANCE' && rg --files FormalConjectures/ErdosProblems -g 'README.md' && printf '%s\n' 'STATUS_CHECKER' && if [ -f scripts/check_erdos_status.py ]; then sed -n '1,220p' scripts/check_erdos_status.py; fi"
+  ],
+  "exit_code": 1,
+  "stdout": "REVISION\ncde58ea7dce3741716cbfbd8c2586a7f09587d12\ne1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94\nDIRECTORY_GUIDANCE\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.141
+}

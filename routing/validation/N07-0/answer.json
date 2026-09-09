@@ -1,0 +1,3 @@
+I won’t load `formal-conjectures-review`, since this is a Lean syntax question, not a semantic audit.
+
+Next I’ll locate the definition or surrounding use of `answer(sorry)` and explain how Lean parses and elaborates it.

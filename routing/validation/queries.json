@@ -1,0 +1,50 @@
+[
+  {
+    "id": "P07",
+    "query": "We changed the source citation and marked this FC problem solved. Please review whether the mathematical claims and status are justified.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "P08",
+    "query": "The reviewer wants an extra nonempty hypothesis. Read the cited theorem and tell me whether the change is justified.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "P09",
+    "query": "Please give this Formal Conjectures PR a semantic second pass, especially the helper definitions.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "P10",
+    "query": "Does this answer(sorry) statement ask the same yes/no question as the original problem?",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "N07",
+    "query": "Explain what the Lean syntax answer(sorry) does. I am not asking to audit a problem.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "N08",
+    "query": "Rename this Lean lemma and update its callers without changing its type.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "N09",
+    "query": "Review the Python security of the review-report renderer and its path handling.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "N10",
+    "query": "Compare the runtime and token usage in these review-evaluation result files.",
+    "should_trigger": false,
+    "split": "validation"
+  }
+]

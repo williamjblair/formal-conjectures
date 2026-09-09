@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n 'binder_predicate|explicit.*binder|term\u2200\u1d49|\u2200\u1d49.*macro|\u2200\u1d49.*syntax' .lake/packages/mathlib/Mathlib .lake/packages/mathlib/Mathlib.lean .lake/packages/batteries/Batteries | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": ".lake/packages/mathlib/Mathlib/Util/CodeActions/BinderPlicity.lean:16:A code action that allows one to switch between explicit and implicit binders.\n.lake/packages/mathlib/Mathlib/Util/CodeActions/BinderPlicity.lean:35:/-- A code action to switch between explicit and implicit binders -/\n.lake/packages/mathlib/Mathlib/Util/CodeActions/BinderPlicity.lean:50:      -- This code action does not support explicit binders with optional values\n.lake/packages/mathlib/Mathlib/Logic/ExistsUnique.lean:30:  | `(explicitBinders| $_:binderIdent $[: $_]?) => true\n.lake/packages/mathlib/Mathlib/Logic/ExistsUnique.lean:31:  | `(explicitBinders| ($_:binderIdent : $_)) => true\n.lake/packages/mathlib/Mathlib/Logic/ExistsUnique.lean:67:using any relation defined using the `binder_predicate` command.\n.lake/packages/mathlib/Mathlib/Data/Set/Defs.lean:129:  More binders can be declared using the `binder_predicate` command, see `Init.BinderPredicates` for\n.lake/packages/mathlib/Mathlib/Tactic/SetNotationForOrder.lean:213:binder_predicate (priority := high) x \" \u2286 \" y:term => `($x \u2286 $y)\n.lake/packages/mathlib/Mathlib/Tactic/SetNotationForOrder.lean:217:binder_predicate (priority := high) x \" \u2282 \" y:term => `($x \u2282 $y)\n.lake/packages/mathlib/Mathlib/Tactic/SetNotationForOrder.lean:221:binder_predicate (priority := high) x \" \u2287 \" y:term => `($x \u2287 $y)\n.lake/packages/mathlib/Mathlib/Tactic/SetNotationForOrder.lean:225:binder_predicate (priority := high) x \" \u2283 \" y:term => `($x \u2283 $y)\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.14
+}

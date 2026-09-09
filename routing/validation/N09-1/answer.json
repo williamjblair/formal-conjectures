@@ -1,0 +1,3 @@
+The optional `formal-conjectures-review` skill does not apply to this Python security review, so I won’t load it.
+
+Next, I would inspect the review-report renderer’s Python entry points and trace all path construction, validation, file reads/writes, template loading, and subprocess usage for traversal, symlink, injection, and unsafe overwrite risks.

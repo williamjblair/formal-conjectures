@@ -1,0 +1,225 @@
+{
+  "artifacts": [
+    {
+      "path": "context/candidate.lean",
+      "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+    },
+    {
+      "path": "evidence/prior.txt",
+      "sha256": "471fedad9f9904642b6003d4d7d78963d12d9351ee0d7cd0212c82336883b990"
+    },
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "96d5b874ee8c886129fa93f94256189bf9f4db76efcca8f8a91663423df157e2"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "de64c49b81acc48faaa502da600ac7ed1b154b28cd659f399149606256da7fca"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "cc19d95cc5f7d0f8997e614e81219c375287e59172be4e37842b281147d6edab"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "4e6581b2ec619c49c2aee985fa9e228d737dcd3a947854fb28beb1ae76bcf838"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "b7c8658453f76c5f19600232ad71c20bd07e4358fc24a76856c52498a52786b0"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "a35903e66e28db484323c04cbeb00249d80f01abefd8f742c736fa8685ab5aab"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "41afaec3b3e7439fc4bfecf72ee2ec5e15885511a98994ca9b3fef165109b136"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "c7c782ae546c4cfa6b050175f6660db2608d4136bfdc21a1aa5bbbbbd6ee7adc"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "0faf44610f07c6612d2ed13b02ab3fcb99a69db663f388738a8c09b0cd4874db"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "47e053fa74d3e74a2343089a1ce417a69bf8cdde12a555190c57e9fc4091c40d"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "69f53dc4eeb9c19ce24a189144ca46f123037572a1da5d3c0d5531a5d2ef485a"
+    },
+    {
+      "path": "evidence/tool-012.json",
+      "sha256": "e75d27e272fd3f72f81ce7d879215335b9157c8017402d74ed34c65cc362f6a1"
+    },
+    {
+      "path": "evidence/tool-013.json",
+      "sha256": "9c02298622cb0b3350859d60a5fa0ed944959cb485ee76940927d7355cf797d4"
+    },
+    {
+      "path": "evidence/tool-014.json",
+      "sha256": "4897a9ee4933a380f695743c97e51844a9ddae65250acf9541092708bd477073"
+    },
+    {
+      "path": "evidence/tool-015.json",
+      "sha256": "54be90da3f6bbd30267a67f67a623dd5dff0651d3bb5f75ab3a28b2d373cb9d7"
+    },
+    {
+      "path": "evidence/tool-016.json",
+      "sha256": "5abe70cb85e426c92b82db1be47c75bf2fdf2cb2f476d924e8f2697fb864102e"
+    },
+    {
+      "path": "evidence/tool-017.json",
+      "sha256": "78577ae657d85a10ad4bf4ff0448b73c629f2724c644f8782235e6741f0829ff"
+    },
+    {
+      "path": "evidence/tool-018.json",
+      "sha256": "cbb74a7a21e0e23ac88d64f829f8fe47e001e3559e1b3a76945e9e62f04d7905"
+    },
+    {
+      "path": "evidence/tool-019.json",
+      "sha256": "ee200fd67ec42570cd54e93b8361313a8138fed5f3c56b5819d474762e7d39c5"
+    },
+    {
+      "path": "evidence/tool-020.json",
+      "sha256": "cf56dc0fe6a134d27497bd4f25fdca59d9ac65dd4bbdd39f0afa52db5e770446"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "0f8b06fe32b153ac7c35442b85221ee4990ed8feecab3d854ae784982c9a543a"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-014.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "base_tip": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "context": [
+      {
+        "path": "context/candidate.lean",
+        "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+      },
+      {
+        "path": "context/environment.json",
+        "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+      }
+    ],
+    "head_commit": "cde58ea7dce3741716cbfbd8c2586a7f09587d12",
+    "id": "541d495c8155ade489d9dac5d2a2dc131c040ca807ffd867581912d5195b23f9",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "0f8b06fe32b153ac7c35442b85221ee4990ed8feecab3d854ae784982c9a543a"
+      },
+      {
+        "path": "procedure/references/checking-in-lean.md",
+        "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+      },
+      {
+        "path": "procedure/references/verifying-proofs.md",
+        "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+      },
+      {
+        "path": "procedure/rubrics/metadata-hygiene.md",
+        "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+      },
+      {
+        "path": "procedure/rubrics/source-fidelity.md",
+        "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+      },
+      {
+        "path": "procedure/rubrics/statement-soundness.md",
+        "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v2",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "rereview",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [],
+    "prior_reviews": [
+      "evidence/prior.txt"
+    ],
+    "questions": [],
+    "reconciliations": [
+      {
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-008.json",
+          "evidence/tool-014.json"
+        ],
+        "prior_evidence": "evidence/prior.txt",
+        "reason": "Withdrawn. The source explicitly discusses the proved case k = -1, so k is not restricted to natural numbers greater than 1. The formalisation correctly quantifies over integers k with k ≠ 1 and otherwise matches the source. The focused module build also passes.",
+        "status": "withdrawn"
+      }
+    ],
+    "request_id": "541d495c8155ade489d9dac5d2a2dc131c040ca807ffd867581912d5195b23f9",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "CLEAN"
+}

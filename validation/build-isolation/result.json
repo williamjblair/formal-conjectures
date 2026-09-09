@@ -1,0 +1,132 @@
+{
+  "status": "pass",
+  "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+  "cases": {
+    "invalid_candidate": {
+      "evidence": "evidence/tool-001.json",
+      "kind": "build",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "60",
+        "lake",
+        "--wfail",
+        "build",
+        "FormalConjectures.ReviewIsolation"
+      ],
+      "exit_code": 1,
+      "stdout": "\u2716 [8896/8896] Building FormalConjectures.ReviewIsolation (1.9s)\ntrace: .> LEAN_PATH=/workspace/.lake/packages/Cli/.lake/build/lib/lean:/workspace/.lake/packages/batteries/.lake/build/lib/lean:/workspace/.lake/packages/Qq/.lake/build/lib/lean:/workspace/.lake/packages/aesop/.lake/build/lib/lean:/workspace/.lake/packages/proofwidgets/.lake/build/lib/lean:/workspace/.lake/packages/importGraph/.lake/build/lib/lean:/workspace/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/workspace/.lake/packages/plausible/.lake/build/lib/lean:/workspace/.lake/packages/mathlib/.lake/build/lib/lean:/workspace/.lake/build/lib/lean /opt/lean/bin/lean /workspace/FormalConjectures/ReviewIsolation.lean -o /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.olean -i /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.ilean -c /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.c --setup /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.setup.json --json\nerror: FormalConjectures/ReviewIsolation.lean:21:32: Tactic `assumption` failed\n\n\u22a2 False\nerror: Lean exited with code 1\nSome required targets logged failures:\n- FormalConjectures.ReviewIsolation\n",
+      "stderr": "error: build failed\n",
+      "timed_out": false,
+      "environment": {
+        "isolation": "fresh_container",
+        "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+        "module": "FormalConjectures.ReviewIsolation",
+        "candidate_path": "FormalConjectures/ReviewIsolation.lean",
+        "candidate_sha256": "c029c1b93dabdeb59d77b52208fba729b81aafc65a376ada78271c1a5de142dd"
+      },
+      "wall_seconds": 5.474
+    },
+    "poison_scratch": {
+      "evidence": "evidence/tool-002.json",
+      "kind": "command",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "60",
+        "sh",
+        "-c",
+        "printf '%s\\n' 'name = \"reviewProbe\"' '[[lean_lib]]' 'name = \"FormalConjectures.ReviewIsolation\"' 'roots = []' > lakefile.toml; lake --wfail build FormalConjectures.ReviewIsolation"
+      ],
+      "exit_code": 0,
+      "stdout": "Build completed successfully (1 job).\n",
+      "stderr": "",
+      "timed_out": false,
+      "wall_seconds": 0.172
+    },
+    "isolated_after_poison": {
+      "evidence": "evidence/tool-003.json",
+      "kind": "build",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "60",
+        "lake",
+        "--wfail",
+        "build",
+        "FormalConjectures.ReviewIsolation"
+      ],
+      "exit_code": 1,
+      "stdout": "\u2716 [8896/8896] Building FormalConjectures.ReviewIsolation (1.9s)\ntrace: .> LEAN_PATH=/workspace/.lake/packages/Cli/.lake/build/lib/lean:/workspace/.lake/packages/batteries/.lake/build/lib/lean:/workspace/.lake/packages/Qq/.lake/build/lib/lean:/workspace/.lake/packages/aesop/.lake/build/lib/lean:/workspace/.lake/packages/proofwidgets/.lake/build/lib/lean:/workspace/.lake/packages/importGraph/.lake/build/lib/lean:/workspace/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/workspace/.lake/packages/plausible/.lake/build/lib/lean:/workspace/.lake/packages/mathlib/.lake/build/lib/lean:/workspace/.lake/build/lib/lean /opt/lean/bin/lean /workspace/FormalConjectures/ReviewIsolation.lean -o /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.olean -i /workspace/.lake/build/lib/lean/FormalConjectures/ReviewIsolation.ilean -c /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.c --setup /workspace/.lake/build/ir/FormalConjectures/ReviewIsolation.setup.json --json\nerror: FormalConjectures/ReviewIsolation.lean:21:32: Tactic `assumption` failed\n\n\u22a2 False\nerror: Lean exited with code 1\nSome required targets logged failures:\n- FormalConjectures.ReviewIsolation\n",
+      "stderr": "error: build failed\n",
+      "timed_out": false,
+      "environment": {
+        "isolation": "fresh_container",
+        "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+        "module": "FormalConjectures.ReviewIsolation",
+        "candidate_path": "FormalConjectures/ReviewIsolation.lean",
+        "candidate_sha256": "c029c1b93dabdeb59d77b52208fba729b81aafc65a376ada78271c1a5de142dd"
+      },
+      "wall_seconds": 5.431
+    },
+    "valid_candidate": {
+      "evidence": "evidence/tool-004.json",
+      "kind": "build",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "60",
+        "lake",
+        "--wfail",
+        "build",
+        "FormalConjectures.ReviewIsolation"
+      ],
+      "exit_code": 0,
+      "stdout": "\u2714 [8896/8896] Built FormalConjectures.ReviewIsolation (1.0s)\nBuild completed successfully (8896 jobs).\n",
+      "stderr": "",
+      "timed_out": false,
+      "environment": {
+        "isolation": "fresh_container",
+        "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+        "module": "FormalConjectures.ReviewIsolation",
+        "candidate_path": "FormalConjectures/ReviewIsolation.lean",
+        "candidate_sha256": "65511bef1e30aa76f0e06df7db4e1a9c14ed97cad6a496446ab3d3a2c85434d7"
+      },
+      "wall_seconds": 5.381
+    },
+    "valid_candidate_repeat": {
+      "evidence": "evidence/tool-005.json",
+      "kind": "build",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "60",
+        "lake",
+        "--wfail",
+        "build",
+        "FormalConjectures.ReviewIsolation"
+      ],
+      "exit_code": 0,
+      "stdout": "\u2714 [8896/8896] Built FormalConjectures.ReviewIsolation (2.1s)\nBuild completed successfully (8896 jobs).\n",
+      "stderr": "",
+      "timed_out": false,
+      "environment": {
+        "isolation": "fresh_container",
+        "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+        "module": "FormalConjectures.ReviewIsolation",
+        "candidate_path": "FormalConjectures/ReviewIsolation.lean",
+        "candidate_sha256": "65511bef1e30aa76f0e06df7db4e1a9c14ed97cad6a496446ab3d3a2c85434d7"
+      },
+      "wall_seconds": 5.445
+    }
+  },
+  "tooling": {
+    "check_build_isolation.py": "3fd5e8a39ba91f9cc1d62a27c841778a8e160ac8bf4e296de20ad315866f2bde",
+    "workspace_server.py": "0181850e8880f4315bb31599aa83b378d0d0165bdc2000d30bdb59af34983e34"
+  }
+}

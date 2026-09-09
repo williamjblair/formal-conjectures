@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf 'import FormalConjectures.Wikipedia.Jacobson\\nopen Ring\\nuniverse u\\nnamespace Jacobson\\nexample : \u2200 (R : Type u) [Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R],\\n    JacobsonConjectureFor R := by\\n  sorry\\nend Jacobson\\n' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "/dev/stdin:2:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n/dev/stdin:3:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n/dev/stdin:4:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n/dev/stdin:5:0: warning: declaration uses `sorry`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.785
+}

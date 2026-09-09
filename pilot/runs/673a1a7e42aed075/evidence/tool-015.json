@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n --hidden --glob '!workspace/evals/**' --glob '!proc/**' --glob '!sys/**' --glob '!dev/**' \"on demand in /sources|/sources\" /etc /usr/local /opt 2>/dev/null | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "/etc/apt/sources.list:1:# Ubuntu sources have moved to the /etc/apt/sources.list.d/ubuntu.sources\n/etc/apt/sources.list:3:# to manage package sources in the /etc/apt/sources.list.d/ directory.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.821
+}

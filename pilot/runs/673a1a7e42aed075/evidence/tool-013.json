@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "mount | rg '/sources|source' || true\nstat /sources\nls -la /output\nfind /output -maxdepth 2 -type f -print"
+  ],
+  "exit_code": 0,
+  "stdout": "  File: /sources\n  Size: 4096      \tBlocks: 8          IO Block: 4096   directory\nDevice: 0,63\tInode: 476678      Links: 2\nAccess: (0755/drwxr-xr-x)  Uid: (    0/    root)   Gid: (    0/    root)\nAccess: 2026-09-08 15:48:09.332080004 +0000\nModify: 2026-09-08 15:41:55.000000000 +0000\nChange: 2026-09-08 15:48:09.331080004 +0000\n Birth: 2026-09-08 15:48:09.331080004 +0000\ntotal 4\ndrwxr-xr-x 2 nobody nogroup   64 Sep  8 16:00 .\ndrwxr-xr-x 1 root   root    4096 Sep  8 16:00 ..\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.081
+}

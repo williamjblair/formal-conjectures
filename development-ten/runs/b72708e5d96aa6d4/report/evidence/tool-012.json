@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\n' 'import FormalConjecturesUtil' '/-! Boundary checks for Erd\u0151s 479. -/' 'example (s : Set \u2115) : s.Infinite \u2194 (s \\ Set.Iic 1).Infinite := by' '  constructor' '  \u00b7 intro hs' '    exact hs.sdiff (Set.finite_Iic 1)' '  \u00b7 intro hs' '    exact hs.mono Set.diff_subset' '' 'example (k : \u2124) :' '    ((2 : \u2124) ^ (0 : \u2115) \u2261 k [ZMOD (0 : \u2124)]) \u2194 k = 1 := by' '  simp [Int.ModEq, eq_comm]' '' 'example (k : \u2124) : (2 : \u2124) ^ (1 : \u2115) \u2261 k [ZMOD (1 : \u2124)] := by' '  simp [Int.ModEq]' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "/dev/stdin:8:18: warning: `Set.diff_subset` has been deprecated: Use `Set.sdiff_subset` instead\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.905
+}

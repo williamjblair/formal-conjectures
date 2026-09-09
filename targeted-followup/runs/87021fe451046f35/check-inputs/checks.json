@@ -1,0 +1,69 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "a960ed9390faf9ccba7277efefde9530ca1997e71ef5baeb5c2ae625f3ad3242"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "c9fc47dfbc6929d5fad47808c3c6c6d9b497c54618a376449069aada6688271a"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "af3e09d01e9e436297563258067269b2a401b38813a70d8c4fa89c9e88c54eaf"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "894c9ccbe30fe8695286847fd1d2569e387ed7da300d62a5ab10294b991a5772"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "2814f6dc83e4b882e6380b934fd733ee6f9cead6d99250cccacb8c596da25efe"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "b9e55a3158e03b83706c278846b68700ce243163b89dbc195c8fefab39904774"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "ab4e2acad0d436bb16ee7beae5c751df8c8ca42fd193263bfc1ee367e27cf9f8"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "5f6ef52268965b5b0d73cd50a3c04d767fff52d60e6add6fdb241e33fd31c6eb"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "03a6f4c40243dbefeec4dcefa1dfe9bef6d511c12bd49b02782dbcbaec230cd9"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "fd887ea6106a1f82ed800ef6702be8a9e7cf74be8cf2591e867a072f223259f2"
+    },
+    {
+      "path": "evidence/tool-011.json",
+      "sha256": "852a01f7f652ac4e9803c1913a99a2eb88d966401d628a33048b504d0c7b4b13"
+    },
+    {
+      "path": "evidence/tool-012.json",
+      "sha256": "50ba539ad00ad890320816a791d843eb49d98a1a2f53a57555f50cf1b0ca4b95"
+    },
+    {
+      "path": "evidence/tool-013.json",
+      "sha256": "4879d8fa2eed13fecfa9eedd2524b7e8cd532b9198b9839500d7c9918ba81fe0"
+    }
+  ],
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«354»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "request_id": "b052d8c03fd6302461cdf8d12bdf702dbd0ab4ff7894d45499f72c5e0c42a80e"
+}

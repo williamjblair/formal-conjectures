@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "printf '%s\\n' 'import FormalConjectures.ErdosProblems.\u00ab479\u00bb' 'set_option pp.explicit true in' '#check Erdos479.erdos_479' > /output/Check479Type.lean && lake env lean /output/Check479Type.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "Erdos479.erdos_479 :\n  Iff\n    (sorryAx (Lean.Name \u2192 Prop) false\n      `FormalConjectures.ErdosProblems.479.32.27.32.32.27.32._sorry._@.FormalConjectures.ErdosProblems.479.2540526310._hygCtx._hyg.62)\n    (\u2200 (k : Nat),\n      @GT.gt Nat instLTNat k (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1))) \u2192\n        @Set.Infinite Nat\n          (@Set.ofPred Nat fun n =>\n            n.ModEq\n              (@HPow.hPow Nat Nat Nat (@instHPow Nat Nat (@NPow.toPow Nat (@Monoid.toNPow Nat Nat.instMonoid)))\n                (@OfNat.ofNat Nat (nat_lit 2) (instOfNatNat (nat_lit 2))) n)\n              k))\n/output/Check479Type.lean:4:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 4.242
+}

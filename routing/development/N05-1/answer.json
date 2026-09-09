@@ -1,0 +1,1 @@
+The semantic-review skill isn’t needed for locating report files. Next, I’d search the workspace for JSON reports dated yesterday (2026-09-07) and return the exact path.

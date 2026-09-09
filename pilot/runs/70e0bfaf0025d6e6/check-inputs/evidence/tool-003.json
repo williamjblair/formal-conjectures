@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && sed -n '1,320p' STATEMENTS.md && if [ -f FormalConjectures/Wikipedia/README.md ]; then sed -n '1,240p' FormalConjectures/Wikipedia/README.md; fi && find /sources -maxdepth 2 -type f -print | sort"
+  ],
+  "exit_code": 0,
+  "stdout": "# Statements\n\nUse this guide when you add or review a formalisation. The main question is whether the Lean\nstatement says what its cited source says.\n\n## Read the source and definitions\n\nRead the cited source, including relevant remarks and variants. Do not treat the module docstring\nas an independent source. It is part of the change under review.\n\nRead every non-standard definition used by the statement. Search Mathlib,\n`FormalConjecturesForMathlib/`, and nearby files. Confirm names with `#check` and inspect their\ndefinitions before you decide what they return on empty or smallest inputs.\n\nA formalisation can add new definitions. Put a generic, reusable definition in\n`FormalConjecturesForMathlib/`. Keep a definition that is specific to one problem in its problem\nfile. Never add an `axiom`, `opaque`, or `constant` declaration anywhere in the repository.\n\n## Compare the statements\n\nCheck:\n\n- the order and scope of all quantifiers\n- strict and non-strict bounds\n- all hypotheses and domain restrictions\n- equality, asymptotic equivalence, and order relations\n- the direction of implications\n- every variant and special case\n- the category and answer recorded by the source\n\nBe careful with `\u2203 x, P x \u2192 Q`. The intended statement is usually `\u2203 x, P x \u2227 Q`; the first\nform can be trivially true.\n\nFor a yes-or-no problem, check that `answer(True)` states a positive answer and `answer(False)`\nstates a negative answer. Also check the scope and expected type of `answer(sorry)`. The rest of\nthe statement must constrain the unknown answer. It must not make the theorem true for every\npossible answer.\n\n## Check boundary cases\n\nSubstitute the smallest permitted value of each parameter. Check empty types, empty sets, zero,\nand missing witnesses. The following table gives common examples. It is not exhaustive.\n\n| Case | Lean behaviour to check |\n| --- | --- |\n| Empty indexed type or set | A sum is `0`; a function type can be a subsingleton. |\n| `ZMod 0` | It is equivalent to `\u2124`, not a finite modulus. |\n| `x / 0` | Division returns `0`. |\n| `sInf \u2205` | The value can be `0`. |\n\nA default value is not a defect by itself. Report it only when the statement can reach that input\nand the value changes the mathematical claim.\n\nFor each hypothesis, ask whether any object can satisfy it. An impossible hypothesis makes an\nimplication vacuously true. Add a domain restriction when the source assumes one.\n/sources/document-1.txt\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.08
+}

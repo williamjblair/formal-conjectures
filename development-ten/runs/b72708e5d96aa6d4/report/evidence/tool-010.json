@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n 'theorem.*Infinite\\.diff|lemma.*Infinite\\.diff|Infinite\\.diff|infinite_diff|finite.*Iic|Set\\.finite_Iic' .lake/packages/mathlib/Mathlib/Data/Set .lake/packages/mathlib/Mathlib/Order | head -n 120"
+  ],
+  "exit_code": 0,
+  "stdout": ".lake/packages/mathlib/Mathlib/Data/Set/Finite/Basic.lean:870:@[deprecated (since := \"2026-06-03\")] alias Infinite.diff := Infinite.sdiff\n.lake/packages/mathlib/Mathlib/Order/Atoms/Finite.lean:122:theorem exists_covby_infinite_Iic_of_infinite_Iic [IsStronglyCoatomic \u03b1]\n.lake/packages/mathlib/Mathlib/Order/Birkhoff.lean:96:@[simp] lemma supIrred_iff_of_finite : SupIrred s \u2194 \u2203 a, Iic a = s := by\n.lake/packages/mathlib/Mathlib/Order/Interval/Set/Infinite.lean:72:instance [NoMinOrder \u03b1] {a : \u03b1} : Infinite (Iic a) :=\n.lake/packages/mathlib/Mathlib/Order/Interval/Set/Infinite.lean:75:theorem Iic_infinite [NoMinOrder \u03b1] (a : \u03b1) : (Iic a).Infinite :=\n.lake/packages/mathlib/Mathlib/Order/UpperLower/LocallyFinite.lean:33:  exact hs.biUnion fun _ _ => finite_Iic _\n.lake/packages/mathlib/Mathlib/Order/Disjointed.lean:136:    -- Key claim: we can write `Iio i` as a union of (finitely many) `Iic` intervals.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.082
+}

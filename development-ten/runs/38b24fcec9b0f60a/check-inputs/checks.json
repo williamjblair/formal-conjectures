@@ -1,0 +1,41 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "fe0653226d62db5cf3efddb87db2e1c34cbec031559c6f9f959e7a7cf677d9d9"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "1e98d12c2b041b75b7232b6407f3ed2f07280618244f9c5c2bc00feeb5bbc724"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "1244ad7f03521d579f3d02f478e76c4d266e5954cda9245c621349ea7b43b102"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "167b068184f7fe527e0f898e7a0ef733a00d98b06c8cfb8e4b63471930fb6bd5"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "f0572ae73de99e917044fcf1623ec429b9aa541c147514eb6af4023a868c73cd"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "8481c438adafe9207d02741eb6b9f58fcbf0a6b0b76e89ccd2119ed9e072bbe3"
+    }
+  ],
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "request_id": "f19fdc496c61d9d9d49c90fef33ec30b373cd0cbfed4308c05fa93893c37dcdd"
+}

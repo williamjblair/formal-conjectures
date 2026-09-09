@@ -1,0 +1,1 @@
+The optional semantic-review skill isn’t needed for a type-preserving rename. Next, I’d locate the lemma and all references, rename them consistently, then run the relevant Lean checks.

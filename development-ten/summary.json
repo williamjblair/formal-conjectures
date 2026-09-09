@@ -1,0 +1,243 @@
+{
+  "arms": {
+    "baseline": {
+      "appropriate_uncertainty": 1,
+      "assembled": 3,
+      "assessed": 3,
+      "assessed_clean_cases": 1,
+      "clean_cases_with_false_alarms": 0,
+      "detected_defects": 1,
+      "duplicates": 0,
+      "invalid_repairs": 0,
+      "output_tokens": 19856,
+      "reference_defects": 1,
+      "scheduled": 5,
+      "supported_findings": 2,
+      "unresolved_findings": 1,
+      "unresolved_keys": 1,
+      "unsupported_findings": 0,
+      "usage_unavailable_runs": 1,
+      "valid_repairs": 1,
+      "wall_seconds": 1247.746
+    },
+    "skill": {
+      "appropriate_uncertainty": 1,
+      "assembled": 5,
+      "assessed": 5,
+      "assessed_clean_cases": 1,
+      "clean_cases_with_false_alarms": 0,
+      "detected_defects": 1,
+      "duplicates": 0,
+      "invalid_repairs": 0,
+      "output_tokens": 29927,
+      "reference_defects": 1,
+      "scheduled": 5,
+      "supported_findings": 2,
+      "unresolved_findings": 0,
+      "unresolved_keys": 1,
+      "unsupported_findings": 0,
+      "usage_unavailable_runs": 0,
+      "valid_repairs": 2,
+      "wall_seconds": 1356.125
+    }
+  },
+  "qualification": "Development observations; model assessments are not human accuracy labels.",
+  "runs": [
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The review correctly identifies a documentary source mismatch, not a mathematical counterexample to the conjecture. The focused build passed, elaboration confirmed that the original statement quantifies over natural k with k > 1, and the proposed integer-domain replacement typechecked.",
+        "detected_defects": [
+          "domain"
+        ],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The source states “for all k ≠ 1” and explicitly discusses the proved case k = -1, establishing that negative integers are in scope. By contrast, `#print Erdos479.erdos_479` shows `∀ (k : Nat), k > 1 → ...`, which excludes every negative integer as well as k = 0. The suggested replacement quantifies `k : ℤ` with `k ≠ 1`, and the transcript confirms that this exact replacement typechecks.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R01",
+      "family": "479",
+      "id": "5cb2a17660651978",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The clean review is supported. The source asks whether for every integer k ≠ 1 the set of n satisfying 2^n ≡ k (mod n) is infinite, matching lines 32–33. The transcript checked that the extended-binder expression is logically equivalent to ∀ k : ℤ, k ≠ 1 → …; although elaboration introduces an unused shadowed binder, the extra universal quantifier over the nonempty type ℤ does not change the proposition. It also typechecked in Lean that allowing n = 0 does not change infinitude, since this differs from requiring 0 < n by at most the singleton {0}. The focused --wfail build passed, answer(sorry) has the correct yes/no polarity, and the research-open/AMS 11 metadata is consistent with the supplied source. No actionable semantic or metadata defect is established.",
+        "detected_defects": [],
+        "findings": [],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R02",
+      "family": "479",
+      "id": "27025e6764082fea",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The provisional clean reference is disputed. The review identifies a genuine source-scope mismatch: the cited statement is unrestricted over left-and-right Noetherian rings, while Lean elaborates the theorem's `(R : Type)` binder specifically as `Type 0`. This is documentary/source-fidelity evidence, not a checked mathematical counterexample. The focused build passed, and the proposed universe-polymorphic replacement was separately typechecked.",
+        "detected_defects": [],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "Finding 0 is supported by the cited source passage, “In a right-and-left Noetherian ring,” with no carrier-size restriction, versus line 49 and the `#check` output showing `∀ (R : Type)`, i.e. universe-zero carriers. `JacobsonConjectureFor.{u}` and both Noetherian predicates are universe-polymorphic, so this restriction is introduced by the theorem binder rather than required by its definitions. The proposed `(R : Type u)` declaration was tested in `/output/JacobsonRepair.lean` and elaborated successfully; the only warnings concerned `sorry` and the scratch declaration's missing docstring.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "disputed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R17",
+      "family": "jacobson",
+      "id": "532254c9e414ce99",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The review correctly treats source fidelity as unresolved rather than alleging a defect. The transcript shows `/sources` is empty, while the cited web source was not retrieved, so there is no source passage establishing whether part ii intends `∃ γ ∈ (1,2), ∀ α β` or `∀ α β, ∃ γ ∈ (1,2)`. It also appropriately separates this missing source check from mechanical evidence: the focused `lake --wfail build FormalConjectures.ErdosProblems.«354»` succeeded, and the transcript inspected `FloorMultiples.interleave`, `IsAddCompleteNatSeq'`, and the expansion of `∀ᵉ`. With no asserted findings, there is no untested repair or purported counterexample to validate.",
+        "detected_defects": [],
+        "findings": [],
+        "gold_status": "confirmed",
+        "uncertainty": "appropriate"
+      },
+      "case": "R22",
+      "family": "354",
+      "id": "da5b89a9d8c4dfed",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "skill",
+      "assessment": {
+        "comments": "The clean rereview is supported. The source snapshot explicitly includes the case k = -1 (document-1.txt, lines 6–9), so the prior recommendation to restrict k to natural numbers greater than 1 would incorrectly omit a source-required value and is properly withdrawn. The elaborated declaration contains a redundant shadowed integer quantifier, but tool-009 proves the expression propositionally equivalent to ∀ k : ℤ, k ≠ 1 → P k; this is not a semantic defect. The focused --wfail build passed. The checked n = 0 and n = 1 behavior only adds finitely many possible indices and therefore does not change Set.Infinite, so it supplies no mathematical counterexample. No repair was proposed or needs validation.",
+        "detected_defects": [],
+        "findings": [],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R23",
+      "family": "479",
+      "id": "b72708e5d96aa6d4",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "assessment": {
+        "comments": "The review correctly identifies a source-fidelity mismatch, not a mathematical counterexample to the conjecture. The source’s explicit discussion of k = -1 establishes that k ranges over integers, whereas Lean elaborates k as Nat with k > 1. The proposed integer-domain statement was actually elaboration-tested successfully; no additional defect is evidenced.",
+        "detected_defects": [
+          "domain"
+        ],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The source asks for all k ≠ 1 and explicitly says the result is known “if k=-1.” The printed Lean theorem quantifies `(k : Nat)` under `k > 1`, excluding every negative integer and k = 0. The suggested replacement quantifies `(k : ℤ)`, uses `k ≠ 1`, retains `n : ℕ`, and the transcript shows it elaborated successfully with `[ZMOD n]`.",
+            "index": 0,
+            "repair": "valid",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R01",
+      "family": "479",
+      "id": "a9ce4f467471f788",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "assessment": {
+        "comments": "The clean review is confirmed by direct source comparison. The source asks whether, for every k ≠ 1, infinitely many natural numbers n satisfy 2^n ≡ k (mod n); the Lean statement has the same quantifier scope and predicate. The extended binder `∀ᵉ (k : ℤ) (k ≠ 1)` expands to `∀ k : ℤ, k ≠ 1 → ...`, and `Set.Infinite` correctly expresses infinitely many n. Allowing n = 0 or n = 1 does not change infinitude, since these contribute at most finitely many exceptional values. The cited module also builds successfully with `lake --wfail`. No source mismatch or checked mathematical counterexample was found, and no repair was proposed.",
+        "detected_defects": [],
+        "findings": [],
+        "gold_status": "confirmed",
+        "uncertainty": "not_applicable"
+      },
+      "case": "R02",
+      "family": "479",
+      "id": "38b24fcec9b0f60a",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "case": "R23",
+      "family": "479",
+      "id": "76b72f2b33d6072c",
+      "repeat": 0,
+      "report_status": "invalid",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "assessment": {
+        "comments": "The provisional no-defect key is disputed by the independently verifiable documentation defect. Source fidelity itself remains unresolved: `/sources` was empty and the cited site failed DNS resolution, so there is no evidence establishing either a source mismatch or a mathematical counterexample. The successful Lean build only establishes elaboration, not fidelity.",
+        "detected_defects": [],
+        "findings": [
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "The checked type is `∃ γ ∈ Set.Ioo 1 2, ∀ α > 0, ∀ β > 0, ...`, confirming a single γ must work uniformly. However, `find /sources` found no files and `curl` failed with `Could not resolve host`, so the source's actual quantifiers cannot be compared. The concern is therefore unresolved, not a demonstrated mismatch or counterexample.",
+            "index": 0,
+            "repair": "not_proposed",
+            "status": "unresolved"
+          },
+          {
+            "actionable": true,
+            "duplicate": false,
+            "evidence": "Lines 44–46 use γ in both displayed sequences without introducing or quantifying it and do not mention `1 < γ < 2`, whereas lines 48–49 explicitly quantify one γ in `Set.Ioo 1 2` before all α and β. Rewriting the docstring as suggested would address this concrete documentation mismatch, but no revised text was supplied or checked.",
+            "index": 1,
+            "repair": "not_checked",
+            "status": "supported"
+          }
+        ],
+        "gold_status": "disputed",
+        "uncertainty": "appropriate"
+      },
+      "case": "R22",
+      "family": "354",
+      "id": "48e707e65cd518c9",
+      "repeat": 0,
+      "report_status": "assembled",
+      "status": "completed"
+    },
+    {
+      "arm": "baseline",
+      "case": "R17",
+      "family": "jacobson",
+      "id": "7c13300fa8cd29bf",
+      "repeat": 0,
+      "report_status": "not_run",
+      "status": "timeout"
+    }
+  ],
+  "unique_cases": 5,
+  "unique_families": 3
+}

@@ -1,0 +1,48 @@
+{
+  "head_commit": "624d0c19fb2740d261d88c5372e2010cf12b488d",
+  "id": "6b747dfd3d61f4dfc0eb59f3164ea5fd4f88939084b9baafd5369d42222dfee6",
+  "merge_base": "5f40d5b09242a612322468cb8d61c998b25d65e0",
+  "procedure": [
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "8d321de2686506b2858c3ecff1ecdc5530de42c9c4344106905ccfa5e5681a12"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/definition-traps.md",
+      "sha256": "ac32f3baa23b199fd88373adafb54abba8f654d004a9f8dfaadbcb9279b55694"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/_common.md",
+      "sha256": "adf6b0adf9c20f06a1c0cc3985db019ee93d44235e4186bc4a42613dbf90ad19"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "a0f2ef034ab57e8249dc5bc1457fa90cbe7743dc9c363edf0faecca5b406b678"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "72f1ffa197350d035bf4da9954c9f15f6ce4eacbef184318960d20eda83e79f9"
+    }
+  ],
+  "repository": "evaluation-snapshot/formal-conjectures",
+  "required_checks": [
+    "build"
+  ],
+  "schema_version": "fc.review-pilot.request.v1",
+  "scope": [
+    "FormalConjectures/ErdosProblems/354.lean"
+  ],
+  "sources": []
+}

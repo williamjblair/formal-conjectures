@@ -1,0 +1,5 @@
+Please review FormalConjectures/ErdosProblems/354.lean, focusing on Erdos354.erdos_354.parts.ii. Does the formalisation match the cited problem? Give me the findings I should act on.
+
+The workspace is an isolated evaluation checkout at /workspace. The original file is read-only. Use the workspace tools; scratch files go in /output. Read AGENTS.md and the ordinary contribution guidance. Available source snapshots are in /sources; networking is disabled equally for both conditions. Do not publish a review. Your final answer must follow the supplied JSON schema. Evidence references are sources/<filename> or evidence/tool-NNN.json returned by tools. Each evidence entry must be an exact path, without commentary; explain its relevance in message or reason. Use build() to record a focused build; other shell output is retained but not classified as a build.
+Request id: fcabeb0e68691448a3681154fe592293e91aed640fc6a1c2a9ef80313def6b54; reviewer: gpt-5.6-sol; context_policy: fresh; prior_reviews: [].
+Use the review skill at /skill/SKILL.md; read supporting files as needed.

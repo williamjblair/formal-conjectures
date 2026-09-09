@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "nl -ba FormalConjectures/ErdosProblems/354.lean | sed -n '24,52p'\nsha256sum /skill/SKILL.md /skill/rubrics/_common.md /skill/rubrics/source-fidelity.md /skill/references/definition-traps.md /skill/references/checking-in-lean.md"
+  ],
+  "exit_code": 0,
+  "stdout": "    24\tnamespace Erdos354\n    25\t\n    26\t/-- The sequence `\u230aa\u230b, \u230a\u03b3 * a\u230b, \u230a\u03b3 ^ 2 * a\u230b, ..., \u230a\u03b3 ^ i * a\u230b, ...`. -/\n    27\tnoncomputable def FloorMultiples (a \u03b3 : \u211d) (n : \u2115) : \u2124 := \u230a\u03b3 ^ n * a\u230b\n    28\t\n    29\t/-- The sequence `\u230aa\u230b, \u230ab\u230b, \u230a\u03b3 * a\u230b, \u230a\u03b3 * b\u230b, ... \u230a\u03b3 ^ i * a\u230b, \u230a\u03b3 ^ i * b\u230b, ...` -/\n    30\tnoncomputable def FloorMultiples.interleave (a b \u03b3 : \u211d) (n : \u2115) : \u2124 :=\n    31\t  if n % 2 = 0 then\n    32\t    FloorMultiples a \u03b3 (n / 2)\n    33\t  else\n    34\t    FloorMultiples b \u03b3 (n / 2)\n    35\t\n    36\t/-- Let $\\alpha,\\beta\\in \\mathbb{R}_{>0}$ such that $\\alpha/\\beta$ is irrational. Is the multiset\n    37\t$$\\{ \\lfloor \\alpha\\rfloor,\\lfloor 2\\alpha\\rfloor,\\lfloor 4\\alpha\\rfloor,\\ldots\\}\\cup\n    38\t\\{ \\lfloor \\beta\\rfloor,\\lfloor 2\\beta\\rfloor,\\lfloor 4\\beta\\rfloor,\\ldots\\}$$ complete? -/\n    39\t@[category research open, AMS 11]\n    40\ttheorem erdos_354.parts.i : answer(sorry) \u2194 \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n    41\t    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 2) := by\n    42\t  sorry\n    43\t\n    44\t/-- Let $\\alpha,\\beta\\in \\mathbb{R}_{>0}$ such that $\\alpha/\\beta$ is irrational. Is\n    45\t$$\\{ \\lfloor \\alpha\\rfloor,\\lfloor \\gamma\\alpha\\rfloor,\\lfloor \\gamma^2\\alpha\\rfloor,\\ldots\\}\\cup\n    46\t\\{ \\lfloor \\beta\\rfloor,\\lfloor \\gamma\\beta\\rfloor,\\lfloor \\gamma^2\\beta\\rfloor,\\ldots\\}$$ complete? -/\n    47\t@[category research open, AMS 11]\n    48\ttheorem erdos_354.parts.ii : answer(sorry) \u2194 \u2203 \u03b3 \u2208 Set.Ioo (1 : \u211d) 2, \u2200\u1d49 (\u03b1 > 0) (\u03b2 > 0), Irrational (\u03b1 / \u03b2) \u2192\n    49\t    IsAddCompleteNatSeq' (FloorMultiples.interleave \u03b1 \u03b2 \u03b3) := by\n    50\t  sorry\n    51\t\n    52\tend Erdos354\n8d321de2686506b2858c3ecff1ecdc5530de42c9c4344106905ccfa5e5681a12  /skill/SKILL.md\nadf6b0adf9c20f06a1c0cc3985db019ee93d44235e4186bc4a42613dbf90ad19  /skill/rubrics/_common.md\na0f2ef034ab57e8249dc5bc1457fa90cbe7743dc9c363edf0faecca5b406b678  /skill/rubrics/source-fidelity.md\nac32f3baa23b199fd88373adafb54abba8f654d004a9f8dfaadbcb9279b55694  /skill/references/definition-traps.md\n2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42  /skill/references/checking-in-lean.md\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.09
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "command -v source-snapshot || true\ncommand -v fetch-source || true\ncommand -v snapshot || true\ncompgen -c 2>/dev/null | sort -u | rg 'source|snapshot|fetch|review' | head -100\nfind /usr/local/bin /usr/bin -maxdepth 1 -type f -o -type l 2>/dev/null | rg 'source|snapshot|fetch|review' | head -100"
+  ],
+  "exit_code": 0,
+  "stdout": "/usr/bin/dpkg-scansources\n/usr/bin/dpkg-source\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.142
+}

@@ -1,0 +1,105 @@
+{
+  "frozen_files": {
+    "private-assets/benchmark-assets/case-01.lean": "5c034287066750c318dae057cf5cfc5021cd958d7a948f2cd78daf136c1ac98e",
+    "private-assets/benchmark-assets/case-02.lean": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3",
+    "private-assets/benchmark-assets/case-03.lean": "1dd0aa66fbc3dbf6593a620521012f47a4b25f4c35385f55109f91a0cde160ce",
+    "private-assets/benchmark-assets/case-04.lean": "28f589f9a2cf81505615055b20762a37889a22560519092a84ae0d9999b006a2",
+    "private-assets/benchmark-assets/case-05.lean": "f310b23e6255447b842e954e8c3b91b1d7392d08a2260688286897969f5d5c22",
+    "private-assets/benchmark-assets/case-06.lean": "4d86f1ef94a95d1e392c41b792a299a3d2f6f2ac08d568a98b8da927b89bb200",
+    "private-assets/benchmark-assets/case-07.lean": "43b60ab56bfb6b6ab17e3d4f03d2ed5abda30b2fe2245abaaa9a505aa9cd2e44",
+    "private-assets/benchmark-assets/case-08.lean": "99594926ffd4a3ae6d4af01fccda7cd0bd7d2743270cf14d0d1bfd5b21db91af",
+    "private-assets/benchmark-assets/case-09.lean": "ea029cfcfac48df7f19246007d8f1f59fa136f59d7e745aeb87472a92516a5df",
+    "private-assets/benchmark-assets/case-10.lean": "7390916c46395732b0ac4d647c160065419905a6386a775f685f50935b393e1a",
+    "private-assets/benchmark-assets/case-11.lean": "009430a233a92286632de7707d8c341850c93355023a5fabb1e74a5b5c9f99da",
+    "private-assets/benchmark-assets/case-12.lean": "b83de60c3cc3125475cc1f24621d3d79afbc6a57bae55d835c6bd0b130561b3d",
+    "private-assets/benchmark-assets/case-13.lean": "6d612ea64a1ad520690265d7fdedcd3e9d3b7750eb29757b8f4ccde6301601d5",
+    "private-assets/benchmark-assets/case-14.lean": "cd5a2af1993d52ae29df9480d9304cbecae195e24d2ab51a45919806899cfd1e",
+    "private-assets/benchmark-assets/case-15.lean": "70efea4ef789353a02d2c5be2367d4a64731eb223c30bd714b264e64a3447ba0",
+    "private-assets/benchmark-assets/case-16.lean": "c4c898aebec14cbaf01112c37de03e8f2328f90cd11a6edd6ea5ad13f4522574",
+    "private-assets/benchmark-assets/case-17.lean": "bfb2904c9949003a47a8c04fe8ec97c3f0feaf2df310cee53a723ccb60d1d462",
+    "private-assets/benchmark-assets/case-18.lean": "fce98fcfbac5ce369f72547dfc188498fe393d2b8fddb514a6945a1fd3a33073",
+    "private-assets/benchmark-assets/case-19.lean": "2f45e25055d5425273423de51436d4d01fe354572fb48289099a0a173f64bbd5",
+    "private-assets/benchmark-assets/case-20.lean": "b6f9b26f20623420d6c276aa4087b867ee3c330a28b208fe07008ebc2fe8a9ce",
+    "private-assets/benchmark-assets/context-R23.txt": "471fedad9f9904642b6003d4d7d78963d12d9351ee0d7cd0212c82336883b990",
+    "private-assets/benchmark-assets/context-R24.txt": "4c70438af94dfac8a7792622b4a1ed616f80c0df7998e519d166d562ae905308",
+    "private-assets/benchmark-assets/source-354.txt": "14ceecab89e0636fa0555076d5fbf9529d4d49d57139d76402b222719b194311",
+    "private-assets/benchmark-assets/source-41.txt": "be8b948910748f3a82f3bed97a4e72a230635aedf0258fba67b3d0d68611e0da",
+    "private-assets/benchmark-assets/source-479.txt": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63",
+    "private-assets/benchmark-assets/source-757.txt": "a888648946b151382e9004a74a01f8c833ec26aa76f451f52b3c460af21377b7",
+    "private-assets/benchmark-assets/source-97.txt": "7873ea532fa5a3b136191a369d753830c7d79ae5d1e5d9a9b2aa2aadc2ce7c30",
+    "private-assets/benchmark-assets/source-996.txt": "647cf3f18c6f060f60dac77a4cc43259af6cc1f62583d3d16a34936f6be2a8d0",
+    "private-assets/benchmark-assets/source-A004275.txt": "eb3783853b7f466d4e46d1058d047d30ca65d0584948fca924855c2bbe0d6acb",
+    "private-assets/benchmark-assets/source-A005156.txt": "d6326f49406222f8b9fb43cdee808a45a0928ac231607460c0860531bdd5153c",
+    "private-assets/benchmark-assets/source-A109074.txt": "9a51728d4232c578a71df4c3a0618ad61b5419ec8d00bdde72b0da98033e59fc",
+    "private-assets/benchmark-assets/source-A110854.txt": "d339ba9b6fa07b3a1b380c4a275b5b0b6021b9b424e4eaefcdc8264e74980099",
+    "private-assets/benchmark-assets/source-irrational.txt": "fe0cff916fee6df2a4e16ab251b975d81b538195fbdc853dc8f6bd0d11e79593",
+    "private-assets/benchmark-assets/source-jacobson.txt": "0ad18dc15c9bad2baebfcb7c4c2f70c24832f5df1ab50510bf0c8ec8c342a6ef",
+    "private-assets/benchmark-assets/source-legendre.txt": "40f056d7a8d81937ddb3801cb4b1e5fc294b03f6528083e8ec45029a4297c683",
+    "private-assets/benchmark-assets/source-ramsey.txt": "39329d10e10905b8adc8aa4e89bd842c3058fae68ac8c938db987dd6b3e43eb7",
+    "skill/SKILL.md": "8d321de2686506b2858c3ecff1ecdc5530de42c9c4344106905ccfa5e5681a12",
+    "skill/references/checking-in-lean.md": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42",
+    "skill/references/definition-traps.md": "ac32f3baa23b199fd88373adafb54abba8f654d004a9f8dfaadbcb9279b55694",
+    "skill/references/verifying-proofs.md": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1",
+    "skill/rubrics/_common.md": "adf6b0adf9c20f06a1c0cc3985db019ee93d44235e4186bc4a42613dbf90ad19",
+    "skill/rubrics/metadata-hygiene.md": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23",
+    "skill/rubrics/source-fidelity.md": "a0f2ef034ab57e8249dc5bc1457fa90cbe7743dc9c363edf0faecca5b406b678",
+    "skill/rubrics/statement-soundness.md": "72f1ffa197350d035bf4da9954c9f15f6ce4eacbef184318960d20eda83e79f9",
+    "suite.json": "4f31c9140f7150b5e3d095a5d913c4496d1fcdac4c5e0448f90476d24f9e2974",
+    "tooling/review-eval/workspace_server.py": "9a35c8ae786aebbb7be8efafe59dd2f11f255b447bf0da5caf32d500feabc5ac",
+    "tooling/review_eval.py": "fc6d3e1153846718d6026dd34f07b1231f7f4420a99926724d3ce4d0035ffec3",
+    "tooling/review_report.py": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42"
+  },
+  "image": "sha256:c7dfc0923cd6ba0c100151ba7fc6d7b646d3d75a7631d9e8611f656d43e24bc5",
+  "jobs": [
+    {
+      "arm": "baseline",
+      "case": "R01",
+      "family": "479",
+      "id": "9ee8305030d23db2",
+      "repeat": 0
+    },
+    {
+      "arm": "skill",
+      "case": "R22",
+      "family": "354",
+      "id": "673a1a7e42aed075",
+      "repeat": 0
+    },
+    {
+      "arm": "baseline",
+      "case": "R17",
+      "family": "jacobson",
+      "id": "70e0bfaf0025d6e6",
+      "repeat": 0
+    },
+    {
+      "arm": "skill",
+      "case": "R17",
+      "family": "jacobson",
+      "id": "444c742113d48922",
+      "repeat": 0
+    },
+    {
+      "arm": "baseline",
+      "case": "R22",
+      "family": "354",
+      "id": "819a271f1f25cd63",
+      "repeat": 0
+    },
+    {
+      "arm": "skill",
+      "case": "R01",
+      "family": "479",
+      "id": "2bdabb7671f5014c",
+      "repeat": 0
+    }
+  ],
+  "max_calls": 30,
+  "schema_version": "fc.review-eval.v2",
+  "timeout": 420,
+  "tooling": {
+    "review_eval.py": "fc6d3e1153846718d6026dd34f07b1231f7f4420a99926724d3ce4d0035ffec3",
+    "review_report.py": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+    "workspace_server.py": "9a35c8ae786aebbb7be8efafe59dd2f11f255b447bf0da5caf32d500feabc5ac"
+  }
+}

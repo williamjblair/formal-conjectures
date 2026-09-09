@@ -1,0 +1,25 @@
+{
+  "head_commit": "b07d1765638c0333436b578a2a72833b71956ab6",
+  "id": "03f05445cafef51f595c922600dc8076bd9c76448b925a2d386ae37f70f6f0b1",
+  "merge_base": "5f40d5b09242a612322468cb8d61c998b25d65e0",
+  "procedure": [
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    }
+  ],
+  "repository": "evaluation-snapshot/formal-conjectures",
+  "required_checks": [
+    "build"
+  ],
+  "schema_version": "fc.review-pilot.request.v1",
+  "scope": [
+    "FormalConjectures/ErdosProblems/479.lean"
+  ],
+  "sources": [
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ]
+}

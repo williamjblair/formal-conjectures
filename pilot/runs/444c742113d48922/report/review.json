@@ -1,0 +1,41 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [
+    {
+      "angle": "source-fidelity",
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-011.json",
+        "evidence/tool-014.json"
+      ],
+      "file": "FormalConjectures/Wikipedia/Jacobson.lean",
+      "line": 49,
+      "message": "The source states the positive conjecture directly: in every right-and-left Noetherian ring, the intersection is zero. `answer(sorry) ↔ ...` instead introduces a placeholder for the answer to a yes-or-no question. This also disagrees with the declaration's own affirmative docstring.",
+      "severity": "semantic",
+      "suggestion": "Remove `answer(sorry) ↔` and state the universal proposition directly."
+    },
+    {
+      "angle": "source-fidelity",
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-015.json",
+        "evidence/tool-016.json"
+      ],
+      "file": "FormalConjectures/Wikipedia/Jacobson.lean",
+      "line": 49,
+      "message": "The source quantifies over an unrestricted ring `R`, but `(R : Type)` restricts the theorem to universe-zero rings. The elaborated declaration confirms that every relevant type is fixed at universe `0`, even though the file already declares universe `u`.",
+      "severity": "semantic",
+      "suggestion": "Change `(R : Type)` to `(R : Type u)`; the resulting universe-polymorphic statement type-checks."
+    }
+  ],
+  "prior_reviews": [],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "2fa98e86e2594cf5db9129572b687c370c00e9c085ab10df1f69ebe636806558",
+  "reviewer": "gpt-5.6-sol"
+}

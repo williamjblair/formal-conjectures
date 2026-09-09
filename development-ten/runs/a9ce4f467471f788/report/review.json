@@ -1,0 +1,28 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [
+    {
+      "angle": "source-fidelity",
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-007.json",
+        "evidence/tool-010.json"
+      ],
+      "file": "FormalConjectures/ErdosProblems/479.lean",
+      "line": 32,
+      "message": "The cited problem quantifies over every integer k ≠ 1; its discussion explicitly includes k = -1. Lean instead infers k : ℕ and assumes k > 1, so the theorem omits all negative k as well as k = 0 and formalises a strictly weaker problem.",
+      "severity": "semantic",
+      "suggestion": "Quantify over integers while retaining natural n, for example: `answer(sorry) ↔ ∀ᵉ (k : ℤ), k ≠ 1 → { n : ℕ | 2 ^ n ≡ k [ZMOD n] }.Infinite`. This candidate elaborates successfully."
+    }
+  ],
+  "prior_reviews": [],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "898c07d57ab1db54c82f8f0d80bae1134896daa7f3f567fe478a0e8c1db25cec",
+  "reviewer": "gpt-5.6-sol"
+}

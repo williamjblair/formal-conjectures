@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjectures.Wikipedia.Jacobson' '#print Jacobson.JacobsonConjectureFor' '#check Jacobson.jacobson_conjecture' '#check IsNoetherianRing' '#check IsRightNoetherianRing' '#check Ring.jacobson' > /output/JacobsonCheck.lean && lake env lean /output/JacobsonCheck.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "def Jacobson.JacobsonConjectureFor.{u} : (R : Type u) \u2192 [Ring R] \u2192 Prop :=\nfun R [Ring R] => \u2a05 n, Ring.jacobson R ^ n = 0\n/output/JacobsonCheck.lean:2:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\nJacobson.jacobson_conjecture :\n  sorry \u2194 \u2200 (R : Type) [inst : Ring R] [IsNoetherianRing R] [IsRightNoetherianRing R], Jacobson.JacobsonConjectureFor R\n/output/JacobsonCheck.lean:3:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\nIsNoetherianRing.{u_1} (R : Type u_1) [Semiring R] : Prop\nIsRightNoetherianRing.{u} (R : Type u) [Semiring R] : Prop\n/output/JacobsonCheck.lean:5:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\nRing.jacobson.{u_1} (R : Type u_1) [Ring R] : Ideal R\n/output/JacobsonCheck.lean:6:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n/output/JacobsonCheck.lean:7:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.655
+}

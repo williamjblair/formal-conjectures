@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "curl -L --max-time 10 -sS https://www.erdosproblems.com/354 | head -80"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "curl: (6) Could not resolve host: www.erdosproblems.com\n",
+  "timed_out": false,
+  "wall_seconds": 0.135
+}

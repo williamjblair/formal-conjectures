@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "env | sort | sed -n '1,200p'; find /opt /skill -maxdepth 3 -type f -print 2>/dev/null | sort | head -200"
+  ],
+  "exit_code": 0,
+  "stdout": "HOME=/tmp\nHOSTNAME=39556e9d73a6\nPATH=/opt/lean/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nPWD=/workspace\n/opt/lean/LICENSE\n/opt/lean/LICENSES\n/opt/lean/bin/cadical\n/opt/lean/bin/clang\n/opt/lean/bin/lake\n/opt/lean/bin/ld.lld\n/opt/lean/bin/lean\n/opt/lean/bin/leanc\n/opt/lean/bin/leanchecker\n/opt/lean/bin/leanir\n/opt/lean/bin/leanmake\n/opt/lean/bin/leantar\n/opt/lean/bin/llvm-ar\n/opt/lean/lib/Mcrt1.o\n/opt/lean/lib/Scrt1.o\n/opt/lean/lib/crt1.o\n/opt/lean/lib/crti.o\n/opt/lean/lib/crtn.o\n/opt/lean/lib/gcrt1.o\n/opt/lean/lib/libLLVM.so.22.1\n/opt/lean/lib/libatomic.so.1.2.0\n/opt/lean/lib/libc++.a\n/opt/lean/lib/libc++.modules.json\n/opt/lean/lib/libc++.so\n/opt/lean/lib/libc++.so.1.0\n/opt/lean/lib/libc++abi.a\n/opt/lean/lib/libc++abi.so.1.0\n/opt/lean/lib/libclang-cpp.so.22.1\n/opt/lean/lib/libcrypto.a\n/opt/lean/lib/libgcc_s.so.1\n/opt/lean/lib/libgmp.a\n/opt/lean/lib/libssl.a\n/opt/lean/lib/libunwind.a\n/opt/lean/lib/libunwind.so.1.0\n/opt/lean/lib/libuv.a\n/opt/lean/lib/libz.so.1.2.11\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.069
+}

@@ -1,0 +1,3 @@
+The optional `formal-conjectures-review` skill isn’t relevant to a Python security and path-handling audit, so I won’t load it.
+
+Next, I would locate the review-report renderer, trace all user-controlled path inputs through file operations and template rendering, then report concrete vulnerabilities with file/line references and recommended fixes.

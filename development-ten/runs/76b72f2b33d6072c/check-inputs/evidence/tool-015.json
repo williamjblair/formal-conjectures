@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "rg -n \"answer\\((True|False|sorry)\\).*\u2194\" /workspace/FormalConjectures/ErdosProblems | head -60"
+  ],
+  "exit_code": 0,
+  "stdout": "/workspace/FormalConjectures/ErdosProblems/479.lean:32:theorem erdos_479 : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124) (k \u2260 1),\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.072
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cat /output/prior.txt"
+  ],
+  "exit_code": 0,
+  "stdout": "Authored rereview scenario, not a verbatim GitHub conversation.\nEarlier review: the integer domain is too broad; restrict k to natural numbers greater than 1. Contributor reply: please check the cited source, which explicitly discusses k=-1.\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.05
+}

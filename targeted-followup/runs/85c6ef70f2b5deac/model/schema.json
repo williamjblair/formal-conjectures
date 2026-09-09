@@ -1,0 +1,239 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "context_policy": {
+      "enum": [
+        "fresh",
+        "rereview"
+      ],
+      "type": "string"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata-hygiene": {
+          "enum": [
+            "complete",
+            "incomplete"
+          ],
+          "type": "string"
+        },
+        "source-fidelity": {
+          "enum": [
+            "complete",
+            "incomplete"
+          ],
+          "type": "string"
+        },
+        "statement-soundness": {
+          "enum": [
+            "complete",
+            "incomplete"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "source-fidelity",
+        "statement-soundness",
+        "metadata-hygiene"
+      ],
+      "type": "object"
+    },
+    "findings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "angle": {
+            "enum": [
+              "source-fidelity",
+              "statement-soundness",
+              "metadata-hygiene"
+            ],
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "enum": [
+                "sources/document-1.txt",
+                "evidence/tool-001.json",
+                "evidence/tool-002.json",
+                "evidence/tool-003.json",
+                "evidence/tool-004.json",
+                "evidence/tool-005.json",
+                "evidence/tool-006.json",
+                "evidence/tool-007.json",
+                "evidence/tool-008.json",
+                "evidence/tool-009.json",
+                "evidence/tool-010.json",
+                "evidence/tool-011.json",
+                "evidence/tool-012.json",
+                "evidence/tool-013.json",
+                "evidence/tool-014.json",
+                "evidence/tool-015.json",
+                "evidence/tool-016.json",
+                "evidence/tool-017.json",
+                "evidence/tool-018.json",
+                "evidence/tool-019.json",
+                "evidence/tool-020.json",
+                "evidence/tool-021.json",
+                "evidence/tool-022.json",
+                "evidence/tool-023.json",
+                "evidence/tool-024.json",
+                "evidence/tool-025.json",
+                "evidence/tool-026.json",
+                "evidence/tool-027.json",
+                "evidence/tool-028.json",
+                "evidence/tool-029.json",
+                "evidence/tool-030.json",
+                "evidence/prior.txt"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "file": {
+            "enum": [
+              "FormalConjectures/ErdosProblems/479.lean"
+            ],
+            "type": "string"
+          },
+          "line": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "semantic",
+              "nit"
+            ],
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "angle",
+          "file",
+          "line",
+          "severity",
+          "message",
+          "suggestion",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "prior_reviews": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "questions": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "reconciliations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "enum": [
+                "sources/document-1.txt",
+                "evidence/tool-001.json",
+                "evidence/tool-002.json",
+                "evidence/tool-003.json",
+                "evidence/tool-004.json",
+                "evidence/tool-005.json",
+                "evidence/tool-006.json",
+                "evidence/tool-007.json",
+                "evidence/tool-008.json",
+                "evidence/tool-009.json",
+                "evidence/tool-010.json",
+                "evidence/tool-011.json",
+                "evidence/tool-012.json",
+                "evidence/tool-013.json",
+                "evidence/tool-014.json",
+                "evidence/tool-015.json",
+                "evidence/tool-016.json",
+                "evidence/tool-017.json",
+                "evidence/tool-018.json",
+                "evidence/tool-019.json",
+                "evidence/tool-020.json",
+                "evidence/tool-021.json",
+                "evidence/tool-022.json",
+                "evidence/tool-023.json",
+                "evidence/tool-024.json",
+                "evidence/tool-025.json",
+                "evidence/tool-026.json",
+                "evidence/tool-027.json",
+                "evidence/tool-028.json",
+                "evidence/tool-029.json",
+                "evidence/tool-030.json",
+                "evidence/prior.txt"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "prior_evidence": {
+            "enum": [
+              "evidence/prior.txt"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "retained",
+              "corrected",
+              "withdrawn"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "prior_evidence",
+          "status",
+          "reason",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "request_id": {
+      "enum": [
+        "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed"
+      ],
+      "type": "string"
+    },
+    "reviewer": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "reviewer",
+    "context_policy",
+    "prior_reviews",
+    "coverage",
+    "findings",
+    "questions",
+    "reconciliations"
+  ],
+  "type": "object"
+}

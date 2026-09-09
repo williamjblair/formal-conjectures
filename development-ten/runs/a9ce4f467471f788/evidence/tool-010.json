@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && printf '%s\\n' 'import FormalConjecturesUtil' '/-!' '# Check for corrected Erd\u0151s 479 statement' '-/' 'namespace Check479' '@[category research open, AMS 11]' 'theorem corrected : answer(sorry) \u2194 \u2200\u1d49 (k : \u2124), k \u2260 1 \u2192 { n : \u2115 | 2 ^ n \u2261 k [ZMOD n]}.Infinite := by' '  sorry' 'end Check479' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "/dev/stdin:7:8: warning: declaration uses `sorry`\n/dev/stdin:7:8: warning: Declarations tagged `@[category research open]`, `@[category research solved]`, or `@[category textbook]` must have a docstring.\n\nNote: This linter can be disabled with `set_option linter.style.category_docstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 3.806
+}

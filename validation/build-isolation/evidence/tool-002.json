@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "printf '%s\\n' 'name = \"reviewProbe\"' '[[lean_lib]]' 'name = \"FormalConjectures.ReviewIsolation\"' 'roots = []' > lakefile.toml; lake --wfail build FormalConjectures.ReviewIsolation"
+  ],
+  "exit_code": 0,
+  "stdout": "Build completed successfully (1 job).\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.172
+}

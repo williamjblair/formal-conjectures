@@ -1,0 +1,123 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "58e8bc2e32fe09bdf2e54c929c5803d6bc921d6e19ff796a951457ceea51dfa5"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "f2970ff31a30d846fa47578cf6f3a827d6d2da1f79018d1282d28d1035e8c80c"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "93fc6a3e4f3cdf707f558c67575fcc818bf3aef3771884c51ecfb1811569951d"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "f20f3cc2eeafc2fc2933e833e2da8adf252501ed1534cdf55c05fb5d29f55563"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "4f64dcae3fff83a41bf0fb494745c0eb1fbf74396d7fc360d325ca188497aafd"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "b5ea2d819408596489ad29ee21618d9a93248a034d63582afdc9d4e6586fc805"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "404005456211ecd32aef37021522ff28bac902b283d442570f88d8270fb389fe"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "6c500e1e34bc6d3dc6d83922758f52a1fb10c610d03ad0b54a626f7413a60e31"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "51abffc0ac6afe79399675caa16288e896d72147cd2dc6cb9706721a7b8e6487"
+    },
+    {
+      "path": "evidence/tool-010.json",
+      "sha256": "2c4407d13fe01d261b850a53d3a3fc209a9c02f5232386a3954b003fcdf7481a"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "head_commit": "4a20822a518e79972704a936a6572cf195003af9",
+    "id": "898c07d57ab1db54c82f8f0d80bae1134896daa7f3f567fe478a0e8c1db25cec",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-007.json",
+          "evidence/tool-010.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/479.lean",
+        "line": 32,
+        "message": "The cited problem quantifies over every integer k ≠ 1; its discussion explicitly includes k = -1. Lean instead infers k : ℕ and assumes k > 1, so the theorem omits all negative k as well as k = 0 and formalises a strictly weaker problem.",
+        "severity": "semantic",
+        "suggestion": "Quantify over integers while retaining natural n, for example: `answer(sorry) ↔ ∀ᵉ (k : ℤ), k ≠ 1 → { n : ℕ | 2 ^ n ≡ k [ZMOD n] }.Infinite`. This candidate elaborates successfully."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "898c07d57ab1db54c82f8f0d80bae1134896daa7f3f567fe478a0e8c1db25cec",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "NEEDS REVISION"
+}

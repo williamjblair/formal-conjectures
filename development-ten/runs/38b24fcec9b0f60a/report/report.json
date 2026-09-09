@@ -1,0 +1,93 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "fe0653226d62db5cf3efddb87db2e1c34cbec031559c6f9f959e7a7cf677d9d9"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "1e98d12c2b041b75b7232b6407f3ed2f07280618244f9c5c2bc00feeb5bbc724"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "1244ad7f03521d579f3d02f478e76c4d266e5954cda9245c621349ea7b43b102"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "167b068184f7fe527e0f898e7a0ef733a00d98b06c8cfb8e4b63471930fb6bd5"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "f0572ae73de99e917044fcf1623ec429b9aa541c147514eb6af4023a868c73cd"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "8481c438adafe9207d02741eb6b9f58fcbf0a6b0b76e89ccd2119ed9e072bbe3"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "head_commit": "cde58ea7dce3741716cbfbd8c2586a7f09587d12",
+    "id": "f19fdc496c61d9d9d49c90fef33ec30b373cd0cbfed4308c05fa93893c37dcdd",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "f19fdc496c61d9d9d49c90fef33ec30b373cd0cbfed4308c05fa93893c37dcdd",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "CLEAN"
+}

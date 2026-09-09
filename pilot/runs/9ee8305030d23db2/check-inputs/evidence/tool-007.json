@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "printf '%s\\n' 'import FormalConjectures.ErdosProblems.\u00ab479\u00bb' 'set_option pp.universes true in' 'set_option pp.explicit true in' '#print Erdos479.erdos_479' | lake env lean /dev/stdin"
+  ],
+  "exit_code": 0,
+  "stdout": "theorem Erdos479.erdos_479 : Iff\n  (sorryAx.{1} (Lean.Name \u2192 Prop) false\n    `FormalConjectures.ErdosProblems.479.32.27.32.32.27.32._sorry._@.FormalConjectures.ErdosProblems.479.2540526310._hygCtx._hyg.62)\n  (\u2200 (k : Nat),\n    @GT.gt.{0} Nat instLTNat k (@OfNat.ofNat.{0} Nat (nat_lit 1) (instOfNatNat (nat_lit 1))) \u2192\n      @Set.Infinite.{0} Nat\n        (@Set.ofPred.{0} Nat fun n =>\n          n.ModEq\n            (@HPow.hPow.{0, 0, 0} Nat Nat Nat\n              (@instHPow.{0, 0} Nat Nat (@NPow.toPow.{0} Nat (@Monoid.toNPow.{0} Nat Nat.instMonoid)))\n              (@OfNat.ofNat.{0} Nat (nat_lit 2) (instOfNatNat (nat_lit 2))) n)\n            k)) :=\nsorryAx.{0}\n  (\u2200 (tag : Lean.Name),\n    Iff\n      (sorryAx.{1} (Lean.Name \u2192 Prop) false\n        `FormalConjectures.ErdosProblems.479.32.27.32.32.27.32._sorry._@.FormalConjectures.ErdosProblems.479.2540526310._hygCtx._hyg.62)\n      (\u2200 (k : Nat),\n        @GT.gt.{0} Nat instLTNat k (@OfNat.ofNat.{0} Nat (nat_lit 1) (instOfNatNat (nat_lit 1))) \u2192\n          @Set.Infinite.{0} Nat\n            (@Set.ofPred.{0} Nat fun n =>\n              n.ModEq\n                (@HPow.hPow.{0, 0, 0} Nat Nat Nat\n                  (@instHPow.{0, 0} Nat Nat (@NPow.toPow.{0} Nat (@Monoid.toNPow.{0} Nat Nat.instMonoid)))\n                  (@OfNat.ofNat.{0} Nat (nat_lit 2) (instOfNatNat (nat_lit 2))) n)\n                k)))\n  false\n  `FormalConjectures.ErdosProblems.479.33.2.33.7.2.7._sorry._@.FormalConjectures.ErdosProblems.479.2540526310._hygCtx._hyg.69\n/dev/stdin:4:0: warning: This file has no module docstring (`/-! ... -/`). Add one after the imports to document the file.\n\nNote: This linter can be disabled with `set_option linter.style.moduleDocstring false`\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 2.755
+}

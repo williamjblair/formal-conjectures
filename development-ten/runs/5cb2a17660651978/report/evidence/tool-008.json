@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && rg -n \"Int\\.ModEq|\\[ZMOD|: \u2124.*Infinite|\u2200 k : \u2124.*ModEq|\u2261.*\\[ZMOD\" FormalConjectures FormalConjecturesForMathlib | head -200"
+  ],
+  "exit_code": 0,
+  "stdout": "FormalConjecturesForMathlib/NumberTheory/NumberField/FundamentalDiscriminant.lean:19:public import Mathlib.Data.Int.ModEq\nFormalConjecturesForMathlib/NumberTheory/NumberField/FundamentalDiscriminant.lean:40:  4 \u2223 D \u2227 \u00ac D / 4 \u2261 1 [ZMOD 4] \u2227 Squarefree (D / 4) \u2228 D \u2260 1 \u2227 D \u2261 1 [ZMOD 4] \u2227 Squarefree D\nFormalConjecturesForMathlib/NumberTheory/NumberField/FundamentalDiscriminant.lean:51:  simp only [IsFundamentalDiscr, Int.ModEq]\nFormalConjecturesForMathlib/NumberTheory/WallSunSunPrimes.lean:65:  lucasNumber_modeq : lucasNumber p \u2261 1 [ZMOD (p ^ 2)]\nFormalConjecturesForMathlib/NumberTheory/WallSunSunPrimes.lean:81:  modeq : LucasSequence.U a b (p - J(a^2 - 4*b | p)).toNat \u2261 0 [ZMOD (p^2)]\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.075
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "ls -la /sources\nfind / -maxdepth 2 -type f -iname '*source*' -o -iname '*snapshot*' 2>/dev/null | sort | head -100\nenv | sort | rg 'SOURCE|REVIEW|WORKSPACE' || true"
+  ],
+  "exit_code": 0,
+  "stdout": "total 8\ndrwxr-xr-x 2 root root 4096 Sep  8 15:41 .\ndrwxr-xr-x 1 root root 4096 Sep  8 16:00 ..\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.133
+}

@@ -1,0 +1,142 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "2815995c117ce21cb0c318d3b08bef14ea6e0c5dcc2c1e40e713ecf9dcf34a9e"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "08429d4d438392ef9a6463534e6ecdaf2e4782dd1cd31a2e935604c6c535e7e4"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "53446e3a48d47d2014f80e459cd2ea07701665d04570a13c0852f1cffce0ea08"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "d9667410e886146a84d65726bee1517b295a91cb5b02bfaa690f3b8736e92adb"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "2786874a5549ae5918ef22417af392bfedd68b38399ed0b566485f934e3c6d8d"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "fc26fea8e786de568d1db1d9862b7e56a1ad93a980f0c2acb22dd2861b1cfaf4"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "d07bef5d08301ef3fc4e6bdd5ab33986e6d5d856cb2e8bfb3497d29b678fe7c8"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "118db1a28d39e9fc5238c2850dbd38f31558ac3023d3c5ec537dd4523aaa64ba"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "553986639dac04c3f358dfbeb8a7308ab939375d8aaca17b38e7690164393ed6"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "c9180bc59c72cf49717fc44d7b28328362f86d8e96b240c57f033402f010f9d9"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«354»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "incomplete",
+  "gaps": [
+    "metadata-hygiene: incomplete",
+    "source-fidelity: incomplete",
+    "Please provide a snapshot of the cited Erdős Problem 354: `/sources` is empty. Until the source is available, I cannot determine whether line 48 correctly asserts one universal γ (`∃ γ, ∀ α β`) rather than a γ depending on α and β (`∀ α β, ∃ γ`), or verify the `research open` status. The declaration itself builds successfully and its definitions, bounds, hypotheses, and `answer(sorry)` polarity are sound."
+  ],
+  "request": {
+    "head_commit": "4f2e14df0441f5a9b8d64029b8c997adad326d85",
+    "id": "fcabeb0e68691448a3681154fe592293e91aed640fc6a1c2a9ef80313def6b54",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "c9180bc59c72cf49717fc44d7b28328362f86d8e96b240c57f033402f010f9d9"
+      },
+      {
+        "path": "procedure/references/checking-in-lean.md",
+        "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+      },
+      {
+        "path": "procedure/references/verifying-proofs.md",
+        "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+      },
+      {
+        "path": "procedure/rubrics/metadata-hygiene.md",
+        "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+      },
+      {
+        "path": "procedure/rubrics/source-fidelity.md",
+        "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+      },
+      {
+        "path": "procedure/rubrics/statement-soundness.md",
+        "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/354.lean"
+    ],
+    "sources": []
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "incomplete",
+      "source-fidelity": "incomplete",
+      "statement-soundness": "complete"
+    },
+    "findings": [],
+    "prior_reviews": [],
+    "questions": [
+      "Please provide a snapshot of the cited Erdős Problem 354: `/sources` is empty. Until the source is available, I cannot determine whether line 48 correctly asserts one universal γ (`∃ γ, ∀ α β`) rather than a γ depending on α and β (`∀ α β, ∃ γ`), or verify the `research open` status. The declaration itself builds successfully and its definitions, bounds, hypotheses, and `answer(sorry)` polarity are sound."
+    ],
+    "reconciliations": [],
+    "request_id": "fcabeb0e68691448a3681154fe592293e91aed640fc6a1c2a9ef80313def6b54",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "INCOMPLETE"
+}

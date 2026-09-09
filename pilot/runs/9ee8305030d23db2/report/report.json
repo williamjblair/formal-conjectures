@@ -1,0 +1,119 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "5036a21031a6dc3aaf0e940c66ab3d9b76f426177c73f1900e0fb252bcd7f05b"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "77b4114e28a065ee59d349982faa1f4607d246c46558ad9519e5ea754dd68add"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "0ce4ec5346414beaf6f3ea6600e76919cf3bc04468da8976dd695d9285de272d"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "f7823a563ec908673c30a9c95c15e5982247e31b48ca04cabccaaaf5f035443c"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "403e237de83ddc527c33e65d0ba1014b6cc5110e497121a2ca318c2ddcd6f55a"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "3185bcea729044f5ea4064ccfb5d63a6850f8a09094d85f3039bf031d3714471"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "a3620cd5fca337b6401609d5a24d0e4aa5c8350d2115940fa78c7621b7d36137"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "84050bbdf7ee1a37399d4770202d262c2cab10839c63cc1c43826fd0d2a95fef"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "f329ccd6278f31182fc7893ec069615b7fd06d1faad61f8afdcc3bec78ab3e91"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-006.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "head_commit": "b07d1765638c0333436b578a2a72833b71956ab6",
+    "id": "03f05445cafef51f595c922600dc8076bd9c76448b925a2d386ae37f70f6f0b1",
+    "merge_base": "5f40d5b09242a612322468cb8d61c998b25d65e0",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-007.json",
+          "evidence/tool-009.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/479.lean",
+        "line": 32,
+        "message": "The source quantifies over every integer k ≠ 1 and explicitly discusses k = -1, but Lean elaborates this statement as ∀ k : ℕ, k > 1. It therefore omits all negative k and k = 0, formalising only a proper subproblem.",
+        "severity": "semantic",
+        "suggestion": "Quantify over integers and use integer congruence, for example: `answer(sorry) ↔ ∀ k : ℤ, k ≠ 1 → {n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD n]}.Infinite`."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "03f05445cafef51f595c922600dc8076bd9c76448b925a2d386ae37f70f6f0b1",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "NEEDS REVISION"
+}

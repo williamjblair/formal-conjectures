@@ -1,0 +1,1 @@
+I won’t load `formal-conjectures-review` because this is solely a Lean build error and the statement is already agreed. Next I’ll inspect `FormalConjectures/ErdosProblems/479.lean` and its imports to identify the missing name and prepare the minimal fix.

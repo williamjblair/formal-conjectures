@@ -1,0 +1,159 @@
+{
+  "artifacts": [
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "60a2be965091244463f959cdfa86c711f29d1d9bbb174ecb534aabbd89e656d0"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "f818d0fca48192c952ec8bfee46a5e67086e4fc91557686c63225477d41bc49b"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "d2ce0c4586b704107b80c5e7fb8946fd1bee173b466badad9fefc3e3170c3012"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "10f17add3f7cc3e8bc13a1f44ab1d7cfc2de90b60f0f4a938e446f0d89300230"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "6293d2608abe71a7055b5a60819d559d8ad2978688b4058358fe18f48bc861d2"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "26f9a68d93ad088104cc7d9e92fbd4f5fdf8bb6fd749e418a0d60a61f8ddf216"
+    },
+    {
+      "path": "evidence/tool-007.json",
+      "sha256": "16530da9f4e24e6f9f8a42c6ed2d517c9b3d6975ba82b62814e6d430da3d28c2"
+    },
+    {
+      "path": "evidence/tool-008.json",
+      "sha256": "171b5a5e005ec859132a7f602a56ef241a73001bfb40115fe674fb4a049d8db2"
+    },
+    {
+      "path": "evidence/tool-009.json",
+      "sha256": "df38a7c53eecf881da0d4bd02c0db74eea67fd1d8a74b9c32f9e11b1509d9896"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "c9180bc59c72cf49717fc44d7b28328362f86d8e96b240c57f033402f010f9d9"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "ad542015dcdc826ed37f48d0b2f06bb505768806809ceab1ac65fbe075162a42",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-005.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "head_commit": "4a20822a518e79972704a936a6572cf195003af9",
+    "id": "effbeaede88aeab03c8789fb16b0c08843168e3c509e5497b06fa5ccd603fc04",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "c9180bc59c72cf49717fc44d7b28328362f86d8e96b240c57f033402f010f9d9"
+      },
+      {
+        "path": "procedure/references/checking-in-lean.md",
+        "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+      },
+      {
+        "path": "procedure/references/verifying-proofs.md",
+        "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+      },
+      {
+        "path": "procedure/rubrics/metadata-hygiene.md",
+        "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+      },
+      {
+        "path": "procedure/rubrics/source-fidelity.md",
+        "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+      },
+      {
+        "path": "procedure/rubrics/statement-soundness.md",
+        "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v1",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "fresh",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [
+      {
+        "angle": "source-fidelity",
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-006.json",
+          "evidence/tool-009.json"
+        ],
+        "file": "FormalConjectures/ErdosProblems/479.lean",
+        "line": 32,
+        "message": "The source quantifies over every integer k ≠ 1 and explicitly discusses k = -1, but Lean elaborates this as every natural k > 1. This omits k = 0 and all negative integers, so it formalises a strictly narrower problem.",
+        "severity": "semantic",
+        "suggestion": "Replace the statement with `answer(sorry) ↔ ∀ k : ℤ, k ≠ 1 → { n : ℕ | (2 : ℤ) ^ n ≡ k [ZMOD n] }.Infinite`; this replacement typechecks."
+      }
+    ],
+    "prior_reviews": [],
+    "questions": [],
+    "reconciliations": [],
+    "request_id": "effbeaede88aeab03c8789fb16b0c08843168e3c509e5497b06fa5ccd603fc04",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "NEEDS REVISION"
+}

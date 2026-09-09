@@ -1,0 +1,1 @@
+The `formal-conjectures-review` skill is appropriate, but it isn’t available to load in this session. Next, I would inspect `479.lean` and its cited source, then compare the Lean statement’s quantifiers, hypotheses, conclusion, and claimed status against the original problem.

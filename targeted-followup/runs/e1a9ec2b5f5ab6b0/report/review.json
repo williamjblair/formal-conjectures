@@ -1,0 +1,28 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [
+    {
+      "angle": "source-fidelity",
+      "evidence": [
+        "sources/document-1.txt",
+        "evidence/tool-006.json",
+        "evidence/tool-011.json"
+      ],
+      "file": "FormalConjectures/ErdosProblems/479.lean",
+      "line": 32,
+      "message": "The extended-binder expression introduces two shadowing integer variables: the theorem elaborates as `∀ (k k : ℤ), k ≠ 1 → ...`, whereas the source quantifies one `k`. The first variable is unused. This is logically harmless because `ℤ` is inhabited, so the mathematical claim still matches the cited problem, but the statement should not contain the redundant quantifier.",
+      "severity": "nit",
+      "suggestion": "Replace `∀ᵉ (k : ℤ) (k ≠ 1),` with `∀ k : ℤ, k ≠ 1 →`, or write the restriction as an explicitly typed proof binder."
+    }
+  ],
+  "prior_reviews": [],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+  "reviewer": "gpt-5.6-sol"
+}

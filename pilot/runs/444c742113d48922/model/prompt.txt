@@ -1,0 +1,5 @@
+Can you check Jacobson.jacobson_conjecture in FormalConjectures/Wikipedia/Jacobson.lean against its cited source? Please keep the review focused on that scope.
+
+The workspace is an isolated evaluation checkout at /workspace. The original file is read-only. Use the workspace tools; scratch files go in /output. Read AGENTS.md and the ordinary contribution guidance. Source snapshots are available on demand in /sources; networking is disabled equally for both conditions. Do not publish a review. Your final answer must follow the supplied JSON schema. Evidence references are sources/<filename> or evidence/tool-NNN.json returned by tools. Each evidence entry must be an exact path, without commentary; explain its relevance in message or reason. Use build() to record a focused build; other shell output is retained but not classified as a build.
+Request id: 2fa98e86e2594cf5db9129572b687c370c00e9c085ab10df1f69ebe636806558; reviewer: gpt-5.6-sol; context_policy: fresh; prior_reviews: [].
+Use the review skill at /skill/SKILL.md; read supporting files as needed.

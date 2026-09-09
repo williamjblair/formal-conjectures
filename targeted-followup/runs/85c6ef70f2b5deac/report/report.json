@@ -1,0 +1,128 @@
+{
+  "artifacts": [
+    {
+      "path": "context/candidate.lean",
+      "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+    },
+    {
+      "path": "evidence/prior.txt",
+      "sha256": "471fedad9f9904642b6003d4d7d78963d12d9351ee0d7cd0212c82336883b990"
+    },
+    {
+      "path": "evidence/tool-001.json",
+      "sha256": "81dbf42472f12c10ab5a9f32d0ffc605e09c255ebfee8edfaeb6616fabef9b3f"
+    },
+    {
+      "path": "evidence/tool-002.json",
+      "sha256": "21212d652067e4af2ef2680e7c6f1707c36333e5a9d35e80e5f7ec6671795c13"
+    },
+    {
+      "path": "evidence/tool-003.json",
+      "sha256": "24680d1b9fcbf0786ad3b2fb41b21e8f11515585e115ed065523802f3b93c071"
+    },
+    {
+      "path": "evidence/tool-004.json",
+      "sha256": "66de20e3d532f79d87100e1078f08654eae3fe935623b8a1475f1ba587cfc8ae"
+    },
+    {
+      "path": "evidence/tool-005.json",
+      "sha256": "650432464c75649c5b12c265bbd564e4dd6118a8b4fdf641813d097b0738fe0e"
+    },
+    {
+      "path": "evidence/tool-006.json",
+      "sha256": "6c54941a101484f21a2c4dea30534fae3d43066a0ab27a5c33bdd85eb04c1f92"
+    },
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+    },
+    {
+      "path": "sources/document-1.txt",
+      "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+    }
+  ],
+  "assembler_sha256": "bf3094d161cebc2b7ce1896553454ab8aaf956783613e4fb28ea4304226b2f53",
+  "authority_effect": "none",
+  "checks": [
+    {
+      "detail": "Original read-only candidate; tool receipt retained.",
+      "evidence": [
+        "evidence/tool-004.json"
+      ],
+      "kind": "build",
+      "policy": "lake --wfail build FormalConjectures.ErdosProblems.«479»",
+      "producer": "isolated workspace build tool",
+      "status": "pass"
+    }
+  ],
+  "completeness": "complete",
+  "gaps": [],
+  "request": {
+    "base_tip": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "context": [
+      {
+        "path": "context/candidate.lean",
+        "sha256": "8105ee07351737d4b2b26dfd30b6e013e6495b0f0c221336de15cd3aaf96bca3"
+      },
+      {
+        "path": "context/environment.json",
+        "sha256": "c3f7bc4ff210955d69a997ed3b9f7a7d62879c3d605330152a1c21a2dabe8e05"
+      }
+    ],
+    "head_commit": "cde58ea7dce3741716cbfbd8c2586a7f09587d12",
+    "id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+    "merge_base": "e1aba3ad0d6c6a0b73be1cd55e1e8e705bc31e94",
+    "procedure": [
+      {
+        "path": "procedure/SKILL.md",
+        "sha256": "cc379df226f604c67f3d296bf251a8a223ce8e62042b82d3717898aa19080d3f"
+      }
+    ],
+    "repository": "evaluation-snapshot/formal-conjectures",
+    "required_checks": [
+      "build"
+    ],
+    "schema_version": "fc.review-pilot.request.v2",
+    "scope": [
+      "FormalConjectures/ErdosProblems/479.lean"
+    ],
+    "sources": [
+      {
+        "path": "sources/document-1.txt",
+        "sha256": "534e5283f1cf846ef4b1ae4ad84af88945654d1c85e714554ae9ad5022ca5d63"
+      }
+    ]
+  },
+  "review": {
+    "context_policy": "rereview",
+    "coverage": {
+      "metadata-hygiene": "complete",
+      "source-fidelity": "complete",
+      "statement-soundness": "complete"
+    },
+    "findings": [],
+    "prior_reviews": [
+      "evidence/prior.txt"
+    ],
+    "questions": [],
+    "reconciliations": [
+      {
+        "evidence": [
+          "sources/document-1.txt",
+          "evidence/tool-005.json"
+        ],
+        "prior_evidence": "evidence/prior.txt",
+        "reason": "The prior finding does not apply. The cited problem quantifies over all k ≠ 1 and explicitly discusses the proved case k = -1, so using ℤ is necessary; restricting k to natural numbers greater than 1 would incorrectly exclude a source-stated case. The formal statement otherwise matches the source, and the focused module build succeeds.",
+        "status": "withdrawn"
+      }
+    ],
+    "request_id": "944b0bc3e8bb07b16ab3204098812ab48c282642d62651e4645f081bb1298aed",
+    "reviewer": "gpt-5.6-sol"
+  },
+  "schema_version": "fc.review-pilot.report.v1",
+  "semantic_verdict": "CLEAN"
+}

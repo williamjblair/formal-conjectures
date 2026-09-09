@@ -1,0 +1,17 @@
+{
+  "kind": "command",
+  "command": [
+    "timeout",
+    "-k",
+    "2",
+    "60",
+    "sh",
+    "-c",
+    "cd /workspace && sed -n '1,100p' .lake/packages/batteries/Batteries/Util/ExtendedBinder.lean"
+  ],
+  "exit_code": 0,
+  "stdout": "/-\nCopyright (c) 2021 Microsoft Corporation. All rights reserved.\nReleased under Apache 2.0 license as described in the file LICENSE.\nAuthors: Gabriel Ebner\n-/\nmodule\n\n@[expose] public section\n\n/-!\nDefines an extended binder syntax supporting `\u2200 \u03b5 > 0, ...` etc.\n-/\n\nnamespace Batteries.ExtendedBinder\nopen Lean\n\n\n-- We also provide special versions of \u2200/\u2203 that take a list of extended binders.\n-- The built-in binders are not reused because that results in overloaded syntax.\n\n/--\nAn extended binder has the form `x`, `x : ty`, or `x pred`\nwhere `pred` is a `binderPred` like `< 2`.\n-/\nsyntax extBinder := binderIdent ((\" : \" term) <|> binderPred)?\n/-- A extended binder in parentheses -/\nsyntax extBinderParenthesized := \" (\" extBinder \")\" -- TODO: inlining this definition breaks\n/-- A list of parenthesized binders -/\nsyntax extBinderCollection := extBinderParenthesized*\n/-- A single (unparenthesized) binder, or a list of parenthesized binders -/\nsyntax extBinders := (ppSpace extBinder) <|> extBinderCollection\n\n/-- The syntax `\u2203\u1d49 (x < 2) (y < 3), p x y` is shorthand for `\u2203 x < 2, \u2203 y < 3, p x y`. -/\nsyntax \"\u2203\u1d49\" extBinders \", \" term : term\nmacro_rules\n  | `(\u2203\u1d49, $b) => pure b\n  | `(\u2203\u1d49 ($p:extBinder) $[($ps:extBinder)]*, $b) =>\n    `(\u2203\u1d49 $p:extBinder, \u2203\u1d49 $[($ps:extBinder)]*, $b)\nmacro_rules -- TODO: merging the two macro_rules breaks expansion\n  | `(\u2203\u1d49 $x:binderIdent, $b) => `(\u2203 $x:binderIdent, $b)\n  | `(\u2203\u1d49 $x:binderIdent : $ty:term, $b) => `(\u2203 $x:binderIdent : $ty:term, $b)\n  | `(\u2203\u1d49 $x:binderIdent $p:binderPred, $b) => `(\u2203 $x:binderIdent $p:binderPred, $b)\n\n/-- The syntax `\u2200\u1d49 (x < 2) (y < 3), p x y` is shorthand for `\u2200 x < 2, \u2200 y < 3, p x y`. -/\nsyntax \"\u2200\u1d49\" extBinders \", \" term : term\nmacro_rules\n  | `(\u2200\u1d49, $b) => pure b\n  | `(\u2200\u1d49 ($p:extBinder) $[($ps:extBinder)]*, $b) =>\n    `(\u2200\u1d49 $p:extBinder, \u2200\u1d49 $[($ps:extBinder)]*, $b)\nmacro_rules -- TODO: merging the two macro_rules breaks expansion\n  | `(\u2200\u1d49 _, $b) => `(\u2200 _, $b)\n  | `(\u2200\u1d49 $x:ident, $b) => `(\u2200 $x:ident, $b)\n  | `(\u2200\u1d49 _ : $ty:term, $b) => `(\u2200 _ : $ty:term, $b)\n  | `(\u2200\u1d49 $x:ident : $ty:term, $b) => `(\u2200 $x:ident : $ty:term, $b)\n  | `(\u2200\u1d49 $x:binderIdent $p:binderPred, $b) => `(\u2200 $x:binderIdent $p:binderPred, $b)\n",
+  "stderr": "",
+  "timed_out": false,
+  "wall_seconds": 0.055
+}

@@ -1,0 +1,27 @@
+name = "fc_a8762def36eabb61"
+version = "0.1.0"
+defaultTargets = ["Challenge", "Solution"]
+testDriver = "workspace_test"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "0df444a360eaa60ab8c11dca51a86af692955474"
+
+[[require]]
+name = "formal_conjectures"
+git = "https://github.com/williamjblair/formal-conjectures.git"
+rev = "c5bd5601217cbcb889e1adc2f4987dfaa854dcb1"
+
+[[lean_lib]]
+name = "Challenge"
+
+[[lean_lib]]
+name = "Solution"
+
+[[lean_lib]]
+name = "Submission"
+
+[[lean_exe]]
+name = "workspace_test"
+root = "WorkspaceTest"

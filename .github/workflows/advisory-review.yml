@@ -1,0 +1,120 @@
+name: Advisory review pilot
+on:
+  pull_request:
+    paths:
+      - 'scripts/review_workflow.py'
+      - 'scripts/test_review_workflow.py'
+      - 'scripts/review-report/**'
+      - '.github/workflows/advisory-review.yml'
+  issue_comment:
+    types: [created]
+permissions: {}
+concurrency:
+  group: advisory-review-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  integration:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      # Remove this prerequisite checkout after #4899 merges.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: williamjblair/formal-conjectures
+          ref: feb17d19f712aaac3653b2fdc1d77507f1c07953
+          path: .review-prerequisite
+          persist-credentials: false
+      - env:
+          PYTHONPATH: ${{ github.workspace }}/.review-prerequisite/scripts
+        run: python3 -m unittest discover -s scripts -p test_review_workflow.py -v
+  prepare:
+    if: >-
+      vars.FC_REVIEW_ENABLED == 'true' && github.event.issue.pull_request &&
+      github.event.comment.body == '/review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      ticket: ${{ steps.prepare.outputs.ticket_sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/review_workflow.py prepare --root "$RUNNER_TEMP/review"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: review-input-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/review/input/
+          if-no-files-found: error
+          retention-days: 30
+  review:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: fc-review-pilot
+    permissions:
+      contents: read
+    outputs:
+      bundle: ${{ steps.review.outputs.bundle_sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: review-input-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/review/input
+      - id: review
+        env:
+          OPENAI_API_KEY: ${{ secrets.FC_REVIEW_API_KEY }}
+          REVIEW_IMAGE: ${{ vars.FC_REVIEW_IMAGE }}
+          REVIEW_MODEL: ${{ vars.FC_REVIEW_MODEL }}
+          TICKET_SHA256: ${{ needs.prepare.outputs.ticket }}
+        run: python3 scripts/review_workflow.py review --root "$RUNNER_TEMP/review"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: review-bundle-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/review/bundle/
+          if-no-files-found: warn
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: review-execution-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/review/evidence/
+          if-no-files-found: warn
+          retention-days: 30
+  publish:
+    needs: [prepare, review]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: review-bundle-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bundle
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TICKET_SHA256: ${{ needs.prepare.outputs.ticket }}
+          BUNDLE_SHA256: ${{ needs.review.outputs.bundle }}
+        run: python3 scripts/review_workflow.py publish --root "$RUNNER_TEMP/bundle"

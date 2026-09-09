@@ -8,33 +8,28 @@ from pathlib import Path
 from unittest.mock import patch
 
 try:
-    import review_workflow as w
+    import review_workflow as workflow
+    import review_model_api as adapter
+    from conjectures import execution as w
 except ModuleNotFoundError as error:
     if error.name not in ("review_report", "review_eval"):
         raise
     raise unittest.SkipTest(
-        "Requires #4899; the dedicated integration job supplies its pinned tools"
+        "Requires the shared toolkit checkout"
     ) from error
 
 
 class WorkflowTests(unittest.TestCase):
     def test_authorization_uses_effective_permission_and_exact_command(self):
         event = {"action": "created", "comment": {"body": "/review"}, "issue": {"pull_request": {}}}
-        w.authorize(event, "write")
+        workflow.authorize(event, "write")
         for permission in ("read", "triage", "none"):
             with self.assertRaises(ValueError):
-                w.authorize(event, permission)
+                workflow.authorize(event, permission)
         event["comment"]["body"] = "/review\necho injected"
         with self.assertRaises(ValueError):
-            w.authorize(event, "admin")
+            workflow.authorize(event, "admin")
 
-    def test_freshness_binds_head_base_tooling_and_open_state(self):
-        ticket = {"head": "a", "base": "b", "tooling": "c"}
-        pr = {"head": {"sha": "a"}, "base": {"sha": "b"}, "state": "open"}
-        self.assertEqual(w.freshness(ticket, pr, "c"), "current")
-        self.assertEqual(w.freshness(ticket, pr, "d"), "STALE")
-        for change in ({"head": {"sha": "x"}}, {"base": {"sha": "x"}}, {"state": "closed"}):
-            self.assertEqual(w.freshness(ticket, pr | change, "c"), "STALE")
 
     def test_container_has_no_host_execution_or_credentials(self):
         args = w.container_args("ghcr.io/example/cache@sha256:" + "a" * 64, Path("/tmp/input"))
@@ -102,13 +97,13 @@ class WorkflowTests(unittest.TestCase):
             },
         ]
         with tempfile.TemporaryDirectory() as directory, patch.dict(
-            w.os.environ, {"OPENAI_API_KEY": "test"}
+            adapter.os.environ, {"OPENAI_API_KEY": "test"}
         ), patch.object(
-            w.urllib.request, "urlopen", side_effect=[io.BytesIO(json.dumps(x).encode()) for x in responses]
+            adapter.urllib.request, "urlopen", side_effect=[io.BytesIO(json.dumps(x).encode()) for x in responses]
         ), patch.object(
             __import__("conjectures.execution", fromlist=["execute"]), "execute", return_value={"exit_code": 0, "output": "source"}
         ) as execute:
-            result = w.model_review(request, "isolated-container", Path(directory), "requested-model")
+            result = adapter.model_review(request, "isolated-container", Path(directory), "requested-model")
             self.assertEqual(result["reviewer"], "actual-model")
             execute.assert_called_once_with(
                 "isolated-container", ["sh", "-c", "cat FormalConjectures/Example.lean"], 60
@@ -116,46 +111,6 @@ class WorkflowTests(unittest.TestCase):
             self.assertTrue((Path(directory) / "tool-001.json").is_file())
             self.assertEqual(len(list(Path(directory).glob("model-response-*.json"))), 2)
 
-    def test_publisher_reconstructs_bundle_and_rejects_tampering(self):
-        from test_review_report import ReportTest
-
-        fixture = ReportTest()
-        fixture.setUp()
-        try:
-            bundle = fixture.root / "bundle"
-            w.rr.write_directory(bundle, fixture.run_report())
-            ticket = {
-                "repository": "owner/repo",
-                "pr": 1,
-                "comment_id": 100,
-                "head": "a" * 40,
-                "base": "b" * 40,
-                "tooling": "c" * 40,
-                "request_id": fixture.request["id"],
-                "run_id": "123",
-                "attempt": "1",
-            }
-            w.write(bundle / "ticket.json", ticket)
-            env = {
-                "GITHUB_REPOSITORY": "owner/repo",
-                "GITHUB_RUN_ID": "123",
-                "GITHUB_RUN_ATTEMPT": "1",
-                "TICKET_SHA256": w.rr.digest(w.rr.encode(ticket)),
-                "BUNDLE_SHA256": w.rr.digest((bundle / "report.json").read_bytes()),
-            }
-            pr = {"state": "open", "head": {"sha": ticket["head"]}, "base": {"sha": ticket["base"]}}
-            with patch.dict(w.os.environ, env), patch.object(
-                w, "api", side_effect=[pr, {"default_branch": "main"}, {"sha": ticket["tooling"]}, [], {}]
-            ) as api:
-                w.publish(bundle)
-                self.assertTrue(api.call_args.args[1]["body"].startswith(w.MARKER))
-            (bundle / "evidence/build.json").write_text("forged")
-            with patch.dict(w.os.environ, env), patch.object(w, "api") as api:
-                with self.assertRaises(ValueError):
-                    w.publish(bundle)
-                api.assert_not_called()
-        finally:
-            fixture.doCleanups()
 
 
 if __name__ == "__main__":

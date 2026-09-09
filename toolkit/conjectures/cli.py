@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 from . import __version__, report as rr
-from .core import Failure, command, config, finish, run_dir, runs, save, start_run, workspace
+from .core import Failure, command, config, finish, run_dir, runs, save, start_run, workspace, run_lock
 
 EXIT = {'pass':0, 'fail':1, 'incomplete':4, 'error':3, 'cancelled':5}
 
@@ -27,20 +27,32 @@ def parser():
         q = sub.add_parser(name,help=help,description=help)
         q.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
         return q
-    cmd('doctor','Check tools, authentication availability, configuration, and pins without a model call')
+    cmd('doctor','Check FC tools, executor configuration, and pins without AI credentials')
     for name in ('find','show'):
         q=cmd(name,'Search the catalog' if name=='find' else 'Show statements, variants, sources, and evidence')
         q.add_argument('target');q.add_argument('--catalog',type=Path)
-    for name in ('check','review'):
-        q=cmd(name,'Build changed modules' if name=='check' else 'Review an exact PR or local snapshot')
-        group=q.add_mutually_exclusive_group(required=True)
-        group.add_argument('--changed',action='store_true');group.add_argument('--pr',type=int)
-        if name=='check': group.add_argument('file',nargs='?')
-        q.add_argument('--base',default='origin/main');q.add_argument('--repository')
-        if name=='review':
-            group.add_argument('--input',type=Path,help='Replay a retained prepared review directory')
-            q.add_argument('--sources',type=Path);q.add_argument('--backend',choices=('codex','api'))
-            q.add_argument('--model');q.add_argument('--post',action='store_true')
+    q=cmd('check','Build changed modules')
+    group=q.add_mutually_exclusive_group(required=True)
+    group.add_argument('--changed',action='store_true');group.add_argument('--pr',type=int)
+    group.add_argument('file',nargs='?')
+    q.add_argument('--base',default='origin/main');q.add_argument('--repository')
+    q=cmd('review','Prepare inputs and complete a review in your existing agent session')
+    r=q.add_subparsers(dest='operation',required=True)
+    s=r.add_parser('prepare',help='Freeze inputs and build; leave the run awaiting semantic review')
+    s.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
+    group=s.add_mutually_exclusive_group(required=True)
+    group.add_argument('--changed',action='store_true');group.add_argument('--pr',type=int)
+    group.add_argument('--input',type=Path,help='Replay a retained run with a new independent build')
+    s.add_argument('--base',default='origin/main');s.add_argument('--repository');s.add_argument('--sources',type=Path)
+    s=r.add_parser('finish',help='Validate an existing agent or human report and retain the result')
+    s.add_argument('run');s.add_argument('--report',type=Path,required=True)
+    s.add_argument('--evidence',type=Path,help='Supporting files, retained under evidence/operator/')
+    s.add_argument('--post',action='store_true',help='Explicitly archive public evidence, then post its advisory PR summary')
+    s.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
+    s=r.add_parser('exec',help='Run an optional scratch check in a fresh isolated container')
+    s.add_argument('--files',type=Path,help='Witness files copied under /tmp/work/scratch/')
+    s.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
+    s.add_argument('run');s.add_argument('arguments',nargs=argparse.REMAINDER,help='Command after --; options precede RUN')
     q=cmd('init','Generate a pinned proof workspace for one exact declaration')
     q.add_argument('target');q.add_argument('--out',required=True,type=Path)
     q.add_argument('--source-ref',default='origin/main');q.add_argument('--repository')
@@ -55,32 +67,28 @@ def parser():
         if op!='list':s.add_argument('run')
     q=cmd('evidence','Publish a validated public export explicitly')
     r=q.add_subparsers(dest='operation',required=True);s=r.add_parser('publish')
-    s.add_argument('run');s.add_argument('--dry-run',action='store_true');s.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
-    q=cmd('_workspace',argparse.SUPPRESS)
-    q.add_argument('--container');q.add_argument('--evidence',type=Path);q.add_argument('--limit',type=int)
-    sub._choices_actions = [a for a in sub._choices_actions if a.dest != '_workspace']
-    sub.metavar = '{doctor,find,show,check,review,init,verify,status,run,evidence}'
+    s.add_argument('run');s.add_argument('--post',action='store_true',help='Post an advisory PR summary after archiving');s.add_argument('--dry-run',action='store_true');s.add_argument('--json',action='store_true',default=argparse.SUPPRESS)
     return p
 
 def doctor(root, cfg):
-    tools={name:shutil.which(name) for name in ('git','gh','uv','lake','lean','codex','docker','pdftotext')}
-    auth=Path(os.environ.get('CODEX_HOME',Path.home()/'.codex'))/'auth.json'
-    available=auth.is_file()
-    checks={'tools':tools,'codex_oauth_available':available,'api_key_available':bool(os.environ.get('OPENAI_API_KEY')),
-            'configuration':cfg,'lean_toolchain':(root/'lean-toolchain').read_text().strip() if (root/'lean-toolchain').is_file() else None,
-            'api_generation_enabled':os.environ.get('CONJECTURES_ENABLE_API')=='1'}
+    from .review import skill_path
+    tools={name:shutil.which(name) for name in ('git','gh','uv','lake','lean','docker','pdftotext')}
+    if os.environ.get('CONJECTURES_GH'): tools['gh']=shutil.which(os.environ['CONJECTURES_GH'])
     gaps=[]
-    if not available:gaps.append('Sign in to Codex on this host')
-    if not cfg['model']:gaps.append('Configure model or pass review --model')
-    if not cfg['image']:gaps.append('Configure a pinned review image')
-    if not cfg['executor']:gaps.append('Configure a qualified Linux executor for proof verification')
-    checks.update(outcome='incomplete' if gaps else 'pass',gaps=gaps)
-    return checks
+    if not tools['docker']: gaps.append('Install Docker to run isolated contribution checks')
+    if not cfg['image']: gaps.append('Configure a pinned review image')
+    else:
+        from .execution import container_args
+        try: container_args(cfg['image'],root)
+        except (ValueError,TypeError): gaps.append('Review image must be pinned by SHA-256 digest')
+    if (cfg['executor'] or cfg['evidence']) and not tools['gh']:
+        gaps.append('Install gh or configure CONJECTURES_GH for GitHub operations')
+    if not cfg['executor']: gaps.append('Configure a qualified Linux executor for proof verification')
+    return {'outcome':'incomplete' if gaps else 'pass', 'tools':tools, 'configuration':cfg,
+            'lean_toolchain':(root/'lean-toolchain').read_text().strip() if (root/'lean-toolchain').is_file() else None,
+            'gaps':gaps, 'review_skill':str(skill_path()/'SKILL.md'), 'agent':'Use your existing agent session or write a review manually. No AI credentials are needed by the toolkit.'}
 
 def dispatch(args):
-    if args.command=='_workspace':
-        from .review import serve
-        serve(args.container,args.evidence,args.limit);return None
     root=workspace();cfg=config(root)
     if args.command=='doctor':return doctor(root,cfg)
     if args.command in ('find','show'):
@@ -93,41 +101,51 @@ def dispatch(args):
     if args.command=='status' or (args.command=='run' and args.operation=='list'):
         records=runs(root)
         return {'outcome':'pass','runs':records,'next_action':
-                'Inspect incomplete or failed runs before publishing.' if records else 'Run conjectures doctor, then review or init.'}
+                'Complete awaiting_review runs with review finish; inspect outcomes before publishing.' if records else 'Run conjectures doctor, then review prepare or init.'}
     if args.command=='run':
         directory=run_dir(root,args.run);record=rr.read_json(directory/'run.json')
-        if args.operation=='show':return record
+        if args.operation=='show':
+            if record['kind']=='review' and record.get('target'):
+                from .review import applicability
+                return {**record,'current_applicability':applicability(root,record['target'])}
+            return record
         if args.operation=='logs':
             return {'outcome':'pass','run':record,'artifacts':[str(p.relative_to(directory)) for p in sorted(directory.rglob('*')) if p.is_file()]}
+        if record['kind']=='review':
+            if args.operation=='cancel':
+                with run_lock(directory):
+                    record=rr.read_json(directory/'run.json')
+                    from .review import require_pending
+                    require_pending(record)
+                    return finish(directory,record,'cancelled',reason='operator_cancelled',next_action='Start a new review to continue.')
+            return record  # Local review waits for the existing session, not a background model.
         from .proof import control
         return control(directory,record,args.operation)
     if args.command=='review':
         from . import review
-        if args.backend:cfg['backend']=args.backend
-        if args.model:cfg['model']=args.model
+        if args.operation!='prepare':
+            directory=run_dir(root,args.run)
+            with run_lock(directory):
+                record=rr.read_json(directory/'run.json')
+                if args.operation=='exec':
+                    arguments=args.arguments[1:] if args.arguments[:1]==['--'] else args.arguments
+                    return review.scratch(directory,cfg,record,arguments,args.files)
+                result=review.complete(root,directory,record,args.report,args.evidence)
+                if args.post:
+                    from .evidence import publish,post
+                    # Publication errors never overwrite a retained semantic review outcome.
+                    publication=publish(root,directory,cfg)
+                    post(directory,publication)
+                    result={**result,'publication':publication}
+                return result
         directory,record=start_run(root,'review')
         try:
             print('Preparing exact review inputs…',file=sys.stderr)
-            if args.input:
-                retained=args.input.resolve()
-                request,files=rr.load_request(retained/'input')
-                files['request.json']=rr.encode(request)
-                rr.write_directory(directory/'input',files)
-                ticket=rr.read_json(retained/'ticket.json')
-                if ticket['head']!=request['head_commit'] or ticket['base']!=request['base_tip']:
-                    raise Failure('input_binding_mismatch','Retained ticket differs from the request',3)
-                save(directory/'ticket.json',ticket)
-            else:
-                ticket=review.prepare(root,directory,base=args.base,pr=args.pr,repository=args.repository,supplied=args.sources)
+            ticket=review.replay(args.input.resolve(),directory) if args.input else review.prepare(
+                root,directory,base=args.base,pr=args.pr,repository=args.repository,supplied=args.sources)
             record.update(target=ticket);save(directory/'run.json',record)
-            print('Building independently, then running the reviewer…',file=sys.stderr)
-            outcome,report=review.run(directory,cfg)
-            result=finish(directory,record,outcome,coverage=report['review']['coverage'],gaps=report['gaps'],
-                          report=str(directory/'bundle/report.md'))
-            if args.post:
-                from .evidence import publish,post
-                result['publication']=publish(root,directory,cfg);post(directory,result['publication'])
-            return result
+            print('Building independently; your existing session will conduct the semantic review…',file=sys.stderr)
+            return review.handoff(directory,cfg,record)
         except BaseException as error:
             finish(directory,record,'cancelled' if isinstance(error,KeyboardInterrupt) else 'error',
                    reason=getattr(error,'reason','execution_error'),detail=str(error))
@@ -140,8 +158,8 @@ def dispatch(args):
             directory,record=start_run(root,'check')
             try:
                 ticket=review.prepare(root,directory,pr=args.pr,repository=args.repository,collect_sources=False)
-                outcome,receipt=review.run(directory,cfg,build_only=True)
-                return finish(directory,record,outcome,target=ticket,receipt=receipt)
+                outcome,receipt=review.build(directory,cfg)
+                return finish(directory,record,'incomplete' if outcome=='not_run' else outcome,target=ticket,receipt=receipt)
             except BaseException as error:
                 finish(directory,record,'error',reason=getattr(error,'reason','execution_error'),detail=str(error));raise
         paths=[args.file] if args.file else sorted(set(git(root,'diff','--name-only',args.base).decode().splitlines()+
@@ -161,8 +179,13 @@ def dispatch(args):
         import importlib.util
         if importlib.util.find_spec('conjectures.evidence') is None:
             raise Failure('unavailable_command','Evidence publication is not included in this revision',4)
-        from .evidence import publish
-        return publish(root,run_dir(root,args.run),cfg,args.dry_run)
+        from .evidence import publish,post
+        if args.dry_run and args.post: raise Failure('invalid_arguments','--post cannot be combined with --dry-run')
+        directory=run_dir(root,args.run)
+        with run_lock(directory):
+            result=publish(root,directory,cfg,args.dry_run)
+            if args.post: post(directory,result)
+            return result
 
 def main():
     args=parser().parse_args()

@@ -1,13 +1,14 @@
-"""Prepare exact snapshots and run one bounded contribution review."""
+"""Prepare review inputs and validate reports supplied by an existing agent or human."""
 import json
 import os
 import re
 import shutil
 import tempfile
-import threading
+import subprocess
+import uuid
 from pathlib import Path
-from . import report as rr, sources, execution as ex, codex
-from .core import Failure, command, git, github, save
+from . import report as rr, sources, execution as ex
+from .core import Failure, command, git, github, save, now, finish
 
 SKILL = Path(__file__).parent/'resources/review'
 
@@ -40,6 +41,8 @@ def snapshot(root, base):
 
 def prepare(root, directory, *, base='origin/main', pr=None, repository=None, supplied=None, collect_sources=True):
     checkout = directory/'checkout'
+    base_ref = base
+    workspace_head = None if pr else git(root, 'rev-parse', 'HEAD').decode().strip()
     if pr:
         repository = repository or 'google-deepmind/formal-conjectures'
         detail = github(f'repos/{repository}/pulls/{pr}')
@@ -69,98 +72,241 @@ def prepare(root, directory, *, base='origin/main', pr=None, repository=None, su
         rr.write_directory(directory/'input', files)
         ticket = {'repository': repository, 'pr': pr, 'head': head, 'base': base,
                   'local_snapshot': local, 'source_collection': collection,
-                  'producer': 'local_operator'}
+                  'producer': 'local_operator', 'base_ref': base_ref,
+                  'workspace_head': workspace_head, 'tree': git(checkout, 'rev-parse', 'HEAD^{tree}').decode().strip()}
         save(directory/'ticket.json', ticket)
         return ticket
     finally:
         if not pr: git(root, 'worktree', 'remove', '--force', checkout)
 
-class ScratchTools:
-    def __init__(self, container, evidence, limit=20):
-        self.container, self.evidence, self.limit = container, Path(evidence), limit
-        self.count = 0; self.lock = threading.Lock()
-    def execute(self, command: str) -> dict:
-        """Read supplied sources and Lean files or run scratch checks. This is not the independent build."""
-        with self.lock:
-            if self.count >= self.limit: raise ValueError('Tool-call budget exhausted')
-            self.count += 1
-            record = ex.execute(self.container, ['sh', '-c', command])
-            name = f'evidence/tool-{self.count:03d}.json'
-            save(self.evidence/Path(name).name, record)
-            return {'evidence': name, **record}
-
-def serve(container, evidence, limit):
-    from mcp.server.fastmcp import FastMCP
-    server = FastMCP('review_workspace')
-    server.tool()(ScratchTools(container, evidence, limit).execute)
-    server.run(transport='stdio')
-
-def run(directory, configuration, build_only=False):
+def load(directory):
     request, files = rr.load_request(directory/'input')
     ticket = rr.read_json(directory/'ticket.json')
-    image = configuration.get('image')
-    if not image: raise Failure('missing_image', 'Configure a pinned review image; see conjectures doctor', 4)
-    snapshot_dir = directory/'snapshot'
-    rr.restore(directory/'input', snapshot_dir)
-    targets = ex.build_targets(request['scope'], snapshot_dir)
-    # Candidate input cannot replace the trusted Lake configuration or dependency pins.
+    if (ticket['head'] != request['head_commit'] or ticket['base'] != request.get('base_tip')
+            or ticket['repository'] != request['repository']):
+        raise Failure('input_binding_mismatch', 'Review ticket differs from the retained request', 3)
+    return request, files, ticket
+
+
+def restore(directory, destination):
+    """Reconstruct every execution from the retained request, never agent-edited scratch."""
+    rr.restore(directory/'input', destination)
+    # These are evaluation keys, not candidate inputs for semantic review. The original
+    # archive remains intact; execution and agent-facing copies omit the keys.
+    for path in list(destination.glob('**/skills/*/evals')):
+        if path.is_dir(): shutil.rmtree(path)
+
+
+def check_environment(image, snapshot):
+    if not image:
+        raise Failure('missing_image', 'Configure a pinned review image; see conjectures doctor', 4)
+    ex.container_args(image, snapshot)  # Validate the pin before invoking Docker.
     for name in ('lean-toolchain', 'lake-manifest.json', 'lakefile.toml'):
-        expected = ex.run('docker', 'run', '--rm', '--network=none', '--entrypoint=cat', image, '/opt/review-cache/'+name)
-        if (snapshot_dir/name).read_bytes() != expected:
+        expected = ex.run('docker', 'run', '--rm', '--network=none', '--entrypoint=cat',
+                          image, '/opt/review-cache/'+name)
+        if (snapshot/name).read_bytes() != expected:
             raise Failure('environment_mismatch', 'Review image differs from target: '+name, 4)
-    evidence = directory/'evidence/evidence'; evidence.mkdir(parents=True)
-    build = ex.isolated(image, snapshot_dir)
-    try: receipt = ex.execute(build, ['lake', '--wfail', 'build', *targets], 180)
-    finally: ex.run('docker', 'rm', '-f', build)
+
+
+def build_status(receipt):
+    if receipt.get('status') == 'not_run': return 'not_run'
+    code = receipt['exit_code']
+    return 'pass' if code == 0 else ('error' if code is None or code in (124,125,126,127,137) or code < 0 else 'fail')
+
+
+def build(directory, configuration):
+    """Produce a controller-owned receipt in a fresh container without model access."""
+    request, _, _ = load(directory)
+    image = configuration.get('image')
+    with tempfile.TemporaryDirectory(prefix='fc-build-', dir=directory) as temp:
+        snapshot_dir = Path(temp)/'snapshot'
+        restore(directory, snapshot_dir)
+        targets = ex.build_targets(request['scope'], snapshot_dir)
+        receipt = {'command': ['lake','--wfail','build',*targets], 'exit_code': None}
+        try:
+            check_environment(image, snapshot_dir)
+            container = ex.isolated(image, snapshot_dir)
+            try:
+                receipt = ex.execute(container, receipt['command'], configuration['limits']['build_seconds'])
+            finally:
+                ex.run('docker', 'rm', '-f', container)
+        except Failure as error:
+            receipt.update(status='not_run', reason=error.reason, output=str(error))
+        except (OSError, subprocess.SubprocessError, rr.InputError) as error:
+            receipt.update(status='error', reason='build_environment_error', output=str(error))
     receipt.update(request_id=request['id'], image=image, targets=targets, policy='scoped-build.v1')
-    save(evidence/'build.json', receipt)
-    if build_only:
-        code=receipt['exit_code']
-        outcome='pass' if code==0 else ('error' if code is None or code in (124,125,126,127,137) or code<0 else 'fail')
-        return outcome, receipt
+    path = directory/'controller/build.json'
+    save(path, receipt)
+    return build_status(receipt), receipt
+
+
+def handoff(directory, configuration, record):
+    request, files, ticket = load(directory)
+    status, receipt = build(directory, configuration)
+    # A readable copy is for the existing session. Execution always restores the archive.
+    snapshot_dir = directory/'snapshot'
+    restore(directory, snapshot_dir)
     for name, raw in files.items():
         if name.startswith(('procedure/', 'sources/')):
-            p = snapshot_dir/name; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(raw)
-    save(snapshot_dir/'independent-build.json', receipt)
-    scratch = ex.isolated(image, snapshot_dir)
+            path = snapshot_dir/name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
+    template = rr.read_json(directory/'input/review-template.json')
+    template['reviewer'] = 'REPLACE with human or agent identity; model unknown if unavailable'
+    save(directory/'review-template.json', template)
+    record.update(status='awaiting_review', outcome='incomplete', reason='awaiting_review',
+        request_id=request['id'], target=ticket, build_status=status,
+        build_receipt_sha256=rr.digest((directory/'controller/build.json').read_bytes()),
+        reviewer_metadata={'attribution':'operator_reported', 'model':None, 'usage':None,
+                           'context':'Existing session; no claim of blinded or isolated model execution.'},
+        paths={name:str(directory/path) for name,path in {
+            'request':'input/request.json', 'snapshot':'snapshot', 'sources':'input/sources',
+            'procedure':'input/procedure/SKILL.md', 'template':'review-template.json',
+            'build_receipt':'controller/build.json'}.items()},
+        next_action=f"Read the retained procedure and inputs, then run conjectures review finish {record['id']} --report FILE.")
+    save(directory/'run.json', record)
+    return record
+
+
+def replay(retained, directory):
+    request, files, ticket = load(retained)
+    files['request.json'] = rr.encode(request)
+    # Templates are conveniences, not part of the content-addressed request.
+    template = rr.read_json(retained/'input/review-template.json')
+    files['review-template.json'] = rr.encode(template)
+    rr.write_directory(directory/'input', files)
+    save(directory/'ticket.json', ticket)
+    return ticket
+
+
+def bound_receipt(directory, record):
+    request, _, _ = load(directory)
+    if request['id'] != record.get('request_id'):
+        raise Failure('input_binding_mismatch', 'Run belongs to a different request', 3)
+    raw = rr.read_artifact(directory, 'controller/build.json')
+    receipt = rr.parse(raw)
+    if rr.digest(raw) != record['build_receipt_sha256'] or receipt['request_id'] != request['id']:
+        raise Failure('changed_build_receipt', 'Independent build receipt changed after preparation', 3)
+    return receipt
+
+
+def require_pending(record):
+    if record.get('kind') != 'review' or record.get('status') != 'awaiting_review':
+        raise Failure('review_not_pending', 'Use an awaiting_review run; completed reports are immutable', 4)
+
+
+def bounded_files(folder, prefix):
+    # Bound before reading, and reject links through the shared artifact reader.
+    if not folder.is_dir() or folder.is_symlink():
+        raise Failure('invalid_evidence', 'Expected a plain directory')
+    result = {}; size = 0
+    for path in sorted(folder.rglob('*')):
+        if path.is_symlink(): raise Failure('invalid_evidence', 'Evidence and scratch files cannot be symlinks')
+        if not path.is_file(): continue
+        size += path.stat().st_size
+        if size > 8*1024*1024 or len(result) >= 100:
+            raise Failure('evidence_limit', 'At most 100 files and 8 MiB of supplied evidence are supported', 4)
+        name = path.relative_to(folder).as_posix()
+        result[prefix+'/'+name] = rr.read_artifact(folder, name)
+    return result
+
+
+def scratch(directory, configuration, record, arguments, supplied=None):
+    require_pending(record)
+    receipt = bound_receipt(directory, record)
+    if not arguments: raise Failure('missing_command', 'Supply a command after --')
+    evidence_dir = directory/'scratch'
+    count = len(list(evidence_dir.glob('*.json'))) if evidence_dir.exists() else 0
+    if count >= configuration['limits']['scratch_calls']:
+        raise Failure('scratch_limit', 'This run reached its scratch execution limit', 4)
+    scratch_files = bounded_files(supplied, 'scratch') if supplied else {}
+    with tempfile.TemporaryDirectory(prefix='fc-scratch-', dir=directory) as temp:
+        snapshot_dir = Path(temp)/'snapshot'
+        restore(directory, snapshot_dir)
+        _, files, _ = load(directory)
+        for name, raw in files.items():
+            if name.startswith(('procedure/', 'sources/')):
+                path=snapshot_dir/name; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(raw)
+        for name, raw in scratch_files.items():
+            path=snapshot_dir/name; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(raw)
+        image = receipt['image']  # Keep the prepared environment even if local config changes.
+        check_environment(image, snapshot_dir)
+        container = ex.isolated(image, snapshot_dir)
+        try: result = ex.execute(container, arguments, configuration['limits']['scratch_seconds'])
+        finally: ex.run('docker', 'rm', '-f', container)
+    identity = uuid.uuid4().hex
+    result.update(request_id=record['request_id'], image=image, producer='local_operator',
+                  purpose='scratch_only', inputs=rr.descriptors(scratch_files))
+    save(evidence_dir/(identity+'.json'), result)
+    # Preserve witness bytes as well as output; they never become independent checks.
+    if scratch_files: rr.write_directory(evidence_dir/identity, scratch_files)
+    return {'outcome':build_status(result), 'run':record['id'],
+            'evidence':'evidence/scratch/'+identity+'.json', **result}
+
+
+def applicability(root, ticket):
     try:
-        backend, model = configuration['backend'], configuration.get('model')
-        if not model: raise Failure('missing_model', 'Select an explicit --model or configure model', 4)
-        if backend == 'api':
-            if os.environ.get('CONJECTURES_ENABLE_API') != '1':
-                raise Failure('api_disabled', 'API generation requires CONJECTURES_ENABLE_API=1; OAuth is the pilot default', 4)
-            result = ex.model_review(request, scratch, evidence, model)
-        else:
-            prompt = ('Review this FC contribution. Read /tmp/work/procedure/SKILL.md and the supplied '
-                '/tmp/work/sources. Work in /tmp/work. Independent build evidence is independent-build.json. '
-                'Do not equate compilation with proof verification. Missing sources require incomplete coverage. '
-                'Use only review_workspace.execute; stop after material questions are resolved. Return review JSON. '
-                'Tool evidence paths are evidence/tool-NNN.json.\n'+json.dumps({'request_id':request['id'],
-                 'scope':request['scope'],'reviewer':model,'source_collection':ticket['source_collection']}))
-            limits = configuration['limits']
-            seconds = min(420, int(limits['seconds'])); calls = min(20, int(limits['tools']))
-            if min(seconds, calls) <= 0: raise Failure('invalid_configuration', 'Limits must be positive')
-            record = codex.invoke_model(prompt, directory/'invocation', model, seconds,
-                codex.review_schema(request, calls), ['-m', 'conjectures.cli', '_workspace',
-                 '--container', scratch, '--evidence', str(evidence), '--limit', str(calls)])
-            if record['status'] != 'completed':
-                raise Failure(record['status'], 'Reviewer did not finish; invocation events retained', 3)
-            result = rr.read_json(directory/'invocation/answer.json')
-            result['reviewer'] = record['model']
-    finally: ex.run('docker', 'rm', '-f', scratch)
+        if ticket.get('pr'):
+            detail = github(f"repos/{ticket['repository']}/pulls/{ticket['pr']}")
+            current = detail['state']=='open' and detail['head']['sha']==ticket['head'] and detail['base']['sha']==ticket['base']
+        elif ticket.get('workspace_head') and ticket.get('tree'):
+            head, _ = snapshot(root, ticket['base_ref'])
+            current = (git(root,'rev-parse','HEAD').decode().strip()==ticket['workspace_head'] and
+                git(root,'rev-parse',head+'^{tree}').decode().strip()==ticket['tree'] and
+                git(root,'rev-parse',ticket['base_ref']).decode().strip()==ticket['base'])
+        else: return 'unconfirmed'
+        return 'current' if current else 'historical'
+    except (Failure, OSError, subprocess.SubprocessError):
+        return 'unconfirmed'
+
+
+def complete(root, directory, record, report_path, supplied=None):
+    require_pending(record)
+    receipt = bound_receipt(directory, record)
+    request, _, ticket = load(directory)
+    if report_path.stat().st_size > 1024*1024:
+        raise Failure('report_limit', 'Review JSON exceeds 1 MiB')
+    result = rr.read_json(report_path)
+    rr.require(isinstance(result,dict), 'review must be an object')
+    if isinstance(result.get('reviewer'), str) and result['reviewer'].startswith('REPLACE'):
+        raise Failure('unfinished_review', 'Fill the reviewer identity; use model unknown when necessary', 4)
+    # Let the contract validator reject malformed structures before enforcing source coverage.
+    evidence = {'evidence/build.json':rr.encode(receipt)}
+    if (directory/'scratch').exists(): evidence |= bounded_files(directory/'scratch', 'evidence/scratch')
+    if supplied: evidence |= bounded_files(supplied, 'evidence/operator')
+    _, inputs = rr.load_request(directory/'input')
+    rr.validate_review(result, request, inputs | evidence)
     if ticket['source_collection']['coverage'] == 'incomplete':
         result['coverage']['source-fidelity'] = 'incomplete'
-    save(directory/'review.json', result)
-    code = receipt['exit_code']
-    build_status = 'pass' if code == 0 else ('error' if code is None or code in (124,125,126,127,137) or code < 0 else 'fail')
-    manifest = {'request_id': request['id'], 'artifacts': rr.descriptors(rr.collect(evidence, 'evidence')),
-      'checks': [{'kind':'build','status':build_status,'producer':'local_operator',
-        'policy':'scoped-build.v1','detail':'Independent isolated build; no proof verification.',
+    status = build_status(receipt)
+    manifest = {'request_id':request['id'], 'artifacts':rr.descriptors(evidence), 'checks':[{
+        'kind':'build', 'status':status, 'producer':record.get('producer','local_operator'),
+        'policy':'scoped-build.v1', 'detail':'Independent isolated build; no proof verification.',
         'evidence':['evidence/build.json']}]}
-    save(directory/'evidence/checks.json', manifest)
-    bundle = rr.assemble(directory/'input', directory/'input', directory/'review.json', directory/'evidence')
-    rr.write_directory(directory/'bundle', bundle)
-    report = rr.parse(bundle['report.json'])
-    outcome = 'error' if build_status == 'error' else ('fail' if build_status == 'fail' or
-        report['semantic_verdict'] == 'NEEDS REVISION' else ('incomplete' if report['gaps'] else 'pass'))
-    return outcome, report
+    # Stage and validate everything before changing a pending run. Supplied checks.json
+    # is ordinary operator evidence and never selects a check policy or verdict.
+    with tempfile.TemporaryDirectory(prefix='fc-complete-', dir=directory) as temp:
+        staging = Path(temp)
+        save(staging/'review.json',result)
+        rr.write_directory(staging/'evidence', evidence | {'checks.json':rr.encode(manifest)})
+        bundle = rr.assemble(directory/'input',directory/'input',staging/'review.json',staging/'evidence')
+        report = rr.parse(bundle['report.json'])
+        state = applicability(root,ticket)
+        observation = rr.parse(bundle['observation.json'])
+        observation.update(current_request_id=None, freshness={'current':'current','historical':'STALE','unconfirmed':'unconfirmed'}[state],
+                           observed_at=now(), scope='Target head/base only; retained procedure and sources remain frozen.')
+        if state!='current': observation['completeness']='incomplete'
+        bundle['observation.json']=rr.encode(observation)
+        bundle['summary.md']=rr.render(report,observation).encode()
+        rr.write_directory(staging/'bundle',bundle)
+        for name in ('review.json','evidence','bundle'):
+            if (directory/name).exists(): raise Failure('existing_completion', 'Retain existing completion artifacts and start a new run', 3)
+        for name in ('review.json','evidence','bundle'): (staging/name).rename(directory/name)
+    outcome = 'error' if status=='error' else ('fail' if status=='fail' or report['semantic_verdict']=='NEEDS REVISION'
+        else ('incomplete' if report['gaps'] or state!='current' else 'pass'))
+    record.pop('reason',None)
+    reason = ('build_execution_error' if status=='error' else 'build_failed' if status=='fail' else
+              'semantic_findings' if report['semantic_verdict']=='NEEDS REVISION' else
+              'target_changed' if state=='historical' else 'freshness_unconfirmed' if state=='unconfirmed' else
+              'coverage_incomplete' if report['gaps'] else 'review_complete')
+    return finish(directory,record,outcome,reason=reason,coverage=report['review']['coverage'],gaps=report['gaps'],
+        applicability=state, reviewer=result['reviewer'], report=str(directory/'bundle/summary.md'),
+        next_action='Inspect the report. Publish only with explicit authorization.')

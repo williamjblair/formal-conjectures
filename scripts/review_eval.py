@@ -28,14 +28,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import review_report as rr
-from conjectures.codex import (schema_object, schema_array, schema_enum, review_schema,
-                               allowed_call, invoke_model, STRING, BOOLEAN)
+from conjectures.review_schema import (schema_object, schema_array, schema_enum, review_schema, STRING, BOOLEAN)
+from review_model_codex import allowed_call, invoke_model
 
 HERE = Path(__file__).resolve().parent
 VERSION = "fc.review-eval.v2"
 REVIEW_TOOLS = ("review_eval.py", "review_report.py", "review-eval/workspace_server.py",
-                "../toolkit/conjectures/report.py", "../toolkit/conjectures/codex.py",
-                "../toolkit/conjectures/eval_workspace.py")
+                "../toolkit/conjectures/report.py", "../toolkit/conjectures/review_schema.py",
+                "review_model_codex.py")
 
 
 encode = rr.encode

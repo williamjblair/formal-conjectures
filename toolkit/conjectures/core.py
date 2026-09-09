@@ -1,5 +1,8 @@
 """Local configuration, process boundaries, and durable run records."""
 import json
+import fcntl
+import sys
+from contextlib import contextmanager
 import os
 import re
 import subprocess
@@ -38,15 +41,40 @@ def github(path):
     return rr.parse(gh('api', path))
 
 def config(root):
-    result = {'backend': 'codex', 'model': None, 'executor': None,
-              'evidence': None, 'limits': {'seconds': 420, 'tools': 20}, 'image': None}
+    result = {'executor': None, 'evidence': None, 'image': None,
+              'limits': {'build_seconds': 180, 'scratch_seconds': 60, 'scratch_calls': 20}}
     for p in [Path.home()/'.config/conjectures/config.json', root/'.conjectures/config.json']:
         if p.exists():
             value = rr.read_json(p)
+            if not isinstance(value, dict): raise Failure('invalid_configuration', 'Configuration must be an object')
+            obsolete = set(value) & {'backend', 'model'}
+            if obsolete:
+                print('Ignoring obsolete model/backend configuration; your existing agent owns model access.', file=sys.stderr)
+                value = {k:v for k,v in value.items() if k not in obsolete}
             if set(value) - set(result):
                 raise Failure('invalid_configuration', 'Unknown toolkit configuration field')
+            limits = value.pop('limits', {})
+            if not isinstance(limits, dict): raise Failure('invalid_configuration', 'Limits must be an object')
+            # Old model-time and tool-call bounds cannot constrain an external session.
+            limits = {k:v for k,v in limits.items() if k not in ('seconds', 'tools')}
+            if set(limits) - set(result['limits']): raise Failure('invalid_configuration', 'Unknown execution limit')
+            result['limits'].update(limits)
             result.update(value)
+    for key, ceiling in (('build_seconds',1800), ('scratch_seconds',300), ('scratch_calls',100)):
+        if type(result['limits'][key]) is not int or not 0 < result['limits'][key] <= ceiling:
+            raise Failure('invalid_configuration', f'{key} must be an integer from 1 to {ceiling}')
     return result
+
+@contextmanager
+def run_lock(directory):
+    # Serialize completion, scratch execution and cancellation without a daemon.
+    with (directory/'operation.lock').open('a') as lock:
+        try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise Failure('run_busy', 'Another operation is using this run', 4) from error
+        try: yield
+        finally: fcntl.flock(lock, fcntl.LOCK_UN)
+
 
 def save(path, value):
     path = Path(path)

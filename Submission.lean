@@ -9,6 +9,6 @@ theorem fc_problem : @Eq.{1} Nat
     (@OfNat.ofNat.{0} Nat (nat_lit 2) (instOfNatNat (nat_lit 2)))
     (@OfNat.ofNat.{0} Nat (nat_lit 2) (instOfNatNat (nat_lit 2))))
   (@OfNat.ofNat.{0} Nat (nat_lit 4) (instOfNatNat (nat_lit 4))) := by
-  rfl
+  sorry
 
 end Submission

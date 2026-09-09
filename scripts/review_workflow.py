@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import review_report as rr
 from conjectures import core, review
+from conjectures.cli import operation_code
+from types import SimpleNamespace
 
 
 def authorize(event, permission):
@@ -34,6 +36,8 @@ def prepare(root):
         raise
     # Preparation has no model output and no publication rights. A contributor replays
     # these inputs locally through review prepare --input before supplying their review.
+    code=operation_code(SimpleNamespace(command='review',operation='prepare'),result)
+    result={**result,'command_status':{0:'success',1:'failure',3:'error',4:'incomplete'}[code],'exit_code':code}
     print(rr.encode(result).decode())
     return result
 
@@ -44,4 +48,4 @@ if __name__=='__main__':
     parser.add_argument('--root',type=Path,required=True)
     args=parser.parse_args()
     args.root.mkdir(parents=True,exist_ok=True)
-    prepare(args.root.resolve())
+    raise SystemExit(prepare(args.root.resolve())['exit_code'])

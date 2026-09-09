@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "created_at": "2026-09-09T15:12:43.146286+00:00",
+      "id": "20260909T151243Z-ed09352feacf",
+      "kind": "review",
+      "manifest_sha256": "f5449c624003d57e5d66720e2a08ae071f73e423045c041c9b37e13ada580ac3",
+      "outcome": "pass",
+      "path": "runs/20260909T151243Z-ed09352feacf",
+      "producer": "local_operator",
+      "scope": [
+        "FormalConjectures/GreensOpenProblems/72.lean"
+      ],
+      "target": {
+        "base": "5a13d480c38611f1381ba345f5933e9c29544c08",
+        "base_ref": "origin/main",
+        "head": "fadba095d4ad43b234d5ddb3c89a11da25eebbb9",
+        "local_snapshot": false,
+        "pr": 4941,
+        "producer": "local_operator",
+        "repository": "google-deepmind/formal-conjectures",
+        "source_collection": {
+          "coverage": "available",
+          "mode": "cited",
+          "omitted_urls": [],
+          "records": [
+            {
+              "sha256": "a5af729d12073a9a41f8c3c7c95d58a078e30a6fbc956c38feb0aff6d2c52505",
+              "status": "retrieved",
+              "url": "https://arxiv.org/abs/2510.17743"
+            },
+            {
+              "sha256": "d209c6a8e811df612b10e5c1c059f4a20e83a74aaddceddff3b97c499693c767",
+              "status": "retrieved",
+              "url": "https://en.wikipedia.org/wiki/No-three-in-line_problem"
+            },
+            {
+              "sha256": "e06971245914947f152550dee59bbb29fe0e798f0c51b2bc2557f824c2f9a44a",
+              "status": "retrieved",
+              "url": "https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf#problem.72"
+            },
+            {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "status": "retrieved",
+              "url": "https://www.apache.org/licenses/LICENSE-2.0"
+            }
+          ]
+        },
+        "tree": "8d14f9ae5d26058344d19d81d056ee0aee04a2c7",
+        "workspace_head": null
+      },
+      "url": "https://github.com/williamjblair/formal-conjectures/tree/codex%2Freview-evidence-4899-20260909/runs/20260909T151243Z-ed09352feacf"
+    }
+  ],
+  "schema_version": "fc.evidence-index.v1"
+}

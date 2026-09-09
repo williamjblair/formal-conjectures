@@ -1,0 +1,43 @@
+{
+  "files": [
+    {
+      "original_sha256": "8eca3f605f2cd825a5d0b4b5f4774a189509a23dc7c282dfd7a5e397d21223dd",
+      "path": "run.json",
+      "published_sha256": "06518bb92118b09f0960312dcfc045516b797dbf73aeb4074e6adc60403f8e2d",
+      "transformation": "operator paths redacted"
+    },
+    {
+      "original_sha256": "832517b6b0ebe2cc08a2353cb3d6d81d1d4cfa8c27b778d93952a4ceca39b342",
+      "path": "report.json",
+      "published_sha256": "832517b6b0ebe2cc08a2353cb3d6d81d1d4cfa8c27b778d93952a4ceca39b342",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "12311e6a96d9f004407b38c3592bfcd72a4abacdeb92c4ed1b1948d351decb15",
+      "path": "review.json",
+      "published_sha256": "12311e6a96d9f004407b38c3592bfcd72a4abacdeb92c4ed1b1948d351decb15",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "4d9cb24dd9f7826f9c868b8acd12b3ca3c410a1effff62660a8803c03af12b03",
+      "path": "request.json",
+      "published_sha256": "4d9cb24dd9f7826f9c868b8acd12b3ca3c410a1effff62660a8803c03af12b03",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "c2daa0d71aa9ae81e17902bbcc2ce7ba0eb5b3ba79f996809d423b3ae7b6fe36",
+      "path": "sources.json",
+      "published_sha256": "c2daa0d71aa9ae81e17902bbcc2ce7ba0eb5b3ba79f996809d423b3ae7b6fe36",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "790dd7edc3c84184feacd6d5915fd16279826f5fb447c6c90fecd78746047f50",
+      "path": "source-references.json",
+      "published_sha256": "790dd7edc3c84184feacd6d5915fd16279826f5fb447c6c90fecd78746047f50",
+      "transformation": "unchanged"
+    }
+  ],
+  "limit": "Published reports retain original artifact references; omitted bytes cannot be replayed from this public projection.",
+  "omitted": "Raw snapshots, complete source documents, invocation events, credentials, and execution logs stay local.",
+  "schema_version": "fc.public-export.v1"
+}

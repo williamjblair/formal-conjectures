@@ -1,0 +1,26 @@
+[
+  {
+    "resolved_url": "https://arxiv.org/abs/2510.17743",
+    "retrieved_at": "2026-09-09T15:12:46.450673+00:00",
+    "sha256": "a5af729d12073a9a41f8c3c7c95d58a078e30a6fbc956c38feb0aff6d2c52505",
+    "url": "https://arxiv.org/abs/2510.17743"
+  },
+  {
+    "resolved_url": "https://en.wikipedia.org/wiki/No-three-in-line_problem",
+    "retrieved_at": "2026-09-09T15:12:46.668426+00:00",
+    "sha256": "d209c6a8e811df612b10e5c1c059f4a20e83a74aaddceddff3b97c499693c767",
+    "url": "https://en.wikipedia.org/wiki/No-three-in-line_problem"
+  },
+  {
+    "resolved_url": "https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf#problem.72",
+    "retrieved_at": "2026-09-09T15:12:47.154794+00:00",
+    "sha256": "e06971245914947f152550dee59bbb29fe0e798f0c51b2bc2557f824c2f9a44a",
+    "url": "https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf#problem.72"
+  },
+  {
+    "resolved_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "retrieved_at": "2026-09-09T15:12:47.251844+00:00",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0"
+  }
+]

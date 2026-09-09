@@ -1,0 +1,76 @@
+{
+  "base_tip": "5a13d480c38611f1381ba345f5933e9c29544c08",
+  "context": [
+    {
+      "path": "context/base.tar",
+      "sha256": "9d66bd9f5b2a8168148efa3f0530d9ccead41a255a18f360ee7911e90ebe743b"
+    },
+    {
+      "path": "context/environment.json",
+      "sha256": "1e2ff44aa161a054a790deb3555e23c8b3072aa99f36ef7fa05089a29f5196a7"
+    },
+    {
+      "path": "context/head.tar",
+      "sha256": "592547d1ba052bb75697dbc2763cb07341ed0a3619ac44df21498045f2914f3c"
+    }
+  ],
+  "head_commit": "fadba095d4ad43b234d5ddb3c89a11da25eebbb9",
+  "id": "8997ccbe3d9f44d4330bcdcec7ca9bd8697d69991e4685e525ea5e63408b7d49",
+  "merge_base": "80f52ff59bb23dc2f97c0dcc4b51c6780183be50",
+  "procedure": [
+    {
+      "path": "procedure/SKILL.md",
+      "sha256": "c2d76d3f8789fbf6bc93edf9a74b62bd8796438765ed1ad0d27629cfe47af539"
+    },
+    {
+      "path": "procedure/references/checking-in-lean.md",
+      "sha256": "2b313bbf1cf6c7c6dc640dc97915abfa5ec30b9c4eb045b86cd957aa340ded42"
+    },
+    {
+      "path": "procedure/references/toolkit.md",
+      "sha256": "da5e6b95f2eff9b5f86c679d01dcdadd05a9090a1e2aca1aeecd4b93b4acb360"
+    },
+    {
+      "path": "procedure/references/verifying-proofs.md",
+      "sha256": "42074928475cbdd005b854b5948117339597d7fcb8349496a011675c34f9c1b1"
+    },
+    {
+      "path": "procedure/rubrics/metadata-hygiene.md",
+      "sha256": "6e9eeaf0b84688d05869221e7a6b0109aa86b426b744a752dc2a24e851a41a23"
+    },
+    {
+      "path": "procedure/rubrics/source-fidelity.md",
+      "sha256": "3d7f30b41c805d59eb38f17d19d87f7823d50f284f45c9d7f0bc23dbcf44c6af"
+    },
+    {
+      "path": "procedure/rubrics/statement-soundness.md",
+      "sha256": "a5349ffc3a8339a644fa810ef16b9bbf7fb87f23ccc325fc2d7a13aabca994e0"
+    }
+  ],
+  "repository": "google-deepmind/formal-conjectures",
+  "required_checks": [
+    "build"
+  ],
+  "schema_version": "fc.review-pilot.request.v2",
+  "scope": [
+    "FormalConjectures/GreensOpenProblems/72.lean"
+  ],
+  "sources": [
+    {
+      "path": "sources/source-00.json",
+      "sha256": "b07dbe5dfb3071528d59439cbaf039b08dec47d3f5c14b764aac3b855be469ff"
+    },
+    {
+      "path": "sources/source-01.json",
+      "sha256": "388cbc23f3fc037f4bdc2241010d2fa5f04fe58759724d8ee552145ee48908d2"
+    },
+    {
+      "path": "sources/source-02.json",
+      "sha256": "36961e64ab50be3a632aaedb3855b167510307ce06a903d0b3621521f85fba67"
+    },
+    {
+      "path": "sources/source-03.json",
+      "sha256": "cbec44d91ad97ad4786fb670f0b86edd17026099d7f6cc97d000105de2e10ce2"
+    }
+  ]
+}

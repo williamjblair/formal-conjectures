@@ -1,0 +1,14 @@
+{
+  "context_policy": "fresh",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [],
+  "prior_reviews": [],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "8997ccbe3d9f44d4330bcdcec7ca9bd8697d69991e4685e525ea5e63408b7d49",
+  "reviewer": "Codex existing agent session; model unknown; development context present, not blinded"
+}

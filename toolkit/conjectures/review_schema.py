@@ -51,5 +51,3 @@ def review_schema(request, max_calls=30, context=()):
             **({} if context else {"maxItems": 0}),
         ),
     )
-
-

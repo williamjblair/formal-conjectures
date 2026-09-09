@@ -58,9 +58,14 @@ def retrieve(url):
         text = raw.decode('utf-8', errors='replace')
         if kind == 'text/html':
             parser = Text(); parser.feed(text); text = ' '.join(parser.parts)
+    offset = 0
+    anchor = re.fullmatch(r'problem[.-](\d+)', urlsplit(url).fragment, re.IGNORECASE)
+    if anchor:
+        found = re.search(r'Problem\s+'+anchor[1]+r'\.', text)
+        if found: offset = max(0, found.start()-200)
     return {'url': url, 'resolved_url': final, 'retrieved_at': now(),
             'sha256': hashlib.sha256(raw).hexdigest(), 'media_type': kind,
-            'passages': text[:24000], 'truncated': len(text) > 24000}
+            'passages': text[offset:offset+24000], 'passage_offset': offset, 'truncated': len(text) > 24000}
 
 def cited_urls(files):
     urls = set()
@@ -75,11 +80,12 @@ def collect(destination, files, supplied=None):
     destination.mkdir(parents=True, exist_ok=True)
     records = []
     if supplied:
-        for name, raw in rr.collect(Path(supplied).resolve(), 'supplied').items():
+        supplied_files = rr.collect(Path(supplied).resolve(), 'supplied')
+        for name, raw in supplied_files.items():
             if len(raw) > MAX_BYTES: raise ValueError('Supplied source exceeds 4 MiB')
             p = destination/name; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(raw)
         # Supplied sources are explicit operator evidence, not independently retrieved pages.
-        return {'mode': 'supplied', 'coverage': 'available', 'records': []}
+        return {'mode': 'supplied', 'coverage': 'available' if supplied_files else 'incomplete', 'records': []}
     urls = cited_urls(files)
     for i, url in enumerate(urls[:MAX_URLS]):
         try:

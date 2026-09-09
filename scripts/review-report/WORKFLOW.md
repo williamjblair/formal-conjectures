@@ -1,66 +1,37 @@
-# Opt-in Actions pilot
+# Opt-in Actions preparation
 
-This workflow depends on #4899. It remains disabled until FC maintainers configure it.
-There is no GitHub App or archive repository.
-The PR integration job tests against #4899 at a pinned commit; ordinary script discovery
-explicitly skips these dependent tests until those tools exist on main. Remove the extra
-checkout after #4899 merges.
+The workflow prepares review inputs using the installed toolkit. Maintainers must
+accept its prerequisites and configure it before activation. It uses trusted
+default-branch code; candidate PRs cannot supply the workflow or build recipe.
 
-```mermaid
-flowchart LR
-  request["Maintainer /review"] --> run["Isolated build and review"]
-  run --> validate["Validate bundle and freshness"]
-  validate --> comment["One advisory PR comment"]
-```
+A contributor with current write, maintain, or admin permission can request a run
+with an exact `/review` comment. The controller freezes the PR revisions, collects
+cited sources, and builds in a fresh isolated container. It retains a draft and
+inputs as Actions artifacts for 30 days. Missing sources or unavailable builds
+remain incomplete. Failed builds remain failures.
 
-- **Trigger:** an exact `/review` comment from someone with current write, maintain or admin
-  permission. Jobs use the default-branch workflow and tooling, never PR workflow code.
-- **Execution:** the independent build and model scratch commands use different containers.
-  Neither receives credentials, networking, writable host files or the Docker socket.
-  The host controller alone calls the model API. Model output cannot supply the build receipt.
-- **Publication:** a separate job validates the request ticket, report digest and complete bundle
-  against the same run and attempt, then reassembles it before updating one bot comment.
-  It checks the current PR head, base tip and tooling commit before publishing. Freshness is
-  an observation at publication, not a promise about future pushes; always compare the SHA.
-- **Retention:** complete bundles and raw execution records are Actions artifacts for 30 days.
-  Download them before expiry if needed. Missing or failed execution produces no success
-  report. The Actions run retains the failure. No durable retention is claimed.
+An existing agent or human session conducts the semantic review. This workflow
+has no AI credentials, model generation, or publication job. Download and replay
+the retained run through `conjectures review prepare --input DIR`, then follow its
+printed procedure and finish command. Publication is a separate explicit operation.
 
-## Maintainer setup
+## Maintainer configuration
 
-1. Configure the protected `fc-review-pilot` GitHub environment and its approval policy.
-2. Supply its `FC_REVIEW_API_KEY` secret and set an explicit API project spending limit.
-   Set `FC_REVIEW_MODEL` to an available model supporting Responses structured output and
-   function calls. The development evals used GPT-5.6 Sol through Codex; API availability
-   must be checked independently. No alternative model is silently substituted.
-3. Set `FC_REVIEW_IMAGE` to a public reviewed Linux image **by registry digest**. It must have
-   `lake`, `lean`, `sh`, `timeout`, ordinary file tools and an exact cache under
-   `/opt/review-cache/.lake`, with `lean-toolchain`, `lake-manifest.json` and `lakefile.toml`
-   beside it. The cache must use the same pinned dependencies and contain no credentials.
-   Dependency packages stay read-only in the image; only the FC build cache is copied.
-   Source/cache drift is rejected before execution. The image build and maintenance belong
-   to the FC operators; this PR does not deploy or publish an image.
-4. Set `FC_REVIEW_ENABLED=true` only after a disposable pilot PR has exercised the complete
-   hosted workflow. Each model review is limited to 20 tool calls, seven minutes and 8,000
-   output tokens per response; these bounds are not a currency budget.
+1. Build the environment using `conjectures setup review` from an accepted toolkit
+   revision. Its bundled production recipe verifies the upstream source and Lean
+   archive, then records the resulting image digest. It needs no evaluation cache.
+2. Push that reviewed image through the operator's normal registry process. Set
+   `FC_REVIEW_IMAGE` to its public registry digest. Target dependency drift is
+   checked before every build; candidate files cannot choose another image.
+3. Exercise preparation on a disposable mathematical PR, then explicitly enable
+   `FC_REVIEW_ENABLED=true` only after maintainer acceptance.
 
-The initial scope is at most five existing problem modules. Configuration, utility, deleted
-or broader changes stop explicitly and need ordinary review. This pilot has no source-fetch
-service; absent cited sources leave source fidelity incomplete. It runs fresh reviews only;
-use the local report tool for contested rereviews with retained context. It does not execute
-external proofs, Comparator, downstream admissions or acceptance decisions.
+Preparation supports at most five new or modified problem modules. Broader,
+configuration, shared utility, and deleted-file changes require ordinary review.
+The source collector fetches bounded directly cited pages, not recursive browsing.
+The workflow retains operational evidence; it does not decide mathematical
+acceptance, verify external proofs, or measure semantic review accuracy.
 
-The workflow is a bounded integration pilot, not a claim of production qualification. Hosted
-activation, model access, image maintenance and budget ownership remain maintainer decisions.
-
-Build the cache from a reviewed revision using the existing evaluation Dockerfile, then
-adapt its filesystem layout with this small Dockerfile (do not build it from PR code):
-
-```sh
-docker build --build-arg FC_REV=REVIEWED_COMMIT -f scripts/review-eval/Dockerfile -t fc-review-cache .
-docker build --build-arg REVIEW_EVAL_IMAGE=fc-review-cache -f scripts/review-report/Dockerfile -t fc-review-pilot .
-```
-
-Push the reviewed image through the operator's normal registry process and configure its
-returned registry digest. The resulting image digest pins the fetched build dependencies;
-the Docker build itself is not claimed to be reproducible.
+An artifact is temporary retention. Durable publication uses `conjectures evidence
+publish RUN`, with an inspected public export and an existing evidence destination.
+See [the toolkit guide](../../toolkit/README.md) and FC #4394 for the delivery order.

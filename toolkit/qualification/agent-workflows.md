@@ -12,10 +12,10 @@ or upstream acceptance. No model was launched and no paid API call was made.
 
 ## Recorded checks
 
-- Integration: 98 deterministic toolkit tests passed, including atomic evaluation
+- Integration: 100 deterministic toolkit tests passed, including atomic evaluation
   export, external target binding, symlink rejection, configuration preservation,
   missing verifier results and non-scored infrastructure failures.
-- Focused branches: 50 core tests, 73 proof tests, and 77 evaluation-branch tests passed.
+- Focused branches: 51 core tests, 75 proof tests, and 79 evaluation-branch tests passed.
 - Clean wheel/source-distribution packaging passed on macOS and Linux at
   `74299491840e73ba9f070a11384cefeb9425ec08`:
   [package qualification](https://github.com/williamjblair/formal-conjectures/actions/runs/34487976713).
@@ -34,6 +34,14 @@ or upstream acceptance. No model was launched and no paid API call was made.
   error with no reward when trusted toolkit/tools were deliberately absent. See
   [the receipt](harbor-missing-tools.json). This checks actual artifact/error handling
   through the harness without invoking a model; it is not successful proof grading.
+
+- Native Linux also passed all seven agent-workspace tests, including a concurrent
+  symlink swap during capture. In a container without Git, Lean, network access or
+  AI credentials, `doctor` and `show` passed against an explicit statement fixture.
+  This does not substitute for production catalog deployment.
+- Subsequent implementation adds bounded descriptor-relative submission reads and
+  keeps pending definition assessment visible in workspace status. These changes
+  have deterministic coverage; the real proof run below retains its own exact pin.
 
 ## Linux proof qualification
 

@@ -1,0 +1,43 @@
+{
+  "files": [
+    {
+      "original_sha256": "7e21a836c809c1e05108b8b9a96948fbf0a336c9d4208a3097d066a817b37079",
+      "path": "run.json",
+      "published_sha256": "e9818dad157378279198e39cbd94d12062c22022eefbe2bfcb27bf90cf5b27d1",
+      "transformation": "operator paths redacted"
+    },
+    {
+      "original_sha256": "b35fe33a131c9127b66029c97b42e2567904e0bf62f1f858ec26d80b1ba63e5d",
+      "path": "report.json",
+      "published_sha256": "b35fe33a131c9127b66029c97b42e2567904e0bf62f1f858ec26d80b1ba63e5d",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "a7138014fc154fde4d2911d33ab9bbff9c5a44711d123f576263477d180c3c75",
+      "path": "review.json",
+      "published_sha256": "a7138014fc154fde4d2911d33ab9bbff9c5a44711d123f576263477d180c3c75",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "885e30fc362d9a406a59b941426e8e583cb049966062215e93d15de2bd7fbe94",
+      "path": "request.json",
+      "published_sha256": "885e30fc362d9a406a59b941426e8e583cb049966062215e93d15de2bd7fbe94",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "e58568758aaef56280cc43d2fbc372e04040b97ebd1c02c883186f1bad2fca53",
+      "path": "sources.json",
+      "published_sha256": "e58568758aaef56280cc43d2fbc372e04040b97ebd1c02c883186f1bad2fca53",
+      "transformation": "unchanged"
+    },
+    {
+      "original_sha256": "528aa7cdbcd6d38f161d7e0fb4b8fed31f252bca8c6e3c36a740087607046318",
+      "path": "source-references.json",
+      "published_sha256": "528aa7cdbcd6d38f161d7e0fb4b8fed31f252bca8c6e3c36a740087607046318",
+      "transformation": "unchanged"
+    }
+  ],
+  "limit": "Published reports retain original artifact references; omitted bytes cannot be replayed from this public projection.",
+  "omitted": "Raw snapshots, complete source documents, invocation events, credentials, and execution logs stay local.",
+  "schema_version": "fc.public-export.v1"
+}

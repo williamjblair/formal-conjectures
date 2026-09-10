@@ -1,0 +1,36 @@
+{
+  "artifacts": [
+    {
+      "path": "redactions.json",
+      "sha256": "800d943b8a08fdd1124191aecd2d7789baadb77fe6e3ac2474221aee8394314e"
+    },
+    {
+      "path": "report.json",
+      "sha256": "b35fe33a131c9127b66029c97b42e2567904e0bf62f1f858ec26d80b1ba63e5d"
+    },
+    {
+      "path": "request.json",
+      "sha256": "885e30fc362d9a406a59b941426e8e583cb049966062215e93d15de2bd7fbe94"
+    },
+    {
+      "path": "review.json",
+      "sha256": "a7138014fc154fde4d2911d33ab9bbff9c5a44711d123f576263477d180c3c75"
+    },
+    {
+      "path": "run.json",
+      "sha256": "e9818dad157378279198e39cbd94d12062c22022eefbe2bfcb27bf90cf5b27d1"
+    },
+    {
+      "path": "source-references.json",
+      "sha256": "528aa7cdbcd6d38f161d7e0fb4b8fed31f252bca8c6e3c36a740087607046318"
+    },
+    {
+      "path": "sources.json",
+      "sha256": "e58568758aaef56280cc43d2fbc372e04040b97ebd1c02c883186f1bad2fca53"
+    }
+  ],
+  "kind": "review",
+  "producer": "local_operator",
+  "run_id": "20260910T085508Z-a3ad2fdc9343",
+  "schema_version": "fc.evidence-bundle.v1"
+}

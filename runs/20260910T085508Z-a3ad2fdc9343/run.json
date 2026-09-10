@@ -1,0 +1,80 @@
+{
+  "applicability": "current",
+  "build_receipt_sha256": "eae3b5731483eeb8b453a6aea88d2ef6a1c3a939c28b656df9e5230777b07b72",
+  "build_status": "not_run",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "created_at": "2026-09-10T08:55:08.975373+00:00",
+  "finished_at": "2026-09-10T09:04:19.480826+00:00",
+  "gaps": [
+    "build: not_run — Independent isolated build; no proof verification."
+  ],
+  "id": "20260910T085508Z-a3ad2fdc9343",
+  "kind": "review",
+  "next_action": "Inspect the report. Publish only with explicit authorization.",
+  "outcome": "incomplete",
+  "paths": {
+    "build_receipt": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/controller/build.json",
+    "draft": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/review.json",
+    "procedure": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/input/procedure/SKILL.md",
+    "request": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/input/request.json",
+    "snapshot": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/snapshot",
+    "sources": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/input/sources",
+    "template": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/review-template.json"
+  },
+  "producer": "local_operator",
+  "reason": "coverage_incomplete",
+  "report": "<workspace>/.conjectures/runs/20260910T085508Z-a3ad2fdc9343/bundle/summary.md",
+  "request_id": "7b781a1dfeefe6d705614cc33077269b8cc9f3ea38c7548bd866cf1f833749bf",
+  "reviewer": "Codex current implementation session; exact model identity unavailable; known development example",
+  "reviewer_metadata": {
+    "attribution": "operator_reported",
+    "context": "Existing session; no claim of blinded or isolated model execution.",
+    "model": null,
+    "usage": null
+  },
+  "schema_version": "fc.toolkit.run.v1",
+  "source_coverage": "available",
+  "status": "completed",
+  "target": {
+    "base": "4de51985fcbd53a155b5f62f9aabfd8cb9cc4041",
+    "base_ref": "origin/main",
+    "head": "9a47aebccbb7404b4e7cdbdee518bd82dd960087",
+    "local_snapshot": false,
+    "pr": 10,
+    "producer": "local_operator",
+    "repository": "williamjblair/formal-conjectures",
+    "source_collection": {
+      "coverage": "available",
+      "mode": "cited",
+      "omitted_urls": [],
+      "records": [
+        {
+          "sha256": "a5af729d12073a9a41f8c3c7c95d58a078e30a6fbc956c38feb0aff6d2c52505",
+          "status": "retrieved",
+          "url": "https://arxiv.org/abs/2510.17743"
+        },
+        {
+          "sha256": "d209c6a8e811df612b10e5c1c059f4a20e83a74aaddceddff3b97c499693c767",
+          "status": "retrieved",
+          "url": "https://en.wikipedia.org/wiki/No-three-in-line_problem"
+        },
+        {
+          "sha256": "e06971245914947f152550dee59bbb29fe0e798f0c51b2bc2557f824c2f9a44a",
+          "status": "retrieved",
+          "url": "https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf#problem.72"
+        },
+        {
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "status": "retrieved",
+          "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+      ]
+    },
+    "tree": "9b52e32d12d437b43bb7813e7c21476d980efd7f",
+    "workspace_head": null
+  }
+}

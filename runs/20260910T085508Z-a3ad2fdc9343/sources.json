@@ -1,0 +1,22 @@
+[
+  {
+    "availability": "retained_locally",
+    "path": "sources/source-00.json",
+    "sha256": "901ab5af26aa36b3fa631ee1be07103b76287987200302b679019630767dd6c4"
+  },
+  {
+    "availability": "retained_locally",
+    "path": "sources/source-01.json",
+    "sha256": "b840a53c5d699abd477d917a45c3eb6d0da7b8f0a27f68d932b1836082d29717"
+  },
+  {
+    "availability": "retained_locally",
+    "path": "sources/source-02.json",
+    "sha256": "100e99ac7c8a8e10fcf8b88b9a99a675d119f5fefa7183a4581bf67f6d39b687"
+  },
+  {
+    "availability": "retained_locally",
+    "path": "sources/source-03.json",
+    "sha256": "41f90f1d4e614c391e13e1e101d47c02c3f5784036b8292ff195c8f5acaf3a74"
+  }
+]

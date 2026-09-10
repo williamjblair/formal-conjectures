@@ -9,6 +9,21 @@ from conjectures import evaluation, eval_verifier, core
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_summarize_rejects_malformed_results_without_counting_them(self):
+        valid={'schema_version':'fc.proof-eval-result.v1','status':'verified','task':'case','suite_sha256':'a'*64}
+        invalid=[[],{**valid,'status':[]},{k:v for k,v in valid.items() if k!='task'},
+                 {**valid,'task':42},{**valid,'suite_sha256':'not-a-digest'},
+                 {**valid,'suite_sha256':None}]
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            for value in invalid:
+                with self.subTest(value=value):
+                    core.save(root/'fc-result.json',value)
+                    with self.assertRaises(core.Failure) as caught:evaluation.summarize(root)
+                    self.assertEqual((caught.exception.reason,caught.exception.code),('invalid_result',3))
+            core.save(root/'fc-result.json',{**valid,'status':'error','task':'unknown','suite_sha256':None})
+            self.assertEqual(evaluation.summarize(root)['counts']['error'],1)
+
     def suite(self):
         return {'schema_version':evaluation.SCHEMA,'source':{'repository':'fixture/fc','commit':'a'*40},
                 'execution':{'solver_image':'example/solver@sha256:'+'b'*64,'verifier_image':'example/verifier@sha256:'+'c'*64,

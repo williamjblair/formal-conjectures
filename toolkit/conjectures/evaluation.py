@@ -4,7 +4,6 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from types import SimpleNamespace
 from . import report as rr
 from .core import Failure, save
 
@@ -41,7 +40,7 @@ def export(root,args):
     source=data.get('provenance',{}).get('source',{})
     if source.get('repository')!=suite['source']['repository'] or source.get('commit')!=suite['source']['commit']:
         raise Failure('catalog_binding_mismatch','Suite and selected catalog must name the same exact repository and revision.',4)
-    for case in suite['cases']:catalog.select(data,case['declaration'])
+    selected={case['id']:catalog.select(data,case['declaration']) for case in suite['cases']}
     out=args.out.resolve()
     if out.exists():raise Failure('output_exists','Select a new export directory; existing tasks are preserved.')
     out.parent.mkdir(parents=True,exist_ok=True)
@@ -51,9 +50,13 @@ def export(root,args):
         for case in suite['cases']:
             task=staging/case['id'];task.mkdir()
             workspace=task/'environment/workspace'
-            prepared=proof.initialize(root,SimpleNamespace(target=case['declaration'],catalog=frozen,
-                repository=suite['source']['repository'],source_ref=suite['source']['commit'],out=workspace),{})
+            from .catalog_data import module_path
+            problem=selected[case['id']]
+            problem={**problem,'githubPath':problem.get('githubPath') or module_path(problem['module'])}
+            generated=proof.generate(root,problem,suite['source']['repository'],suite['source']['commit'],Path(temp)/case['id'])
+            shutil.copytree(generated,workspace)
             provenance=rr.read_json(workspace/'fc-provenance.json')
+            proof.write_handoff(workspace,provenance)
             # An exported task must not carry operator run records or development caches.
             shutil.rmtree(workspace/'.conjectures',ignore_errors=True)
             (workspace/'Submission').mkdir(exist_ok=True)
@@ -97,6 +100,7 @@ def write_task(task,target,execution):
 
 
 def summarize(directory):
+    if not directory.is_dir():raise Failure('directory_missing','Select an existing harness output directory.')
     counts={key:0 for key in ('verified','rejected','assessment_required','error')};attempts=[]
     for path in sorted(directory.rglob('fc-result.json')):
         value=rr.read_json(path)

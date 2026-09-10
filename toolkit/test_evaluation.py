@@ -2,6 +2,7 @@ import copy
 import tempfile
 import tomllib
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import patch
 from conjectures import evaluation, eval_verifier, core
@@ -44,3 +45,29 @@ class EvaluationTests(unittest.TestCase):
             self.assertFalse((root/'result/reward.txt').exists())
             self.assertEqual(evaluation.summarize(root)['counts']['error'],1)
             with self.assertRaises(core.Failure):eval_verifier.run(target,root,root/'result')
+
+    def test_export_is_atomic_and_does_not_create_operator_runs(self):
+        from conjectures import proof,catalog
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);suite=self.suite();suite_path=root/'suite.json';core.save(suite_path,suite)
+            data={'schemaVersion':2,'provenance':{'source':suite['source']},'problems':[
+                {'theorem':'Fixture.plain','module':'FormalConjectures.Example','statement':'True'}]}
+            args=SimpleNamespace(suite=suite_path,out=root/'tasks',catalog=None)
+            def generate(repo,problem,repository,revision,artifact):
+                self.assertEqual(repository,suite['source']['repository']);self.assertEqual(revision,'a'*40)
+                workspace=artifact/'workspace';workspace.mkdir(parents=True)
+                core.save(workspace/'fc-provenance.json',{'source':{'repository':'https://github.com/fixture/fc.git',
+                    'commit':revision,'module':problem['module'],'path':problem['githubPath'],'declaration':problem['theorem']}})
+                core.save(workspace/'config.json',{'definition_names':['answer']})
+                (workspace/'Submission.lean').write_text('def answer := sorry')
+                return workspace
+            with patch.object(catalog,'load',return_value=data),patch.object(proof,'generate',side_effect=generate),patch.object(proof,'start_run',side_effect=AssertionError('No operator run')):
+                value=evaluation.export(None,args)
+            target=core.rr.read_json(args.out/'plain/tests/target.json')
+            self.assertTrue(target['semantic_assessment_required'])
+            self.assertTrue((args.out/'manifest.json').is_file())
+            self.assertFalse(list(args.out.rglob('.conjectures')))
+            args.out=root/'failed'
+            with patch.object(catalog,'load',return_value=data),patch.object(proof,'generate',side_effect=core.Failure('export_failed','fixture',3)):
+                with self.assertRaises(core.Failure):evaluation.export(None,args)
+            self.assertFalse(args.out.exists())

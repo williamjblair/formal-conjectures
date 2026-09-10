@@ -47,7 +47,8 @@ def run(target_path,submission,output,toolkit=Path('/opt/fc'),tools=Path('/opt/f
                 status='assessment_required'
             result.update(status=status,policy_outcome=verification['policy_outcome'],verification=verification)
     except (Failure,ValueError,KeyError,TypeError,OSError,subprocess.SubprocessError) as error:
-        result.update(reason=getattr(error,'reason','execution_error'),detail=str(error))
+        result.update(status='rejected' if isinstance(error,Failure) and error.code==1 else 'error',
+                      reason=getattr(error,'reason','execution_error'),detail=str(error))
     result['finished_at']=now();save(output/'fc-result.json',result)
     # Missing reward makes infrastructure/manual-assessment cases non-scored in Harbor.
     # They are never silently turned into an unsuccessful mathematical attempt.

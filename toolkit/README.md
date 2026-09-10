@@ -290,3 +290,10 @@ or proof of independent review. The review request/report schemas are unchanged.
 
 See [Agents and proof evaluations](EVALUATIONS.md) for portable skill installation,
 standalone proof workspaces, and the experimental Harbor export.
+
+## Opt-in Actions preparation
+
+The same CLI can prepare an authorized PR review in GitHub Actions. See the
+[workflow guide](../scripts/review-report/WORKFLOW.md). It remains disabled until
+maintainers configure a trusted image and explicitly enable it. Existing agents
+complete the retained draft; the workflow has no model or publication job.

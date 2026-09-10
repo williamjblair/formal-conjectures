@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/williamjblair/formal-conjectures.git",
+    "commit": "c5bd5601217cbcb889e1adc2f4987dfaa854dcb1",
+    "path": "FormalConjecturesTest/PackageExport.lean",
+    "module": "\u00abFormalConjecturesTest\u00bb.\u00abPackageExport\u00bb",
+    "declaration": "PackageExportFixture.plain",
+    "sha256": "56ef553a26a3ac2e06e193d75550c8cb88b423f577383f0438cac70cd45b9ded"
+  },
+  "exporterCommit": "c5bd5601217cbcb889e1adc2f4987dfaa854dcb1",
+  "exporterFiles": {
+    "ExportProblem.lean": "0aa450ddbda7b3484d215218eb9ded8ab3ad441fbe0c5213b7d277ca67d44335",
+    "export_problem.py": "6af5ea77715e1bece7af16a3bfb01953df264657bbebbdf8a14b752f57fd1fb1",
+    "WorkspaceTest.lean": "ed5e47d43a6869f6213141c3d0214ab5741d9cbdac3d71b80289706fef635abd"
+  },
+  "generatorCommit": "e611b55d7097b9de973cbe0cef0f0cfad66dbe92",
+  "generatorExecutableSha256": "82f2543cf5b3b4c426173a69d2d7af23c4e6073d159c08cdb446c951877f5ab9",
+  "requestSha256": "3d62af6bc50f993117bda42cc2ac8ba78e259cc2ef05f9d4d8a7e98a57b0e511",
+  "files": {
+    "Challenge.lean": "f1f400a0ed0922ff7edf19c25c4f3fff351c0afc58cd9888a94b2baac65d6c7d",
+    "Submission.lean": "63942cdc5267531f269c8d739b9d27599da005c98a39e898843c7b03fec10442",
+    "Submission/Helpers.lean": "f694d5628c3e0651fdbdc731718d3e2f49deb80dc52460b751531c525f579411",
+    "Solution.lean": "5cfe5fc3a0570f99efaa58cc5e16893b1700910ba51cfa432676f15f0d109706",
+    "lakefile.toml": "b8e5992374a0587f212d60c77c3c0bc4a639a7a4faf9091cbe413899200cba1a",
+    "lean-toolchain": "3aac669c7a910ec2389f4e4f921b605adf6ebf2d1e0c9b9cd0be4d33f3f5db71",
+    "WorkspaceTest.lean": "ed5e47d43a6869f6213141c3d0214ab5741d9cbdac3d71b80289706fef635abd",
+    "config.json": "5c759b285073bc955d9b3e45c9eb4bcbf08da1daf16b737a265f0d2880f601f8",
+    "holes.json": "03decc5f6b4ddc76c4757c61fb45dd0bef3f06378e523c734e8eb07f482d15fa",
+    "README.md": "8d68c458400c53a28b4f0fc791de54f24acd213058182c7806328e7a530e1b48"
+  }
+}

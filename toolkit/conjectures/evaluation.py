@@ -15,18 +15,22 @@ def validate_suite(suite):
     rr.obj(suite,'schema_version source execution cases','proof suite')
     rr.require(suite['schema_version']==SCHEMA,'Unsupported proof suite')
     rr.obj(suite['source'],'repository commit','source')
+    for key in ('repository','commit'):rr.text(suite['source'][key],key)
     rr.require(re.fullmatch(r'[\w.-]+/[\w.-]+',suite['source']['repository']) is not None,'Use source OWNER/REPO')
     rr.require(re.fullmatch('[a-f0-9]{40}',suite['source']['commit']) is not None,'Pin an exact source commit')
     execution=suite['execution']
     rr.obj(execution,'solver_image verifier_image toolkit_commit agent_seconds','execution')
     for key in ('solver_image','verifier_image'):
+        rr.text(execution[key],key)
         rr.require(re.fullmatch(IMAGE,execution[key]) is not None,'Use a registry image pinned by sha256')
+    rr.text(execution['toolkit_commit'],'toolkit_commit')
     rr.require(re.fullmatch('[a-f0-9]{40}',execution['toolkit_commit']) is not None,'Pin the trusted verifier toolkit commit')
     rr.require(type(execution['agent_seconds']) is int and 0<execution['agent_seconds']<=86400,'Agent budget must be 1–86400 seconds')
     rr.require(isinstance(suite['cases'],list) and 0<len(suite['cases'])<=100,'Select 1–100 exact targets')
     ids=set();targets=set()
     for case in suite['cases']:
         rr.obj(case,'id declaration exposure','case')
+        rr.text(case['id'],'case ID')
         rr.require(re.fullmatch('[a-z0-9][a-z0-9-]{0,63}',case['id']) is not None,'Invalid case ID')
         rr.text(case['declaration'],'declaration');rr.text(case['exposure'],'known development exposure')
         rr.require(case['id'] not in ids and case['declaration'] not in targets,'Duplicate case or declaration')
@@ -46,7 +50,6 @@ def export(root,args):
     out.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.fc-eval-',dir=out.parent) as temp:
         staging=Path(temp)/'tasks';staging.mkdir()
-        frozen=Path(temp)/'catalog.json';save(frozen,data)
         for case in suite['cases']:
             task=staging/case['id'];task.mkdir()
             workspace=task/'environment/workspace'

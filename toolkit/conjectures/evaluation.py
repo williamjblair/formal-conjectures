@@ -40,7 +40,7 @@ def validate_suite(suite):
 def export(root,args):
     from . import catalog,proof
     suite=rr.read_json(args.suite);validate_suite(suite)
-    data=catalog.load(root,args.catalog)
+    data=catalog.load(root,args.catalog,url=getattr(args,'catalog_url',None))
     source=data.get('provenance',{}).get('source',{})
     if source.get('repository')!=suite['source']['repository'] or source.get('commit')!=suite['source']['commit']:
         raise Failure('catalog_binding_mismatch','Suite and selected catalog must name the same exact repository and revision.',4)

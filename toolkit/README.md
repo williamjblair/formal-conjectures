@@ -285,3 +285,8 @@ or `ai`), `name`, `method`, `scope` (strings), `independence` (`independent`,
 (entries with `path` and `sha256`, relative to that directory). Evidence bytes and request
 identity are checked. Attribution and independence remain self-reported, not quality scores
 or proof of independent review. The review request/report schemas are unchanged.
+
+## Agent and evaluation tasks
+
+See [Agents and proof evaluations](EVALUATIONS.md) for portable skill installation,
+standalone proof workspaces, and the experimental Harbor export.

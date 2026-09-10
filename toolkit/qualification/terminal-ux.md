@@ -28,3 +28,10 @@ Long operations retain logs and show stages with elapsed time. Completing a stag
 means the operation returned, not that mathematical verification passed. Typed
 results remain authoritative. No model calls or expensive proof reruns were made
 for these presentation changes. Full release acceptance remains tracked in #4394.
+
+Final UI revision `a7e905365d9a57cf3d146c2ee3c6602ee4dae995` adds an explicit-color
+regression for minimal terminals. All 117 integration toolkit tests passed.
+[macOS and Linux package qualification](https://github.com/williamjblair/formal-conjectures/actions/runs/34497935615)
+and [integration checks](https://github.com/williamjblair/formal-conjectures/actions/runs/34497934260)
+passed on that exact revision. The release job was skipped: this is a development
+branch qualification, not publication of RC3 assets.

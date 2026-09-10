@@ -14,6 +14,8 @@ def check(wheel):
         names=archive.namelist()
         assert 'conjectures/resources/review/SKILL.md' in names
         assert 'conjectures/resources/agent-skill/SKILL.md' in names
+        if 'conjectures/evaluation.py' in names:
+            assert 'conjectures/resources/schemas/proof-suite-v1.schema.json' in names
         assert 'conjectures/resources/review.Dockerfile' in names
         for schema in ('catalog-v2', 'catalog-manifest-v1', 'website-rendering-v1'):
             assert f'conjectures/resources/schemas/{schema}.schema.json' in names

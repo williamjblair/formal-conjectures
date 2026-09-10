@@ -52,10 +52,28 @@ unevaluated. The original failed result is preserved.
 
 The controller now populates the exact source's pinned dependencies before export and
 retains acquisition logs. A regression checks that acquisition failure cannot reach
-export or import submitted code. The corrected matrix is running at
+export or import submitted code. The corrected controls passed in 36m 55s at
 [`74628f9febe204e87f5387338b240124e8b7fd4e`](https://github.com/williamjblair/formal-conjectures/actions/runs/34490305986).
 It covers standalone initialization, unfinished proofs, imported assumptions, a valid
-proof and a changed executor. Record its final outcome before claiming qualification.
+proof and a changed executor. Both negative proof cases reached Comparator's
+`axiom_policy` stage and returned `disallowed_axiom`; the valid proof passed with
+both kernels enabled. The changed executor remained an unevaluated infrastructure
+error. The AF_UNIX probe also passed. The [retained receipt](agent-linux-74628f9.json)
+contains the exact results, source/controller commits and tool hashes.
+
+| Operation | Recorded duration |
+| --- | ---: |
+| Initialize exact workspace | 4m 28s |
+| Reject unfinished proof | 9m 53s |
+| Reject imported assumption | 9m 38s |
+| Accept valid proof | 8m 51s |
+| Reject changed executor | Under 1s |
+
+Later changes add bounded submission capture, explicit per-case progress and removal
+of rebuildable dependency directories while retaining inputs/results/logs. These have
+deterministic coverage; the real controls above qualify their recorded revision.
+The latest clean macOS/Linux package check passed at `6a21960b2` in
+[34492315569](https://github.com/williamjblair/formal-conjectures/actions/runs/34492315569).
 
 ## Remaining acceptance
 

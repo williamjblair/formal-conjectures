@@ -85,9 +85,14 @@ cases, missing exposure descriptions, and mismatching catalog revisions before e
 
 ```sh
 conjectures eval export suite.json --format harbor --out tasks
-harbor run -p ./tasks -a YOUR_AGENT -m YOUR_MODEL
+uvx --from git+https://github.com/harbor-framework/harbor.git@191d1b989bbba1d77c2db23e17aec308d7c08046 harbor run -p ./tasks -a YOUR_AGENT -m YOUR_MODEL
 conjectures eval summarize ./jobs --json
 ```
+
+Replace `YOUR_AGENT` and `YOUR_MODEL` with your existing harness configuration.
+The command isolates the exact Harbor revision used for contract qualification;
+it does not replace your installed Harbor. Older versions may not support separate
+verifier environments. Do not use an older harness that ignores that requirement.
 
 Export records a file-digest manifest and creates one Harbor task per declaration.
 The solver gets a workspace and instructions. Only `/app/Submission.lean` and

@@ -1,6 +1,8 @@
 name: Toolkit agent proof qualification
 on:
   workflow_dispatch:
+  push:
+    branches: ['codex/fc-agent-qualification']
 permissions:
   contents: read
 jobs:

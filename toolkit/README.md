@@ -81,6 +81,10 @@ are separate.
 
 ## Review a contribution
 
+For portable skill installation, standalone proof workspaces and proof-evaluation
+exports, see [Agents and proof evaluations](EVALUATIONS.md). These additions reuse
+the same exporter and verification records; the external agent owns model access.
+
 Run inside your FC checkout, or pass `--repo /path/to/formal-conjectures`.
 Ask your existing agent:
 

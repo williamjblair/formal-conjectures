@@ -87,7 +87,7 @@ def write_task(task,target,execution):
         'Use lake build for development feedback. Do not publish or push your work.\n')
     (task/'task.toml').write_text(
         'schema_version = "1.4"\nartifacts = ["/app/Submission.lean", "/app/Submission"]\n'
-        f'\n[task]\nname = "fc/{target["id"]}"\nversion = "1.0.0"\n'
+        f'\n[task]\nname = "fc/{target["id"]}"\nversion = "{target["suite_sha256"][:16]}"\n'
         f'\n[metadata]\nsuite_sha256 = {q(target["suite_sha256"])}\nexposure = {q(target["exposure"])}\n'
         f'\n[agent]\ntimeout_sec = {execution["agent_seconds"]}\n'
         '\n[environment]\nos = "linux"\ncpus = 4\nmemory_mb = 8192\n'

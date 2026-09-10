@@ -106,9 +106,20 @@ def summarize(directory):
     if not directory.is_dir():raise Failure('directory_missing','Select an existing harness output directory.')
     counts={key:0 for key in ('verified','rejected','assessment_required','error')};attempts=[]
     for path in sorted(directory.rglob('fc-result.json')):
-        value=rr.read_json(path)
-        if value.get('schema_version')!='fc.proof-eval-result.v1' or value.get('status') not in counts:
-            raise Failure('invalid_result',f'Invalid evaluation result: {path}',3)
+        try:
+            value=rr.read_json(path)
+            rr.require(isinstance(value,dict),'Result must be an object')
+            rr.require(value.get('schema_version')=='fc.proof-eval-result.v1','Unsupported result schema')
+            rr.require(isinstance(value.get('status'),str) and value['status'] in counts,'Invalid result status')
+            rr.text(value.get('task'),'task')
+            digest=value.get('suite_sha256')
+            # A verifier can fail before it reads the frozen task. Retain that error
+            # without attributing it to a suite or counting it as a proof outcome.
+            rr.require('suite_sha256' in value and (
+                isinstance(digest,str) and re.fullmatch('[a-f0-9]{64}',digest) is not None
+                or digest is None and value['status']=='error'),'Invalid suite digest')
+        except (ValueError,OSError) as error:
+            raise Failure('invalid_result',f'Invalid evaluation result {path}: {error}',3) from error
         counts[value['status']]+=1
         attempts.append({'path':str(path),'task':value['task'],'status':value['status'],'suite_sha256':value['suite_sha256']})
     return {'outcome':'pass','counts':counts,'attempts':attempts,

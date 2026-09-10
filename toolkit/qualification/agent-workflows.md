@@ -82,6 +82,7 @@ remains required. The exporter does not provision or publish arbitrary images.
 Until then the adapter remains experimental. Retain failures and missing rewards;
 do not interpret a parser check or a Linux socket probe as proof-verifier qualification.
 
-Reopen #5386 only after #4899/#5375 land. Reopen #5387 after #5386/#5337 and
-Comparator #87 land. Replay each child's own changes onto current upstream main.
-The evaluation follow-up does not block the core CLI. Keep #4394 as the roadmap.
+Current delivery: #5386 and #5387 are active drafts. #5386 includes Actions
+preparation and depends on #4899/#5375; #5387 also requires #5337 and Comparator #87.
+After prerequisites merge, replay only the child changes onto upstream main before
+requesting review. The evaluation follow-up does not block the core CLI. See #4394.

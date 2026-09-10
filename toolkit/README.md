@@ -319,3 +319,9 @@ same module, with its observation time. This is related work, not a declaration-
 claim. `--offline` uses only retained data. Site maintainers may enable these projections
 with `FC_EVIDENCE_REPOSITORY`, `FC_EVIDENCE_BRANCH`, and `FC_WORK_CONTEXT_URL`; absent
 configuration is displayed explicitly. This implementation does not enable upstream feeds.
+
+## Delivery and tracking
+
+[The delivery map](https://github.com/williamjblair/formal-conjectures/blob/codex/fc-toolkit-integration/toolkit/DELIVERY.md) lists the four consolidated follow-ups and their
+prerequisites. Issue #4394 owns the roadmap; #5376 tracks toolkit acceptance and
+#5377 tracks website handoff. Open drafts mean active work, not completed release gates.

@@ -97,8 +97,13 @@ checks reduced the page width from 1,312 px to the 1,170 px desktop viewport and
 from 664 px to the 390 px mobile viewport, preserving all text. Green 72 and the
 longer Erdős 92 declaration passed. The rule is on #5375 and #5388. Its
 [full deployment follow-up](https://github.com/williamjblair/formal-conjectures/actions/runs/34594294249)
-is still running; the earlier functional qualification remains retained. The initial
-command-only build 34593897162 was superseded and cancelled before deployment.
+passed, including Pages deployment. The published catalog and stylesheet match
+the qualified files byte-for-byte. Fresh browser checks passed at 1,170 px desktop
+and 390 px mobile widths, along with statements, hovers, conditional proofs and
+historical evidence. The installed CLI and published RC3 wheel both retrieved the
+new catalog; the isolated website-only preview preserved its bytes and rendered
+correctly. The initial command-only build 34593897162 was superseded and cancelled
+before deployment. The earlier functional qualification remains retained.
 
 The later #5375 review follow-up at
 `3646b79492fabce8b7c9c25a0b824f9eed523cb3` updates the three new Lean copyright
@@ -107,7 +112,7 @@ existing five category values already cover the categories supported by Lean;
 no category mapping was changed. The three changed Lean modules passed
 `lake --wfail build`; all 9 focused site tests and 22 integration site tests passed.
 Its [full PR check](https://github.com/google-deepmind/formal-conjectures/actions/runs/34598710462)
-is still running. These later editorial/source-link changes are not included in
+passed on the final PR head. These later editorial/source-link changes are not included in
 the frozen `eee8f2ec` deployment. The source endpoint timed out during a reachability
 check; adding its cited URL does not establish that the endpoint is reachable.
 Review replies preserve the maintainer's open review; they do not record approval.
@@ -136,7 +141,6 @@ This was a reachability recheck and description update, not a new proof audit.
 
 ## Remaining acceptance and experimental work
 
-- Finish the CSS follow-up deployment and check its actual published layout.
 - Production default browsing and upstream queue/evidence handoff require #5375
   and #5388 acceptance and deployment, followed by an independent reader handoff.
   The fork is an explicitly selected source. Operator browser checks do not stand

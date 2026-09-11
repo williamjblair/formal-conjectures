@@ -1,0 +1,6 @@
+{"theorem_names": ["fc_problem"],
+ "solution_module": "Solution",
+ "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+ "enable_nanoda": true,
+ "definition_names": [],
+ "challenge_module": "Challenge"}

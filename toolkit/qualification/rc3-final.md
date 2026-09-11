@@ -90,8 +90,16 @@ to join its PRs to the fork repository. A normal browser reload initially retain
 the previous deployment; a cache-bypassing reload loaded the qualified revision.
 Both snapshots displayed their own source revision.
 
+A final visual check found that the long CLI command overflowed the page.
+`ead0c8b079dc85a75d8582c5d48801bf8c7f5c7c` constrains the command to its own
+horizontal scroll area and allows revision text to wrap. A browser CSS check reduced
+the page width from 1,312 px to the 1,170 px viewport while preserving all command
+text. The change is also on #5388. Its [full deployment follow-up](https://github.com/williamjblair/formal-conjectures/actions/runs/34593897162)
+is still running; the earlier functional qualification remains retained.
+
 ## Remaining acceptance and experimental work
 
+- Finish the CSS follow-up deployment and check its actual published layout.
 - Production default browsing and upstream queue/evidence handoff require #5375
   and #5388 acceptance and deployment, followed by an independent reader handoff.
   The fork is an explicitly selected source. Operator browser checks do not stand

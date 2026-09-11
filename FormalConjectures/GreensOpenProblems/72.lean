@@ -47,7 +47,7 @@ structure AllowedSet (k : ℕ) (N : ℕ) (s : Finset (ℕ × ℕ)) : Prop where
   not_collinear : ∀ ⦃t : Finset (ℕ × ℕ)⦄, t ⊆ s → t.card = k →
     ¬ Collinear ℝ ({r | ∃ i ∈ t, r = ((↑i.1 : ℝ), (↑i.2 : ℝ))} : Set (ℝ × ℝ))
 
-/-- The maximal size of an allowed set -/
+/-- The largest cardinality of a subset of $[N]^2$ with no $k$ collinear points. -/
 noncomputable def AllowedSetSize (k : ℕ) (N : ℕ) : ℕ :=
   sSup {r | ∃ s, r = s.card ∧ AllowedSet k N s}
 

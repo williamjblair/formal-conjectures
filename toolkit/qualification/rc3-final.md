@@ -91,11 +91,14 @@ the previous deployment; a cache-bypassing reload loaded the qualified revision.
 Both snapshots displayed their own source revision.
 
 A final visual check found that the long CLI command overflowed the page.
-`ead0c8b079dc85a75d8582c5d48801bf8c7f5c7c` constrains the command to its own
-horizontal scroll area and allows revision text to wrap. A browser CSS check reduced
-the page width from 1,312 px to the 1,170 px viewport while preserving all command
-text. The change is also on #5388. Its [full deployment follow-up](https://github.com/williamjblair/formal-conjectures/actions/runs/34593897162)
-is still running; the earlier functional qualification remains retained.
+`eee8f2ec741ac7772ba075fd8023e5716beb78c6` constrains native statements and commands
+to their own horizontal scroll areas and allows revision text to wrap. Browser CSS
+checks reduced the page width from 1,312 px to the 1,170 px desktop viewport and
+from 664 px to the 390 px mobile viewport, preserving all text. Green 72 and the
+longer Erdős 92 declaration passed. The rule is on #5375 and #5388. Its
+[full deployment follow-up](https://github.com/williamjblair/formal-conjectures/actions/runs/34594294249)
+is still running; the earlier functional qualification remains retained. The initial
+command-only build 34593897162 was superseded and cancelled before deployment.
 
 ## Remaining acceptance and experimental work
 

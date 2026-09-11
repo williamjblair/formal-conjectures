@@ -1,0 +1,16 @@
+{
+  "context_policy": "rereview",
+  "coverage": {
+    "metadata-hygiene": "complete",
+    "source-fidelity": "complete",
+    "statement-soundness": "complete"
+  },
+  "findings": [],
+  "prior_reviews": [
+    "evidence/operator/prior-review.json"
+  ],
+  "questions": [],
+  "reconciliations": [],
+  "request_id": "b6f589b331b75eb55dc2a82bc628ef345191239c4674df7d43abf97c9033408f",
+  "reviewer": "Codex existing implementation session; model unknown; development-exposed operational rereview"
+}

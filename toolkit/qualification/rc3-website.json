@@ -1,0 +1,41 @@
+{
+  "schema_version": "fc.website-qualification.v1",
+  "recorded_at": "2026-09-11T11:17:30.138947+00:00",
+  "source_commit": "d32245fc1b9e54676cd2ef0633287fcbbccb3f00",
+  "client_commit": "61e2f0e31713d0209ff35ca20cdf63ab11eb6ef3",
+  "workflow": "https://github.com/williamjblair/formal-conjectures/actions/runs/34584385037",
+  "site": "https://williamjblair.github.io/formal-conjectures/",
+  "catalog": {
+    "url": "https://williamjblair.github.io/formal-conjectures/data/conjectures.json",
+    "sha256": "4e4baf0d584b54700c2123af57489d213bf71dcfbd7ec74490a5338c81bf8a53",
+    "bytes": 3105385,
+    "problem_count": 5264,
+    "identical_to_ci_artifact": true
+  },
+  "checks": {
+    "full_build_and_deploy": "pass",
+    "catalog_and_rendering_bindings": "pass",
+    "green72_statement_source_and_hover": "pass",
+    "green72_historical_pass_and_incomplete_operator_reports": "pass",
+    "page_command_in_installed_cli": "pass",
+    "erdos92_distinct_strong_weak_and_test_entries": "pass",
+    "erdos427_conditional_proof_and_exact_reference": "pass",
+    "upstream_queue_not_joined_to_fork": "pass",
+    "website_only_preview_preserves_catalog_and_manifest": "pass",
+    "preview_missing_optional_feeds_keeps_statement_and_rendering": "pass"
+  },
+  "preview": {
+    "result": "pass",
+    "source_commit": "d32245fc1b9e54676cd2ef0633287fcbbccb3f00",
+    "catalog_bytes_preserved": true,
+    "manifest_bytes_preserved": true,
+    "lean_build": false,
+    "duration_seconds": 0.86
+  },
+  "limits": [
+    "Observed Pages/browser cache retained the previous deployment until a cache-bypassing reload; no cached data was relabelled.",
+    "The board describes upstream PRs and cannot establish fork PR applicability.",
+    "Upstream production deployment and an independent reader handoff remain acceptance gates.",
+    "This record does not qualify a Harbor solver/verifier image."
+  ]
+}

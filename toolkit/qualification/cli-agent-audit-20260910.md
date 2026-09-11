@@ -4,6 +4,10 @@ Development audit on macOS arm64, starting at integration commit `cf5098ef0`.
 The installed editable CLI identified itself as `0.2.0rc3`. This is a local
 qualification record, not a release acceptance or model-accuracy evaluation.
 
+The [11 September RC3 qualification](rc3-final.md) records subsequent live proof,
+publication, installation and website checks. This audit retains its original
+scope and results.
+
 ## Findings and fixes
 
 | Reproduction | Before | Fix |

@@ -3,6 +3,10 @@
 Recorded 10 September 2026. This is development work, not a new published release
 or upstream acceptance. No model was launched and no paid API call was made.
 
+For later release checks and current acceptance gates, see the
+[11 September RC3 qualification](rc3-final.md). The results below retain their
+original revisions and limitations.
+
 | Scope | Delivery |
 | --- | --- |
 | Skill discovery and explicit installation | `codex/fc-toolkit-cli`, existing deferred #5386 |

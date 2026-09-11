@@ -100,6 +100,40 @@ longer Erdős 92 declaration passed. The rule is on #5375 and #5388. Its
 is still running; the earlier functional qualification remains retained. The initial
 command-only build 34593897162 was superseded and cancelled before deployment.
 
+The later #5375 review follow-up at
+`3646b79492fabce8b7c9c25a0b824f9eed523cb3` updates the three new Lean copyright
+headers, README alignment and the Written on the Wall II collection link. The
+existing five category values already cover the categories supported by Lean;
+no category mapping was changed. The three changed Lean modules passed
+`lake --wfail build`; all 9 focused site tests and 22 integration site tests passed.
+Its [full PR check](https://github.com/google-deepmind/formal-conjectures/actions/runs/34598710462)
+is still running. These later editorial/source-link changes are not included in
+the frozen `eee8f2ec` deployment. The source endpoint timed out during a reachability
+check; adding its cited URL does not establish that the endpoint is reachable.
+Review replies preserve the maintainer's open review; they do not record approval.
+
+## Issue convergence
+
+The bodies of #5158, #5152, #4930, #4881, #4876, #4825, #4819, #4747 and #4716
+were reconciled on 11 September. They now use the retained PRs, current board
+name and exact-target evidence boundary. Historical counts and evaluation claims
+are dated; closed historical issues remain closed. No new issue was created.
+
+The refresh checked FC `2a0126f6ec4132a0acf3b9562cb2c1f4cfa4041c` and LeanEval
+`6b4b87b672f5301f24983a12fda65dac608453ce`. LeanEval's current completion plan
+explicitly excludes FC integration; #4930 now tracks only future intake/policy
+decisions. Erdős 36's finite-search bridge and Scholz's small-value proofs are
+already implemented and were removed from the unfinished mathematics list.
+#4825 records a fresh 13:08 UTC inventory: 478 open PRs, 70 drafts, 765 open
+issues and 113 unlabelled issues. Unknown mergeability was not counted as a
+conflict. These issue edits do not establish maintainer acceptance or authorize
+changes to other contributors' branches.
+
+#4895's description now correctly counts 12 replacement locators across 11
+files and removes obsolete infrastructure prerequisites. All 12 URLs returned
+HTTP 200 at head `06ff04eae5f14c10cdf93f869e9d1c2f1dc234ac` on 11 September.
+This was a reachability recheck and description update, not a new proof audit.
+
 ## Remaining acceptance and experimental work
 
 - Finish the CSS follow-up deployment and check its actual published layout.

@@ -1,0 +1,18 @@
+Source: williamjblair/lean-proofs attestations.json
+Revision: 5d10b4d91f257cfbe8c563cf927f543a868845e0
+Schema: lean-proofs.attestations.v0.2
+Toolchain: leanprover/lean4:v4.33.0
+Mathlib: db584cd6d46c92f209a44c0f1c829460d327499d
+Verification method: lean_kernel
+Verifier output hash: sha256:06048cc5593c49c847db1fd32c874ad21a607bd2bd6d6927c8ff3ba67af2245d
+
+Attestation:
+problem: 154
+theorem: Erdos154.erdos_154_sumset
+file: ErdosProblems/Erdos154/Sumset.lean
+proof_hash: sha256:28546a0a0144f1366e1f52745bf1d5edc83f48fbce76c9f9ded9fd52930cb78f
+axiom_footprint:
+- propext
+- Classical.choice
+- Quot.sound
+axioms_clean: true

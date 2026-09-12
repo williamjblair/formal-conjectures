@@ -1,0 +1,23 @@
+Historical source: google-deepmind/formal-conjectures PR #4340
+Merged: true
+Merge commit: fbe4917de96511a6553e58144d59814110c47b2e
+Changed file: FormalConjectures/ErdosProblems/154.lean
+
+PR claim:
+Adds Erdős 154 in the statement-oriented shape requested by the repo conventions.
+
+- erdos_154 is the boxed A + A question, normalized by |A + A|, so the limiting proportion is 1 / m.
+- erdos_154 links a hosted Lean proof of the full sumset statement: Erdos154.erdos_154_sumset.
+- erdos_154.variants.lindstrom records Lindström's distribution theorem for A itself.
+- The Lindström-to-sumset transfer proof is hosted externally rather than included in FC.
+
+Hosted proof validation recorded in the PR:
+- lake build ErdosProblems.Erdos154Sumset
+- Erdos154.sidon_density_limit: [propext, Classical.choice, Quot.sound]
+- Erdos154.erdos_154_sumset: [propext, Classical.choice, Quot.sound]
+
+FC validation recorded in the PR:
+- lake env lean FormalConjectures/ErdosProblems/154.lean
+- lake --wfail build FormalConjectures.ErdosProblems.«154»
+- lake --wfail build
+- git diff --check

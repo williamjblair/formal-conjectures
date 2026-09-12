@@ -5,7 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fc_contribution.core import build_packet, canonical_sha256, check_manifest, recommend, sha256_bytes
+from fc_contribution.core import (
+    bind_advisory_review,
+    build_packet,
+    canonical_sha256,
+    check_manifest,
+    recommend,
+    sha256_bytes,
+)
 
 
 class GatewayTests(unittest.TestCase):
@@ -86,6 +93,54 @@ class GatewayTests(unittest.TestCase):
             build_packet(manifest, self.root)["packet_sha256"],
             build_packet(manifest, self.root)["packet_sha256"],
         )
+
+    def test_advisory_review_can_bind_fidelity(self) -> None:
+        manifest = self.base_manifest()
+        manifest["gates"]["semantic_fidelity"] = {"status": "unresolved", "evidence": []}
+        review = {
+            "schema_version": "formal-conjectures.live-ai-review-role-result.v1",
+            "role": "primary_review",
+            "authority": "advisory_model_review_only",
+            "independent": True,
+            "exact_input_root": "sha256:" + "a" * 64,
+            "outcome": "pass",
+            "severity": "none",
+            "findings": [],
+            "limitations": [],
+            "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+        }
+        updated = bind_advisory_review(
+            manifest,
+            "semantic_fidelity",
+            review,
+            evidence_path="review.json",
+            evidence_sha256="b" * 64,
+        )
+        self.assertEqual(updated["gates"]["semantic_fidelity"]["status"], "pass")
+        self.assertEqual(
+            updated["gates"]["semantic_fidelity"]["evidence"][0]["exact_input_root"],
+            review["exact_input_root"],
+        )
+
+    def test_advisory_review_cannot_replace_mechanical_verification(self) -> None:
+        manifest = self.base_manifest()
+        review = {
+            "schema_version": "formal-conjectures.live-ai-review-role-result.v1",
+            "role": "primary_review",
+            "authority": "advisory_model_review_only",
+            "independent": True,
+            "exact_input_root": "sha256:" + "a" * 64,
+            "outcome": "pass",
+            "nonclaims": ["maintainer_disposition", "mathematical_truth", "merge_decision"],
+        }
+        with self.assertRaises(ValueError):
+            bind_advisory_review(
+                manifest,
+                "mechanical_validity",
+                review,
+                evidence_path="review.json",
+                evidence_sha256="b" * 64,
+            )
 
 
 if __name__ == "__main__":

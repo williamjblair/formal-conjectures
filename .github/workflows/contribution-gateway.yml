@@ -1,0 +1,47 @@
+name: Contribution gateway
+
+on:
+  pull_request:
+    paths:
+      - '.agents/contribution-gateway/**'
+      - '.github/workflows/contribution-gateway.yml'
+  merge_group:
+    paths:
+      - '.agents/contribution-gateway/**'
+      - '.github/workflows/contribution-gateway.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Unit tests
+        env:
+          PYTHONPATH: .agents/contribution-gateway/src
+        run: python -m unittest discover -s .agents/contribution-gateway/tests -v
+      - name: Minimal fixture
+        working-directory: .agents/contribution-gateway
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m fc_contribution.cli check examples/minimal/contribution.json --root .
+          actual="$(python -m fc_contribution.cli packet examples/minimal/contribution.json --root . --out "$RUNNER_TEMP/minimal-packet.json")"
+          test "$actual" = "PRIORITY_UNRESOLVED"
+      - name: Historical Erdős 154 reconstruction
+        working-directory: .agents/contribution-gateway
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m fc_contribution.cli check examples/erdos154/contribution.json --root .
+          actual="$(python -m fc_contribution.cli packet examples/erdos154/contribution.json --root . --out "$RUNNER_TEMP/erdos154-packet.json")"
+          test "$actual" = "NEEDS_FIDELITY_REVIEW"

@@ -1,0 +1,21 @@
+Historical exact-reference reconstruction from williamjblair/lean-proofs .vela/examples/erdos-154-exact-reference.toml
+
+Producer theorem: Erdos154.erdos_154_sumset
+Recorded producer revision: a8c2872a27cf8d11cf6744ca4a2c5b49ace5fea0
+Recorded producer content digest: sha256:f5d2e975a78526c1ec4bf9aa8bd2270eafba45f41feec2834c663c309f16e52e
+Recorded producer size: 25064
+Recorded producer locator:
+https://github.com/williamjblair/lean-proofs/blob/a8c2872a27cf8d11cf6744ca4a2c5b49ace5fea0/ErdosProblems/Erdos154/Sumset.lean
+
+External theorem: FormalConjectures.erdos_154
+Recorded FC revision: 96eeecf40bc06ddc8bae6d106f461d4fd774858a
+Recorded FC content digest: sha256:cb6c207f5a6d9710a50b876e5719a13498315b2f539a34230ca4ec6813136032
+Recorded FC locator:
+https://github.com/williamjblair/formal-conjectures/blob/96eeecf40bc06ddc8bae6d106f461d4fd774858a/FormalConjectures/ErdosProblems/154.lean
+
+Recorded mapping relation: close
+Recorded translation disposition: normalized
+
+Nonclaims in the source exact-reference:
+- This reference and any scoped check do not establish scientific acceptance, a Vela Decision, or Standing.
+- The close mapping does not claim byte identity or automatic semantic equivalence with Formal Conjectures.

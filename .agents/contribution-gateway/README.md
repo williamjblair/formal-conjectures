@@ -56,6 +56,13 @@ fc-contribution init \
 
 # Edit the gate statuses and bind evidence receipts.
 fc-contribution check contribution.json --root /path/to/evidence-root
+
+# Bind an independent fc-review-bot result to the gate it was commissioned to assess.
+fc-contribution bind-review contribution.json \
+  --gate semantic_fidelity \
+  --review reviews/fidelity.json \
+  --root /path/to/evidence-root
+
 fc-contribution packet contribution.json --root /path/to/evidence-root --out packet.json
 ```
 
@@ -74,6 +81,10 @@ machinery, including:
 - `formal_proof` link checks;
 - literature/priority review artifacts;
 - Git commit and environment identifiers.
+
+The `bind-review` adapter accepts only independent `fc-review-bot` v1 receipts,
+preserves their exact input root and nonclaims boundary, and cannot be used for
+`mechanical_validity`.
 
 An evidence reference can be a local file, a URL, or both. A local evidence file
 may carry a required SHA-256 digest, in which case `check` fails closed on a
@@ -98,6 +109,14 @@ The deterministic v0 classifier can emit:
 The classifier is intentionally boring. It does not infer scientific truth from
 prose. It makes missing review dimensions impossible to hide behind a green Lean
 build.
+
+## Tests
+
+The tests use only the Python standard library:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
 
 ## Why this lives under `.agents/`
 

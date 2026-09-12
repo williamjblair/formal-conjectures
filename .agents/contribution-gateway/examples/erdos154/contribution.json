@@ -1,0 +1,77 @@
+{
+  "schema_version": "fc-contribution/v0",
+  "authority": {
+    "repository": "google-deepmind/formal-conjectures",
+    "revision": "fbe4917de96511a6553e58144d59814110c47b2e",
+    "target": "FormalConjectures/ErdosProblems/154.lean:Erdos154.erdos_154"
+  },
+  "producer": {
+    "name": "williamjblair/lean-proofs",
+    "type": "external_repository"
+  },
+  "contribution": {
+    "kind": "formal_proof",
+    "relationship": "historical_formal_proof_evidence",
+    "artifact": "williamjblair/lean-proofs@5d10b4d91f257cfbe8c563cf927f543a868845e0:ErdosProblems/Erdos154/Sumset.lean#Erdos154.erdos_154_sumset"
+  },
+  "gates": {
+    "mechanical_validity": {
+      "status": "pass",
+      "evidence": [
+        {
+          "kind": "lean-kernel-attestation",
+          "path": "examples/erdos154/mechanical-attestation.txt",
+          "sha256": "9838fa2b4018dfd0a7ec64c46850d32232bacb68f8f8dc345ba0d1d6ea65a465",
+          "verifier": "lean-proofs attestation"
+        }
+      ]
+    },
+    "semantic_fidelity": {
+      "status": "unresolved",
+      "evidence": [
+        {
+          "kind": "exact-reference",
+          "path": "examples/erdos154/exact-reference.txt",
+          "sha256": "e2675c08d81d55607e032bc48e6fa5c29b73d7590b91f3eb427c0a0433cf7a29",
+          "verifier": "historical exact-reference"
+        }
+      ]
+    },
+    "resolution_validity": {
+      "status": "unresolved",
+      "evidence": [
+        {
+          "kind": "upstream-merge-record",
+          "path": "examples/erdos154/authority-pr.txt",
+          "sha256": "849ab85f9f1d8d168534af98ab6fcdab74b9f38f538a83c77439dccbc32beda4",
+          "verifier": "GitHub PR #4340"
+        }
+      ]
+    },
+    "priority": {
+      "status": "not_applicable",
+      "evidence": []
+    },
+    "provenance": {
+      "status": "pass",
+      "evidence": [
+        {
+          "kind": "upstream-merge-record",
+          "path": "examples/erdos154/authority-pr.txt",
+          "sha256": "849ab85f9f1d8d168534af98ab6fcdab74b9f38f538a83c77439dccbc32beda4",
+          "verifier": "GitHub PR #4340"
+        },
+        {
+          "kind": "exact-reference",
+          "path": "examples/erdos154/exact-reference.txt",
+          "sha256": "e2675c08d81d55607e032bc48e6fa5c29b73d7590b91f3eb427c0a0433cf7a29",
+          "verifier": "historical exact-reference"
+        }
+      ]
+    },
+    "dependency_impact": {
+      "status": "unresolved",
+      "evidence": []
+    }
+  }
+}

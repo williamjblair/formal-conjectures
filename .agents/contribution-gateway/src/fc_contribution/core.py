@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ MANDATORY_GATES = (
 )
 OPTIONAL_GATES = ("dependency_impact",)
 VALID_STATUSES = {"pass", "fail", "unresolved", "not_applicable"}
+ADVISORY_REVIEW_SCHEMA = "formal-conjectures.live-ai-review-role-result.v1"
+ADVISORY_BINDABLE_GATES = {"semantic_fidelity", "resolution_validity", "priority", "provenance"}
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,64 @@ def sha256_bytes(data: bytes) -> str:
 
 def canonical_sha256(value: Any) -> str:
     return sha256_bytes(_canonical_bytes(value))
+
+
+def bind_advisory_review(
+    manifest: dict[str, Any],
+    gate_name: str,
+    review: dict[str, Any],
+    *,
+    evidence_path: str,
+    evidence_sha256: str,
+    replace: bool = False,
+) -> dict[str, Any]:
+    """Bind one independent fc-review-bot result to an acceptance gate.
+
+    The review remains advisory. The caller selects which semantic gate the
+    review was commissioned to assess. Mechanical validity is deliberately not
+    bindable from a model review.
+    """
+    if gate_name not in ADVISORY_BINDABLE_GATES:
+        raise ValueError(
+            f"advisory reviews may bind only {sorted(ADVISORY_BINDABLE_GATES)}; "
+            f"got {gate_name!r}"
+        )
+    if review.get("schema_version") != ADVISORY_REVIEW_SCHEMA:
+        raise ValueError("review schema_version is not the supported fc-review-bot v1 schema")
+    if review.get("authority") != "advisory_model_review_only":
+        raise ValueError("review authority must be advisory_model_review_only")
+    if review.get("independent") is not True:
+        raise ValueError("review must declare independent=true")
+    if review.get("nonclaims") != ["maintainer_disposition", "mathematical_truth", "merge_decision"]:
+        raise ValueError("review must preserve the fc-review-bot nonclaims boundary")
+    outcome = review.get("outcome")
+    if outcome not in {"pass", "fail", "inconclusive"}:
+        raise ValueError("review outcome must be pass, fail, or inconclusive")
+    if not isinstance(evidence_sha256, str) or len(evidence_sha256) != 64:
+        raise ValueError("evidence_sha256 must be a 64-character digest")
+
+    out = deepcopy(manifest)
+    gates = out.setdefault("gates", {})
+    gate = gates.setdefault(gate_name, {"status": "unresolved", "evidence": []})
+    old_status = gate.get("status", "unresolved")
+    if old_status != "unresolved" and not replace:
+        raise ValueError(
+            f"gates.{gate_name} is already {old_status!r}; pass replace=True to replace its status"
+        )
+    gate["status"] = {"pass": "pass", "fail": "fail", "inconclusive": "unresolved"}[outcome]
+    evidence = gate.setdefault("evidence", [])
+    evidence.append(
+        {
+            "kind": "fc-review-bot-advisory-review",
+            "path": evidence_path,
+            "sha256": evidence_sha256,
+            "verifier": "fc-review-bot",
+            "review_role": review.get("role"),
+            "review_outcome": outcome,
+            "exact_input_root": review.get("exact_input_root"),
+        }
+    )
+    return out
 
 
 def _require(mapping: dict[str, Any], key: str, prefix: str, errors: list[str]) -> Any:

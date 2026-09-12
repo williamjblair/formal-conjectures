@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formal-conjectures.local/schemas/contribution-v0.schema.json",
+  "title": "Formal Conjectures Contribution v0",
+  "type": "object",
+  "required": ["schema_version", "authority", "producer", "contribution", "gates"],
+  "properties": {
+    "schema_version": {"const": "fc-contribution/v0"},
+    "authority": {
+      "type": "object",
+      "required": ["repository", "revision", "target"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "producer": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "contribution": {
+      "type": "object",
+      "required": ["kind", "relationship", "artifact"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "relationship": {"type": "string", "minLength": 1},
+        "artifact": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "gates": {
+      "type": "object",
+      "required": ["mechanical_validity", "semantic_fidelity", "resolution_validity", "priority", "provenance"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "evidence"],
+        "properties": {
+          "status": {"enum": ["pass", "fail", "unresolved", "not_applicable"]},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["kind"],
+              "properties": {
+                "kind": {"type": "string", "minLength": 1},
+                "path": {"type": "string", "minLength": 1},
+                "url": {"type": "string", "minLength": 1},
+                "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+                "verifier": {"type": "string"}
+              },
+              "anyOf": [{"required": ["path"]}, {"required": ["url"]}],
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": "fc-contribution/v0",
+  "authority": {
+    "repository": "google-deepmind/formal-conjectures",
+    "revision": "0123456789abcdef",
+    "target": "FormalConjectures/Example.lean:example_target"
+  },
+  "producer": {"name": "example-agent", "type": "agent"},
+  "contribution": {
+    "kind": "formal_proof",
+    "relationship": "claims_to_resolve",
+    "artifact": "producer/ExampleProof.lean"
+  },
+  "gates": {
+    "mechanical_validity": {
+      "status": "pass",
+      "evidence": [{
+        "kind": "lean-verification-receipt",
+        "path": "examples/minimal/proof-receipt.txt",
+        "sha256": "0a468ba72705ffef6d54dc30e9b39122b78bf84279e2f015d202402e6a18d2f2",
+        "verifier": "fixture"
+      }]
+    },
+    "semantic_fidelity": {"status": "pass", "evidence": [{"kind": "advisory-review", "url": "https://example.invalid/fidelity"}]},
+    "resolution_validity": {"status": "pass", "evidence": [{"kind": "resolution-review", "url": "https://example.invalid/resolution"}]},
+    "priority": {"status": "unresolved", "evidence": []},
+    "provenance": {"status": "pass", "evidence": [{"kind": "git-provenance", "url": "https://example.invalid/commit"}]},
+    "dependency_impact": {"status": "unresolved", "evidence": []}
+  }
+}

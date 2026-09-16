@@ -79,12 +79,31 @@ deterministic coverage; the real controls above qualify their recorded revision.
 The latest clean macOS/Linux package check passed at `6a21960b2` in
 [34492315569](https://github.com/williamjblair/formal-conjectures/actions/runs/34492315569).
 
+## Harbor end-to-end qualification
+
+Recorded 16 September 2026. [35156959562](https://github.com/williamjblair/formal-conjectures/actions/runs/35156959562)
+at `8c3f82545f51a58d4fa9241e0cc72af61e93eed0` built the shipped solver and verifier
+recipes, pushed them to a registry inside the job and used their digests in a frozen
+suite. Harbor `191d1b98` ran four trials with separate verifier environments. Harbor's
+`nop` and `oracle` agents supplied the submissions; no model was called.
+
+The unfinished and imported-assumption trials were rejected at `axiom_policy` with
+reward 0. The valid proof was verified with reward 1. The filled answer hole passed
+formal checks and was retained as `assessment_required` with no reward. The
+[receipt](harbor-e2e-8c3f825.json) records image digests, the export manifest digest
+and every trial.
+
+Three earlier runs failed and were corrected. The first surfaced a toolchain lookup in
+the verifier recipe and the second a missing fixture path in the workflow. The third
+reached real grading, where the added filter also blocked `socketpair()`. Git's HTTPS resolver needs that call, so all four attempts were
+retained as unscored infrastructure errors. The filter now matches the systemd
+executor and blocks `socket()` only.
+
 ## Remaining acceptance
 
-A complete Harbor trial using qualified, digest-pinned solver and verifier images
-remains required. The exporter does not provision or publish arbitrary images.
-Until then the adapter remains experimental. Retain failures and missing rewards;
-do not interpret a parser check or a Linux socket probe as proof-verifier qualification.
+The Harbor adapter's recorded acceptance check has passed. A model-backed evaluation
+still needs its own retained trial manifest and registry-published images. Retain
+failures and missing rewards in any reported result.
 
 Current delivery: #5386 and #5387 are active drafts. #5386 includes Actions
 preparation and depends on #4899/#5375; #5387 also requires #5337 and Comparator #87.

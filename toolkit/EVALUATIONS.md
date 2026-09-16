@@ -115,6 +115,35 @@ force; Landrun and both kernels remain required. Missing tools, unsupported emul
 failed restrictions and mismatched revisions produce infrastructure errors. This is
 not a claim that an arbitrary supplied image has passed release qualification.
 
+## Qualified image recipes
+
+`eval-solver.Dockerfile` and `eval-verifier.Dockerfile` ship with the toolkit under
+`conjectures/resources`. Build both with an empty context. Every base image, tool
+revision and installer is a pinned argument; the verifier's tool pins must equal
+`conjectures.proof.PINS`, and it rechecks them at grading time. Push each image to a
+registry you control and use the resulting `@sha256` references in the suite.
+
+The recipes build `linux/amd64` images. The solver contains only the Lean toolchain;
+harness agents install their own clients. The verifier's AF_UNIX filter blocks
+`socket()` only, like the qualified systemd executor. An unnamed `socketpair()`
+reaches no existing endpoint, and Git's HTTPS resolver requires one.
+
+[Harbor qualification 35156959562](https://github.com/williamjblair/formal-conjectures/actions/runs/35156959562)
+built both recipes at `8c3f82545`, exported a two-case suite and ran four real Harbor
+trials with separate verifier environments. See [the receipt](qualification/harbor-e2e-8c3f825.json).
+No model was invoked: Harbor's `nop` and `oracle` agents supplied fixed submissions.
+
+| Trial | Retained status | Reward |
+| --- | --- | --- |
+| Unfinished placeholder | `rejected` (`disallowed_axiom`) | 0 |
+| Imports the source theorem | `rejected` (`disallowed_axiom`) | 0 |
+| Valid proof | `verified` | 1 |
+| Filled answer hole | `assessment_required` | None |
+
+Each verifier took about eight minutes, mostly dependency acquisition. This qualifies
+the recipes and grading contract at that revision. It is not an agent benchmark,
+and a model-backed run still needs its own retained trial records.
+
 | Retained status | Harbor reward | Meaning |
 | --- | --- | --- |
 | `verified` | 1 | Exact proof passed the configured formal checks |

@@ -2,6 +2,8 @@
 
 This only supplements Landrun. It never replaces the existing sandbox or kernels.
 The filter is inherited by children and cannot be removed after loading.
+Like systemd's RestrictAddressFamilies, it filters socket() only. An unnamed
+socketpair() reaches no existing endpoint, and curl's threaded resolver needs one.
 """
 import ctypes
 import ctypes.util
@@ -27,18 +29,16 @@ def restrict():
     context=lib.seccomp_init(0x7fff0000)  # ALLOW; existing container filters remain in force.
     if not context:raise Failure('unqualified_executor','Cannot allocate AF_UNIX filter.',3)
     try:
-        for syscall in (b'socket',b'socketpair'):
-            number=lib.seccomp_syscall_resolve_name(syscall)
-            comparison=Compare(0,4,socket.AF_UNIX,0)  # SCMP_CMP_EQ
-            if number<0 or lib.seccomp_rule_add_array(context,0x00050000|errno.EAFNOSUPPORT,number,1,ctypes.byref(comparison))<0:
-                raise Failure('unqualified_executor','Cannot configure AF_UNIX filter.',3)
+        number=lib.seccomp_syscall_resolve_name(b'socket')
+        comparison=Compare(0,4,socket.AF_UNIX,0)  # SCMP_CMP_EQ
+        if number<0 or lib.seccomp_rule_add_array(context,0x00050000|errno.EAFNOSUPPORT,number,1,ctypes.byref(comparison))<0:
+            raise Failure('unqualified_executor','Cannot configure AF_UNIX filter.',3)
         if lib.seccomp_load(context)<0:raise Failure('unqualified_executor','Cannot load AF_UNIX filter.',3)
     finally:lib.seccomp_release(context)
-    for create in (lambda:socket.socket(socket.AF_UNIX),socket.socketpair):
-        try:
-            sockets=create()
-        except OSError as error:
-            if error.errno not in (errno.EAFNOSUPPORT,errno.EPERM,errno.EACCES):raise
-        else:
-            for sock in sockets if isinstance(sockets,tuple) else (sockets,):sock.close()
-            raise Failure('unqualified_executor','AF_UNIX filter did not take effect.',3)
+    try:
+        sock=socket.socket(socket.AF_UNIX)
+    except OSError as error:
+        if error.errno not in (errno.EAFNOSUPPORT,errno.EPERM,errno.EACCES):raise
+    else:
+        sock.close()
+        raise Failure('unqualified_executor','AF_UNIX filter did not take effect.',3)

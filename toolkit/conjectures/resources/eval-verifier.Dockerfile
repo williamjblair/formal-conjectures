@@ -48,7 +48,8 @@ RUN for tool in "generator ${GENERATOR_REPOSITORY} ${GENERATOR_REV}" "comparator
         && git -C "/opt/fc-tools/$1" checkout --detach FETCH_HEAD \
         && (cd "/opt/fc-tools/$1" && lake --wfail build) || exit 1; \
     done \
-    && lake -d /opt/fc/comparator/verifier build lean4export/lean4export \
+    && cd /opt/fc/comparator/verifier && lake build lean4export/lean4export \
+    && elan default "$(cat /opt/fc/lean-toolchain)" \
     && rm -rf /home/fc/.cache
 WORKDIR /app
 CMD ["sleep", "infinity"]

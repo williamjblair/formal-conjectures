@@ -31,6 +31,7 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --use --name fc-eval
           owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           mkdir -p "$RUNNER_TEMP/context" "$RUNNER_TEMP/digests"
           pins="$(PYTHONPATH=toolkit python3 -c 'from conjectures.proof import PINS

@@ -1,0 +1,39 @@
+{
+  "schema_version": "fc.proof-suite-core.v1",
+  "source": {
+    "repository": "williamjblair/formal-conjectures",
+    "commit": "eee8f2ec741ac7772ba075fd8023e5716beb78c6"
+  },
+  "cases": [
+    {
+      "id": "p-subset-np",
+      "declaration": "ComplexityTheory.P_subset_NP",
+      "path": "FormalConjectures/Millenium/PvsNP.lean"
+    },
+    {
+      "id": "phi-dvd-self",
+      "declaration": "Erdos828.erdos_828.variants.phi_dvd_self_iff_pow2_pow3",
+      "path": "FormalConjectures/ErdosProblems/828.lean"
+    },
+    {
+      "id": "wolstenholme",
+      "declaration": "WolstenholmePrime.wolstenholme_theorem",
+      "path": "FormalConjectures/Wikipedia/WolstenholmePrime.lean"
+    },
+    {
+      "id": "integer-powers",
+      "declaration": "Mathoverflow17560.mathoverflow_17560.variants.all_nats",
+      "path": "FormalConjectures/Mathoverflow/17560.lean"
+    },
+    {
+      "id": "erdos-358-f-id",
+      "declaration": "Erdos358.f_id",
+      "path": "FormalConjectures/ErdosProblems/358.lean"
+    },
+    {
+      "id": "a87719-formula",
+      "declaration": "OeisA87719.a_formula",
+      "path": "FormalConjectures/OEIS/87719.lean"
+    }
+  ]
+}

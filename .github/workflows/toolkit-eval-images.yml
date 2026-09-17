@@ -5,6 +5,8 @@ on:
     branches: ['codex/fc-eval-images']
 permissions:
   contents: read
+env:
+  SUITE_CORE: toolkit/evals/fc-textbook-6.core.json
 jobs:
   build:
     if: github.repository == 'williamjblair/formal-conjectures'
@@ -17,15 +19,19 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 120
+    timeout-minutes: 300
     permissions:
       contents: read
       packages: write
     steps:
+      - name: Free runner disk for Lean images
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - name: Build and push by digest
+      - name: Build base and suite images and push by digest
         env:
           GH_TOKEN: ${{ github.token }}
           ARCH: ${{ matrix.arch }}
@@ -33,25 +39,32 @@ jobs:
           echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker buildx create --use --name fc-eval
           owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          mkdir -p "$RUNNER_TEMP/context" "$RUNNER_TEMP/digests"
+          mkdir -p "$RUNNER_TEMP/context" "$RUNNER_TEMP/suite" "$RUNNER_TEMP/digests"
+          cp "$SUITE_CORE" "$RUNNER_TEMP/suite/suite-core.json"
           pins="$(PYTHONPATH=toolkit python3 -c 'from conjectures.proof import PINS
           for name,(repo,rev) in PINS.items(): print(f"--build-arg {name.upper()}_REPOSITORY={repo} --build-arg {name.upper()}_REV={rev}")')"
           labels="--label org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY --label org.opencontainers.image.revision=$GITHUB_SHA"
-          for image in verifier solver; do
-            if [ "$image" = verifier ]; then
-              args="--build-arg FC_REPOSITORY=$GITHUB_REPOSITORY --build-arg FC_COMMIT=$GITHUB_SHA $pins"
-            else
-              args="--build-arg LEAN_TOOLCHAIN=$(cat lean-toolchain)"
-            fi
-            # shellcheck disable=SC2086
-            docker buildx build --platform "linux/$ARCH" $args $labels \
-              -f "toolkit/conjectures/resources/eval-$image.Dockerfile" \
-              --output "type=image,name=ghcr.io/$owner/fc-eval-$image,push-by-digest=true,name-canonical=true,push=true" \
-              --metadata-file "$RUNNER_TEMP/$image.json" "$RUNNER_TEMP/context"
-            python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['containerimage.digest'])" "$RUNNER_TEMP/$image.json" \
-              > "$RUNNER_TEMP/digests/$image-$ARCH"
-            cat "$RUNNER_TEMP/digests/$image-$ARCH"
-          done
+          push() { # name dockerfile context [args...]
+            name="$1"; file="$2"; context="$3"; shift 3
+            # shellcheck disable=SC2068
+            docker buildx build --platform "linux/$ARCH" $@ $labels -f "$file" \
+              --output "type=image,name=ghcr.io/$owner/$name,push-by-digest=true,name-canonical=true,push=true" \
+              --metadata-file "$RUNNER_TEMP/$name.json" "$context"
+            python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['containerimage.digest'])" "$RUNNER_TEMP/$name.json" \
+              > "$RUNNER_TEMP/digests/$name-$ARCH"
+            echo "$name $ARCH $(cat "$RUNNER_TEMP/digests/$name-$ARCH")"
+          }
+          # shellcheck disable=SC2086
+          push fc-eval-verifier toolkit/conjectures/resources/eval-verifier.Dockerfile "$RUNNER_TEMP/context" \
+            --build-arg "FC_REPOSITORY=$GITHUB_REPOSITORY" --build-arg "FC_COMMIT=$GITHUB_SHA" $pins
+          push fc-eval-solver toolkit/conjectures/resources/eval-solver.Dockerfile "$RUNNER_TEMP/context" \
+            --build-arg "LEAN_TOOLCHAIN=$(cat lean-toolchain)"
+          bases="--build-arg VERIFIER_BASE=ghcr.io/$owner/fc-eval-verifier@$(cat "$RUNNER_TEMP/digests/fc-eval-verifier-$ARCH") --build-arg SOLVER_BASE=ghcr.io/$owner/fc-eval-solver@$(cat "$RUNNER_TEMP/digests/fc-eval-solver-$ARCH")"
+          # shellcheck disable=SC2086
+          push fc-eval-suite-verifier toolkit/conjectures/resources/eval-suite.Dockerfile "$RUNNER_TEMP/suite" --target verifier $bases
+          # shellcheck disable=SC2086
+          push fc-eval-suite-solver toolkit/conjectures/resources/eval-suite.Dockerfile "$RUNNER_TEMP/suite" --target solver $bases
+          df -h /
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: digests-${{ matrix.arch }}
@@ -63,6 +76,9 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           pattern: digests-*
@@ -74,9 +90,10 @@ jobs:
         run: |
           echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          tag="toolkit-${GITHUB_SHA::12}"
-          for image in verifier solver; do
-            name="ghcr.io/$owner/fc-eval-$image"
+          core="$(PYTHONPATH=toolkit python3 -c 'import json,sys; from conjectures import eval_suite; print(eval_suite.core_digest(json.load(open(sys.argv[1])))[:12])' "$SUITE_CORE")"
+          for image in fc-eval-verifier fc-eval-solver fc-eval-suite-verifier fc-eval-suite-solver; do
+            case "$image" in fc-eval-suite-*) tag="core-$core-toolkit-${GITHUB_SHA::12}" ;; *) tag="toolkit-${GITHUB_SHA::12}" ;; esac
+            name="ghcr.io/$owner/$image"
             docker buildx imagetools create -t "$name:$tag" \
               "$name@$(cat "$RUNNER_TEMP/digests/$image-amd64")" "$name@$(cat "$RUNNER_TEMP/digests/$image-arm64")"
             digest="$(docker buildx imagetools inspect "$name:$tag" --format '{{json .Manifest}}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["digest"])')"

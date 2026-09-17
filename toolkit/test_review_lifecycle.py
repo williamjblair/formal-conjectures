@@ -45,7 +45,8 @@ class ReviewLifecycleTests(unittest.TestCase):
         self.assertTrue(Path(self.record['paths']['template']).is_file())
         self.assertFalse(any(name in __import__('sys').modules for name in ('conjectures.codex','conjectures.eval_workspace','mcp')))
     def test_complete_external_report_without_model_credentials(self):
-        with patch.dict(os.environ,{},clear=True):result=self.complete()
+        # Clear credentials, not the executable search path the freshness check uses.
+        with patch.dict(os.environ,{'PATH':os.environ.get('PATH','')},clear=True):result=self.complete()
         self.assertEqual(result['outcome'],'pass');self.assertEqual(result['status'],'completed')
         self.assertTrue(Path(result['report']).is_file())
         bundle=rr.read_json(self.directory/'bundle/report.json')

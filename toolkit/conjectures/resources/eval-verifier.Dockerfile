@@ -25,7 +25,8 @@ ARG GENERATOR_REV
 ARG COMPARATOR_REPOSITORY
 ARG COMPARATOR_REV
 ARG ELAN_VERSION=v4.2.4
-ARG ELAN_SHA256=42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+ARG ELAN_SHA256_AMD64=42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+ARG ELAN_SHA256_ARM64=05febd124d84ebf994b2e7479922a5650b1e950c17ae3bd1ddd776b65bb72bf9
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential ca-certificates curl git libseccomp2 python3 zstd \
     && rm -rf /var/lib/apt/lists/* \
@@ -33,8 +34,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p /opt/fc /opt/fc-tools /app && chown 1000:1000 /opt/fc /opt/fc-tools /app
 USER 1000:1000
 ENV HOME=/home/fc PATH=/home/fc/.elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-RUN curl -fsSL "https://github.com/leanprover/elan/releases/download/${ELAN_VERSION}/elan-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/elan.tar.gz \
-    && echo "${ELAN_SHA256}  /tmp/elan.tar.gz" | sha256sum -c - \
+RUN case "$(dpkg --print-architecture)" in \
+      amd64) triple=x86_64; sha="${ELAN_SHA256_AMD64}" ;; \
+      arm64) triple=aarch64; sha="${ELAN_SHA256_ARM64}" ;; \
+      *) echo "Unsupported architecture" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/leanprover/elan/releases/download/${ELAN_VERSION}/elan-${triple}-unknown-linux-gnu.tar.gz" -o /tmp/elan.tar.gz \
+    && echo "${sha}  /tmp/elan.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/elan.tar.gz -C /tmp && /tmp/elan-init -y --no-modify-path --default-toolchain none \
     && rm -f /tmp/elan.tar.gz /tmp/elan-init
 RUN git init /opt/fc && git -C /opt/fc fetch --depth 1 "https://github.com/${FC_REPOSITORY}.git" "${FC_COMMIT}" \

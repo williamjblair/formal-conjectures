@@ -123,7 +123,7 @@ revision and installer is a pinned argument; the verifier's tool pins must equal
 `conjectures.proof.PINS`, and it rechecks them at grading time. Push each image to a
 registry you control and use the resulting `@sha256` references in the suite.
 
-The recipes build `linux/amd64` images. The solver contains only the Lean toolchain;
+The recipes build `linux/amd64` and `linux/arm64` images; build each natively, because the verifier's AF_UNIX filter cannot load under emulation. The solver contains only the Lean toolchain;
 harness agents install their own clients. The verifier's AF_UNIX filter blocks
 `socket()` only, like the qualified systemd executor. An unnamed `socketpair()`
 reaches no existing endpoint, and Git's HTTPS resolver requires one.

@@ -1,0 +1,87 @@
+name: Toolkit evaluation images
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/fc-eval-images']
+permissions:
+  contents: read
+jobs:
+  build:
+    if: github.repository == 'williamjblair/formal-conjectures'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build and push by digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          mkdir -p "$RUNNER_TEMP/context" "$RUNNER_TEMP/digests"
+          pins="$(PYTHONPATH=toolkit python3 -c 'from conjectures.proof import PINS
+          for name,(repo,rev) in PINS.items(): print(f"--build-arg {name.upper()}_REPOSITORY={repo} --build-arg {name.upper()}_REV={rev}")')"
+          labels="--label org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY --label org.opencontainers.image.revision=$GITHUB_SHA"
+          for image in verifier solver; do
+            if [ "$image" = verifier ]; then
+              args="--build-arg FC_REPOSITORY=$GITHUB_REPOSITORY --build-arg FC_COMMIT=$GITHUB_SHA $pins"
+            else
+              args="--build-arg LEAN_TOOLCHAIN=$(cat lean-toolchain)"
+            fi
+            # shellcheck disable=SC2086
+            docker buildx build --platform "linux/$ARCH" $args $labels \
+              -f "toolkit/conjectures/resources/eval-$image.Dockerfile" \
+              --output "type=image,name=ghcr.io/$owner/fc-eval-$image,push-by-digest=true,name-canonical=true,push=true" \
+              --metadata-file "$RUNNER_TEMP/$image.json" "$RUNNER_TEMP/context"
+            python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['containerimage.digest'])" "$RUNNER_TEMP/$image.json" \
+              > "$RUNNER_TEMP/digests/$image-$ARCH"
+            cat "$RUNNER_TEMP/digests/$image-$ARCH"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: digests-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/digests
+      - name: Create multi-architecture images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          tag="toolkit-${GITHUB_SHA::12}"
+          for image in verifier solver; do
+            name="ghcr.io/$owner/fc-eval-$image"
+            docker buildx imagetools create -t "$name:$tag" \
+              "$name@$(cat "$RUNNER_TEMP/digests/$image-amd64")" "$name@$(cat "$RUNNER_TEMP/digests/$image-arm64")"
+            digest="$(docker buildx imagetools inspect "$name:$tag" --format '{{json .Manifest}}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["digest"])')"
+            echo "$image $name@$digest" | tee -a "$GITHUB_STEP_SUMMARY" "$RUNNER_TEMP/published.txt"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: published-images
+          path: ${{ runner.temp }}/published.txt
